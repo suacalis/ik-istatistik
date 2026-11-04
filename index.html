@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>İK'cılar İçin İstatistik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+:root{--bg:#fbfaf7;--surface:#ffffff;--sunk:#f1efe9;--line:#e2ddd2;--fg:#1f2328;--muted:#5d6470;
+  --c1:#2f6fb5;--c2:#d9822b;--c3:#3f9a5c;--c4:#8a4fb0;--c5:#c2453d;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;--f-body:"Literata",Georgia,serif;--f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--surface:#1b1f26;--sunk:#222731;--line:#323946;--fg:#e7e9ed;--muted:#a3abb8;
+  --c1:#6ea8ea;--c2:#f0a253;--c3:#6cc287;--c4:#b789d8;--c5:#ec7a70;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14171c;--surface:#1b1f26;--sunk:#222731;--line:#323946;--fg:#e7e9ed;--muted:#a3abb8;
+  --c1:#6ea8ea;--c2:#f0a253;--c3:#6cc287;--c4:#b789d8;--c5:#ec7a70;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.6}
+.wrap{max-width:1180px;margin:0 auto;padding:0 max(16px,env(safe-area-inset-right,0px)) 64px max(16px,env(safe-area-inset-left,0px))}
+header{padding:48px 0 28px;border-bottom:1px solid var(--line);margin-bottom:24px}
+.stripe{display:flex;gap:6px;margin-bottom:18px}.stripe span{width:28px;height:8px;border-radius:4px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:0 0 12px;letter-spacing:-.01em;text-wrap:balance}
+.lede{color:var(--muted);max-width:66ch;margin:0}
+.sum{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.sum span{font-family:var(--f-mono);font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.sum b{color:var(--fg)}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+.bar input{flex:1 1 280px;min-width:0;font-family:var(--f-mono);font-size:.95rem;padding:10px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg)}
+.bar input:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+#cnt{font-family:var(--f-mono);font-size:.8rem;color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px}
+@media (max-width:400px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--kc);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card[hidden]{display:none}
+.top{display:flex;justify-content:space-between;align-items:baseline}
+.num{font-family:var(--f-display);font-weight:700;font-size:1.6rem;color:var(--kc)}
+.pg{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.card h2{font-family:var(--f-display);font-weight:700;font-size:1.25rem;line-height:1.2;margin:0}
+.card h2 a{color:var(--fg);text-decoration:none}.card h2 a:hover{color:var(--kc)}
+.card p{margin:0;font-size:.93rem;color:var(--muted)}
+.meta{display:flex;flex-wrap:wrap;gap:6px}
+.meta span{font-family:var(--f-display);font-size:.75rem;padding:2px 9px;border-radius:999px;background:var(--sunk)}
+details{font-size:.9rem}
+summary{cursor:pointer;font-family:var(--f-display);color:var(--muted)}
+details ol{margin:6px 0 0;padding-left:22px;columns:2;column-gap:18px}
+@media (max-width:400px){details ol{columns:1}}
+details li{break-inside:avoid}
+details a{color:var(--fg);text-decoration:none;border-bottom:1px dotted var(--line)}details a:hover{color:var(--kc)}
+mark{background:color-mix(in srgb,var(--c2) 35%,transparent);color:inherit;border-radius:3px}
+.go{margin-top:auto;align-self:flex-start;font-family:var(--f-display);font-weight:500;text-decoration:none;color:#fff;background:var(--kc);padding:7px 14px;border-radius:8px;font-size:.9rem}
+:root[data-theme="dark"] .go{color:#14171c}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .go{color:#14171c}}
+footer{border-top:1px solid var(--line);margin-top:32px;padding-top:20px;color:var(--muted);font-size:.88rem}
+footer a{color:var(--c1)}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="stripe" aria-hidden="true"><span style="background:var(--c1)"></span><span style="background:var(--c2)"></span><span style="background:var(--c3)"></span><span style="background:var(--c4)"></span><span style="background:var(--c5)"></span></div>
+  <h1>İK'cılar İçin İstatistik</h1>
+  <p class="lede">Bütün örnekler insan kaynakları alanından; Python kodları tarayıcıda Pyodide ile çalışır, kitaptaki hesap ve kod hataları her sayfada not olarak düzeltilmiştir.</p>
+  <div class="sum"><span><b>10</b> sayfa</span><span><b>118</b> konu</span><span><b>110</b> Python hücresi</span><span><b>42</b> etkileşimli araç</span></div>
+</header>
+<div class="bar">
+  <input id="q" type="search" placeholder="Konu ara: ör. ANOVA, Kaplan-Meier, Cronbach, Poisson…" aria-label="Konu ara">
+  <span id="cnt" role="status"></span>
+</div>
+<main class="grid" id="grid">
+<article class="card" style="--kc:var(--c1)" data-k="renkli i̇statistik ve python hipotez ve hipotez testi, tip i/ii hata, merkezi eğilim ve açıklık ölçüleri; ücret, devamsızlık ve performans verisiyle. hipotez hipotez testi frekans örneklem ve evren tip i ve tip ii hata merkezi eğilim ve açıklık geometrik ortalama genel ortalama harmonik ortalama ortalama sapma ortalama farkı karesel ortalama (rms) örneklem ve evren ortalaması">
+  <div class="top"><span class="num">01</span><span class="pg">s. 14–33</span></div>
+  <h2><a href="renkli_istatistik_python.html">Renkli İstatistik ve Python</a></h2>
+  <p>Hipotez ve hipotez testi, Tip I/II hata, merkezi eğilim ve açıklık ölçüleri; ücret, devamsızlık ve performans verisiyle.</p>
+  <div class="meta"><span>13 konu</span><span>11 Python hücresi</span><span>4 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python.html#hipotez">Hipotez</a></li><li><a href="renkli_istatistik_python.html#test">Hipotez testi</a></li><li><a href="renkli_istatistik_python.html#frekans">Frekans</a></li><li><a href="renkli_istatistik_python.html#orneklem">Örneklem ve evren</a></li><li><a href="renkli_istatistik_python.html#hata">Tip I ve Tip II hata</a></li><li><a href="renkli_istatistik_python.html#merkez">Merkezi eğilim ve açıklık</a></li><li><a href="renkli_istatistik_python.html#geometrik">Geometrik ortalama</a></li><li><a href="renkli_istatistik_python.html#genel">Genel ortalama</a></li><li><a href="renkli_istatistik_python.html#harmonik">Harmonik ortalama</a></li><li><a href="renkli_istatistik_python.html#sapma">Ortalama sapma</a></li><li><a href="renkli_istatistik_python.html#fark">Ortalama farkı</a></li><li><a href="renkli_istatistik_python.html#rms">Karesel ortalama (RMS)</a></li><li><a href="renkli_istatistik_python.html#xbar">Örneklem ve evren ortalaması</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python.html">Sayfayı aç →</a>
+</article>
+<article class="card" style="--kc:var(--c2)" data-k="veri toplama ve örnekleme veri türleri, veri toplama ve örnekleme yöntemleri; çalışan anketleri için örneklem planı ve büyüklüğü. veri türleri veri toplama örnekleme planı örnekleme yöntemleri örneklem büyüklüğü basit rastgele örnekleme sistematik örnekleme küme örneklemesi tabakalı örnekleme">
+  <div class="top"><span class="num">02</span><span class="pg">s. 34–42</span></div>
+  <h2><a href="renkli_istatistik_python_2.html">Veri Toplama ve Örnekleme</a></h2>
+  <p>Veri türleri, veri toplama ve örnekleme yöntemleri; çalışan anketleri için örneklem planı ve büyüklüğü.</p>
+  <div class="meta"><span>9 konu</span><span>6 Python hücresi</span><span>3 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python_2.html#turler">Veri türleri</a></li><li><a href="renkli_istatistik_python_2.html#toplama">Veri toplama</a></li><li><a href="renkli_istatistik_python_2.html#plan">Örnekleme planı</a></li><li><a href="renkli_istatistik_python_2.html#yontemler">Örnekleme yöntemleri</a></li><li><a href="renkli_istatistik_python_2.html#buyukluk">Örneklem büyüklüğü</a></li><li><a href="renkli_istatistik_python_2.html#basit">Basit rastgele örnekleme</a></li><li><a href="renkli_istatistik_python_2.html#sistematik">Sistematik örnekleme</a></li><li><a href="renkli_istatistik_python_2.html#kume">Küme örneklemesi</a></li><li><a href="renkli_istatistik_python_2.html#tabakali">Tabakalı örnekleme</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python_2.html">Sayfayı aç →</a>
+</article>
+<article class="card" style="--kc:var(--c3)" data-k="grafikler ve çizimler sütun, pasta, saçılım, pareto, histogram ve kutu grafikleri; işe alım, ayrılma ve ücret verileriyle. sütun grafiği pasta grafiği saçılım ve kabarcık i̇lişki örüntüleri nokta grafiği matris grafiği pareto grafiği histogram gövde-yaprak kutu grafiği">
+  <div class="top"><span class="num">03</span><span class="pg">s. 43–71</span></div>
+  <h2><a href="renkli_istatistik_python_3.html">Grafikler ve Çizimler</a></h2>
+  <p>Sütun, pasta, saçılım, Pareto, histogram ve kutu grafikleri; işe alım, ayrılma ve ücret verileriyle.</p>
+  <div class="meta"><span>10 konu</span><span>10 Python hücresi</span><span>3 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python_3.html#sutun">Sütun grafiği</a></li><li><a href="renkli_istatistik_python_3.html#pasta">Pasta grafiği</a></li><li><a href="renkli_istatistik_python_3.html#sacilim">Saçılım ve kabarcık</a></li><li><a href="renkli_istatistik_python_3.html#oruntu">İlişki örüntüleri</a></li><li><a href="renkli_istatistik_python_3.html#nokta">Nokta grafiği</a></li><li><a href="renkli_istatistik_python_3.html#matris">Matris grafiği</a></li><li><a href="renkli_istatistik_python_3.html#pareto">Pareto grafiği</a></li><li><a href="renkli_istatistik_python_3.html#histogram">Histogram</a></li><li><a href="renkli_istatistik_python_3.html#govde">Gövde-yaprak</a></li><li><a href="renkli_istatistik_python_3.html#kutu">Kutu grafiği</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python_3.html">Sayfayı aç →</a>
+</article>
+<article class="card" style="--kc:var(--c4)" data-k="dağılım, olasılık ve güvenirlik aykırı değer, yüzdelikler, standart sapma, olasılık kuralları, bayes, kappa ve cronbach alfa; değerlendirme ve anket güvenirliği. aykırı değer çeyrek, ondalık, yüzdelik standart sapma ve varyans açıklık kuralı olasılık kuralları bayes teoremi güvenirlik ve kappa cronbach alfa değişim katsayısı chebyshev teoremi">
+  <div class="top"><span class="num">04</span><span class="pg">s. 72–102</span></div>
+  <h2><a href="renkli_istatistik_python_4.html">Dağılım, Olasılık ve Güvenirlik</a></h2>
+  <p>Aykırı değer, yüzdelikler, standart sapma, olasılık kuralları, Bayes, kappa ve Cronbach alfa; değerlendirme ve anket güvenirliği.</p>
+  <div class="meta"><span>10 konu</span><span>10 Python hücresi</span><span>4 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python_4.html#aykiri">Aykırı değer</a></li><li><a href="renkli_istatistik_python_4.html#ceyrek">Çeyrek, ondalık, yüzdelik</a></li><li><a href="renkli_istatistik_python_4.html#varyans">Standart sapma ve varyans</a></li><li><a href="renkli_istatistik_python_4.html#aciklik">Açıklık kuralı</a></li><li><a href="renkli_istatistik_python_4.html#olasilik">Olasılık kuralları</a></li><li><a href="renkli_istatistik_python_4.html#bayes">Bayes teoremi</a></li><li><a href="renkli_istatistik_python_4.html#kappa">Güvenirlik ve kappa</a></li><li><a href="renkli_istatistik_python_4.html#alfa">Cronbach alfa</a></li><li><a href="renkli_istatistik_python_4.html#cv">Değişim katsayısı</a></li><li><a href="renkli_istatistik_python_4.html#cheb">Chebyshev teoremi</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python_4.html">Sayfayı aç →</a>
+</article>
+<article class="card" style="--kc:var(--c5)" data-k="normal dağılım ve aralıklar faktöriyel, z puanları, tahmin ve tolerans aralıkları, çarpıklık ve basıklık; ücret bantları ve performans dağılımı. faktöriyel dağılım ve standartlaştırma tahmin aralığı tolerans aralığı dağılım parametreleri çarpıklık ve basıklık olasılık fonksiyonları">
+  <div class="top"><span class="num">05</span><span class="pg">s. 103–131</span></div>
+  <h2><a href="renkli_istatistik_python_5.html">Normal Dağılım ve Aralıklar</a></h2>
+  <p>Faktöriyel, z puanları, tahmin ve tolerans aralıkları, çarpıklık ve basıklık; ücret bantları ve performans dağılımı.</p>
+  <div class="meta"><span>7 konu</span><span>6 Python hücresi</span><span>3 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python_5.html#faktoriyel">Faktöriyel</a></li><li><a href="renkli_istatistik_python_5.html#normal">Dağılım ve standartlaştırma</a></li><li><a href="renkli_istatistik_python_5.html#tahmin">Tahmin aralığı</a></li><li><a href="renkli_istatistik_python_5.html#tolerans">Tolerans aralığı</a></li><li><a href="renkli_istatistik_python_5.html#parametre">Dağılım parametreleri</a></li><li><a href="renkli_istatistik_python_5.html#carpiklik">Çarpıklık ve basıklık</a></li><li><a href="renkli_istatistik_python_5.html#fonksiyon">Olasılık fonksiyonları</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python_5.html">Sayfayı aç →</a>
+</article>
+<article class="card" style="--kc:var(--c1)" data-k="olasılık dağılımları ve kestirim binomdan laplace&#x27;a 17 olasılık dağılımı, anlamlılık ve kestirim; işe alım, kaza ve devamsızlık modelleri. dağılım gezgini binom kümülatif poisson poisson negatif binom hipergeometrik geometrik ki-kare sürekli tekdüze üstel normal beta f gamma gumbel ters gamma log-gamma laplace anlamlılık ve güven i̇statistiksel kestirim">
+  <div class="top"><span class="num">06</span><span class="pg">s. 132–189</span></div>
+  <h2><a href="renkli_istatistik_python_6.html">Olasılık Dağılımları ve Kestirim</a></h2>
+  <p>Binomdan Laplace&#x27;a 17 olasılık dağılımı, anlamlılık ve kestirim; işe alım, kaza ve devamsızlık modelleri.</p>
+  <div class="meta"><span>20 konu</span><span>19 Python hücresi</span><span>3 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python_6.html#gezgin">Dağılım gezgini</a></li><li><a href="renkli_istatistik_python_6.html#binom">Binom</a></li><li><a href="renkli_istatistik_python_6.html#kpoisson">Kümülatif Poisson</a></li><li><a href="renkli_istatistik_python_6.html#poisson">Poisson</a></li><li><a href="renkli_istatistik_python_6.html#nbinom">Negatif binom</a></li><li><a href="renkli_istatistik_python_6.html#hiper">Hipergeometrik</a></li><li><a href="renkli_istatistik_python_6.html#geom">Geometrik</a></li><li><a href="renkli_istatistik_python_6.html#kikare">Ki-kare</a></li><li><a href="renkli_istatistik_python_6.html#uniform">Sürekli tekdüze</a></li><li><a href="renkli_istatistik_python_6.html#ustel">Üstel</a></li><li><a href="renkli_istatistik_python_6.html#normal">Normal</a></li><li><a href="renkli_istatistik_python_6.html#beta">Beta</a></li><li><a href="renkli_istatistik_python_6.html#fdag">F</a></li><li><a href="renkli_istatistik_python_6.html#gamma">Gamma</a></li><li><a href="renkli_istatistik_python_6.html#gumbel">Gumbel</a></li><li><a href="renkli_istatistik_python_6.html#tgamma">Ters gamma</a></li><li><a href="renkli_istatistik_python_6.html#lgamma">Log-gamma</a></li><li><a href="renkli_istatistik_python_6.html#laplace">Laplace</a></li><li><a href="renkli_istatistik_python_6.html#anlam">Anlamlılık ve güven</a></li><li><a href="renkli_istatistik_python_6.html#kestirim">İstatistiksel kestirim</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python_6.html">Sayfayı aç →</a>
+</article>
+<article class="card" style="--kc:var(--c2)" data-k="parametrik olmayan testler merkezi limit teoremi, test seçici ve parametrik olmayan testler (ki-kare, mcnemar, mann-whitney, wilcoxon, kruskal-wallis, friedman). korelasyon merkezi limit teoremi ortalamanın standart hatası anlamlılık, tek ve çift kuyruk serbestlik derecesi test seçici mood ortanca testi ki-kare ve uyum iyiliği mcnemar testi kolmogorov-smirnov mann-whitney u i̇şaret testi wilcoxon işaretli sıralar kruskal-wallis friedman testi">
+  <div class="top"><span class="num">07</span><span class="pg">s. 190–255</span></div>
+  <h2><a href="renkli_istatistik_python_7.html">Parametrik Olmayan Testler</a></h2>
+  <p>Merkezi limit teoremi, test seçici ve parametrik olmayan testler (ki-kare, McNemar, Mann-Whitney, Wilcoxon, Kruskal-Wallis, Friedman).</p>
+  <div class="meta"><span>15 konu</span><span>11 Python hücresi</span><span>5 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python_7.html#korelasyon">Korelasyon</a></li><li><a href="renkli_istatistik_python_7.html#mlt">Merkezi limit teoremi</a></li><li><a href="renkli_istatistik_python_7.html#sh">Ortalamanın standart hatası</a></li><li><a href="renkli_istatistik_python_7.html#anlamlilik">Anlamlılık, tek ve çift kuyruk</a></li><li><a href="renkli_istatistik_python_7.html#sd">Serbestlik derecesi</a></li><li><a href="renkli_istatistik_python_7.html#secici">Test seçici</a></li><li><a href="renkli_istatistik_python_7.html#mood">Mood ortanca testi</a></li><li><a href="renkli_istatistik_python_7.html#kikare">Ki-kare ve uyum iyiliği</a></li><li><a href="renkli_istatistik_python_7.html#mcnemar">McNemar testi</a></li><li><a href="renkli_istatistik_python_7.html#ks">Kolmogorov-Smirnov</a></li><li><a href="renkli_istatistik_python_7.html#mwu">Mann-Whitney U</a></li><li><a href="renkli_istatistik_python_7.html#isaret">İşaret testi</a></li><li><a href="renkli_istatistik_python_7.html#wilcoxon">Wilcoxon işaretli sıralar</a></li><li><a href="renkli_istatistik_python_7.html#kw">Kruskal-Wallis</a></li><li><a href="renkli_istatistik_python_7.html#friedman">Friedman testi</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python_7.html">Sayfayı aç →</a>
+</article>
+<article class="card" style="--kc:var(--c3)" data-k="t testleri ve varyans analizi tek örneklem, bağımsız ve eşleştirilmiş t testleri; tek ve iki yönlü anova, manova; eğitim ve oryantasyon programlarının etkisi. tek örneklem t testi bağımsız örneklemler t testi eşleştirilmiş t testi t testi hesaplayıcısı anova&#x27;ya genel bakış kareler toplamı artık kareler toplamı tek yönlü anova anova hesaplayıcısı i̇ki yönlü anova anova türleri manova">
+  <div class="top"><span class="num">08</span><span class="pg">s. 256–300</span></div>
+  <h2><a href="renkli_istatistik_python_8.html">t Testleri ve Varyans Analizi</a></h2>
+  <p>Tek örneklem, bağımsız ve eşleştirilmiş t testleri; tek ve iki yönlü ANOVA, MANOVA; eğitim ve oryantasyon programlarının etkisi.</p>
+  <div class="meta"><span>12 konu</span><span>14 Python hücresi</span><span>4 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python_8.html#tek">Tek örneklem t testi</a></li><li><a href="renkli_istatistik_python_8.html#bagimsiz">Bağımsız örneklemler t testi</a></li><li><a href="renkli_istatistik_python_8.html#esli">Eşleştirilmiş t testi</a></li><li><a href="renkli_istatistik_python_8.html#thesap">t testi hesaplayıcısı</a></li><li><a href="renkli_istatistik_python_8.html#anova">ANOVA&#x27;ya genel bakış</a></li><li><a href="renkli_istatistik_python_8.html#kt">Kareler toplamı</a></li><li><a href="renkli_istatistik_python_8.html#rss">Artık kareler toplamı</a></li><li><a href="renkli_istatistik_python_8.html#tekyonlu">Tek yönlü ANOVA</a></li><li><a href="renkli_istatistik_python_8.html#ahesap">ANOVA hesaplayıcısı</a></li><li><a href="renkli_istatistik_python_8.html#ikiyonlu">İki yönlü ANOVA</a></li><li><a href="renkli_istatistik_python_8.html#turler">ANOVA türleri</a></li><li><a href="renkli_istatistik_python_8.html#manova">MANOVA</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python_8.html">Sayfayı aç →</a>
+</article>
+<article class="card" style="--kc:var(--c4)" data-k="çok değişkenli yöntemler, regresyon ve sağkalım faktör, yol ve yapısal eşitlik modelleri, etki büyüklüğü, odds oranı, regresyon, hisse opsiyonu değerlemesi, kaplan-meier ile elde tutma. manova ortalamaları faktör analizi yol analizi yapısal eşitlik modeli etki büyüklüğü odds oranı ve mantel-haenszel korelasyon katsayısı r² ve düzeltilmiş r² basit doğrusal regresyon lojistik regresyon black-scholes ve hisse opsiyonu kombinasyon ve permütasyon sağkalım ve kaplan-meier">
+  <div class="top"><span class="num">09</span><span class="pg">s. 301–340</span></div>
+  <h2><a href="renkli_istatistik_python_9.html">Çok Değişkenli Yöntemler, Regresyon ve Sağkalım</a></h2>
+  <p>Faktör, yol ve yapısal eşitlik modelleri, etki büyüklüğü, odds oranı, regresyon, hisse opsiyonu değerlemesi, Kaplan-Meier ile elde tutma.</p>
+  <div class="meta"><span>13 konu</span><span>14 Python hücresi</span><span>7 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python_9.html#manova">MANOVA ortalamaları</a></li><li><a href="renkli_istatistik_python_9.html#faktor">Faktör analizi</a></li><li><a href="renkli_istatistik_python_9.html#yol">Yol analizi</a></li><li><a href="renkli_istatistik_python_9.html#yem">Yapısal eşitlik modeli</a></li><li><a href="renkli_istatistik_python_9.html#etki">Etki büyüklüğü</a></li><li><a href="renkli_istatistik_python_9.html#or">Odds oranı ve Mantel-Haenszel</a></li><li><a href="renkli_istatistik_python_9.html#korelasyon">Korelasyon katsayısı</a></li><li><a href="renkli_istatistik_python_9.html#r2">R² ve düzeltilmiş R²</a></li><li><a href="renkli_istatistik_python_9.html#regresyon">Basit doğrusal regresyon</a></li><li><a href="renkli_istatistik_python_9.html#lojistik">Lojistik regresyon</a></li><li><a href="renkli_istatistik_python_9.html#bs">Black-Scholes ve hisse opsiyonu</a></li><li><a href="renkli_istatistik_python_9.html#kombin">Kombinasyon ve permütasyon</a></li><li><a href="renkli_istatistik_python_9.html#sagkalim">Sağkalım ve Kaplan-Meier</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python_9.html">Sayfayı aç →</a>
+</article>
+<article class="card" style="--kc:var(--c5)" data-k="ek konular: dağılımlardan meta-analize normal olmayan dağılımlar, zaman serileri, monte carlo ile ayrılma maliyeti, yoğunluk kestirimi, karar ağacı ve meta-analiz. normal olmayan dağılımlar doğada dairesel permütasyon zaman serileri monte carlo simülasyonu yoğunluk kestirimi karar ağacı test seçme ağacı meta-analiz araştırmalarda istatistik teknikleri">
+  <div class="top"><span class="num">10</span><span class="pg">s. 341–356</span></div>
+  <h2><a href="renkli_istatistik_python_10.html">Ek Konular: Dağılımlardan Meta-analize</a></h2>
+  <p>Normal olmayan dağılımlar, zaman serileri, Monte Carlo ile ayrılma maliyeti, yoğunluk kestirimi, karar ağacı ve meta-analiz.</p>
+  <div class="meta"><span>9 konu</span><span>9 Python hücresi</span><span>6 etkileşimli araç</span></div>
+  <details><summary>Konular</summary><ol><li><a href="renkli_istatistik_python_10.html#dagilim">Normal olmayan dağılımlar</a></li><li><a href="renkli_istatistik_python_10.html#dairesel">Doğada dairesel permütasyon</a></li><li><a href="renkli_istatistik_python_10.html#zaman">Zaman serileri</a></li><li><a href="renkli_istatistik_python_10.html#montecarlo">Monte Carlo simülasyonu</a></li><li><a href="renkli_istatistik_python_10.html#yogunluk">Yoğunluk kestirimi</a></li><li><a href="renkli_istatistik_python_10.html#agac">Karar ağacı</a></li><li><a href="renkli_istatistik_python_10.html#testagaci">Test seçme ağacı</a></li><li><a href="renkli_istatistik_python_10.html#meta">Meta-analiz</a></li><li><a href="renkli_istatistik_python_10.html#teknikler">Araştırmalarda istatistik teknikleri</a></li></ol></details>
+  <a class="go" href="renkli_istatistik_python_10.html">Sayfayı aç →</a>
+</article>
+</main>
+<footer>Kaynak: Usman Zafar Paracha, <em>Colorful Statistics and Python Programming Language</em>. Kavram anlatımları kitaptan çevrilmiş, örnekler insan kaynakları bağlamına uyarlanmış, kodlar güncel scipy, statsmodels ve scikit-learn sürümlerine göre düzeltilmiştir. Örnek veriler eğitim amaçlı ve kurgusaldır. Sayfaların bu dosyayla aynı klasörde durması gerekir; Python hücreleri internet bağlantısı ister (<a href="https://pyodide.org">Pyodide</a>).</footer>
+</div>
+<script>
+const q = document.getElementById('q'), cards = [...document.querySelectorAll('.card')], cnt = document.getElementById('cnt');
+const norm = s => s.toLocaleLowerCase('tr-TR');
+const orig = new Map(cards.map(c => [c, c.querySelector('details ol').innerHTML]));
+function filt(){
+  const v = norm(q.value.trim()); let n = 0;
+  cards.forEach(c => {
+    const ol = c.querySelector('details ol'), det = c.querySelector('details');
+    ol.innerHTML = orig.get(c);
+    const hit = !v || norm(c.dataset.k).includes(v) || norm(c.textContent).includes(v);
+    c.hidden = !hit; if (hit) n++;
+    if (v && hit){
+      let any = false;
+      ol.querySelectorAll('a').forEach(a => { const t = a.textContent, i = norm(t).indexOf(v);
+        if (i > -1){ any = true; a.innerHTML = t.slice(0, i).replace(/&/g,'&amp;').replace(/</g,'&lt;') + '<mark>' + t.slice(i, i + v.length).replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</mark>' + t.slice(i + v.length).replace(/&/g,'&amp;').replace(/</g,'&lt;'); } });
+      det.open = any;
+    } else det.open = false;
+  });
+  cnt.textContent = v ? `${n} sayfa eşleşti` : '';
+}
+q.addEventListener('input', filt);
+</script>
+</body>
+</html>

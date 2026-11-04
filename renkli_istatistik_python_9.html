@@ -1,0 +1,1072 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Çok Değişkenli Yöntemler ve Regresyon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Düzen: solda yapışkan içindekiler, sağda okunur sütun; temel kavramlar → test seçici → her test = adımlar + İK vakası + Python hücresi */
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --sunk:#f1efe9; --line:#e2ddd2;
+  --fg:#1f2328; --muted:#5d6470;
+  --c1:#2f6fb5; --c2:#d9822b; --c3:#3f9a5c; --c4:#8a4fb0; --c5:#c2453d;
+  --code-bg:#f6f4ef; --code-fg:#24292f; --out-bg:#0f1720; --out-fg:#d6e2ee;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Literata",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:240px minmax(0,1fr);gap:48px}
+@media (max-width:880px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}}
+
+header.hero{grid-column:1/-1;padding-block:48px 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.stripe{display:flex;gap:6px;margin-bottom:18px}
+.stripe span{width:28px;height:8px;border-radius:4px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:62ch;margin:0}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-family:var(--f-mono);font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--c2);display:inline-block}
+.status.ready i{background:var(--c3)} .status.err i{background:var(--c5)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:28px;max-height:100vh;overflow:auto}
+nav.toc h2{font-family:var(--f-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
+nav.toc h3{font-family:var(--f-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:12px 0 4px 8px;font-weight:500}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:1px}
+nav.toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--fg);font-family:var(--f-display);font-size:.9rem;padding:3px 8px;border-radius:6px}
+nav.toc a small{font-family:var(--f-mono);color:var(--muted);font-size:.7rem;min-width:22px}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sunk);outline:none}
+@media (max-width:880px){nav.toc{position:static;max-height:none;padding-top:20px}
+  nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
+
+main{min-width:0}
+section{padding-block:32px 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.kicker{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.04em}
+.kicker .kind{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-family:var(--f-display);font-size:.7rem;background:var(--sunk)}
+h2.sec{font-family:var(--f-display);font-weight:700;font-size:1.65rem;margin:4px 0 12px;text-wrap:balance;display:flex;align-items:center;gap:12px}
+h2.sec::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--dot,var(--c1));flex:none}
+h3{font-family:var(--f-display);font-weight:500;font-size:1.12rem;margin:24px 0 8px}
+p{max-width:68ch;margin:0 0 14px}
+ul.pl{max-width:68ch;margin:0 0 14px;padding-left:22px}
+.muted{color:var(--muted)}
+code.i{font-family:var(--f-mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+
+.formula{font-family:var(--f-mono);font-size:.95rem;background:var(--sunk);border-radius:10px;padding:12px 18px;margin:12px 0;overflow-x:auto;white-space:nowrap}
+.formula b{color:var(--dot,var(--c1))}
+.note{border-left:4px solid var(--c2);background:var(--sunk);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.94rem}
+.note strong{font-family:var(--f-display)}
+.warn{border-left-color:var(--c5)}
+.case{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dot,var(--c1));padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0;max-width:72ch;font-size:.95rem}
+.case .tag{font-family:var(--f-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dot,var(--c1));display:block;margin-bottom:4px}
+.assume{border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:12px 0;max-width:72ch;font-size:.92rem}
+.assume b{font-family:var(--f-display);display:block;margin-bottom:2px}
+.assume ul{margin:0;padding-left:20px}
+
+ol.steps{list-style:none;padding:0;margin:14px 0;display:grid;gap:8px;counter-reset:s;max-width:74ch}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;font-size:.94rem}
+ol.steps li::before{content:counter(s);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:.82rem;color:#fff;background:var(--dot,var(--c1))}
+
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.93rem;min-width:100%}
+th,td{padding:6px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:500;color:var(--muted);font-size:.85rem}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+td.pos{color:var(--c3);font-weight:600} td.neg{color:var(--c5);font-weight:600}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--kc,var(--c1));border-radius:10px;padding:12px 14px;min-width:0;font-size:.92rem}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 4px}
+.card p{margin:0 0 6px}
+
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin:18px 0}
+.tool .lbl{font-family:var(--f-display);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:grid;gap:4px;flex:1 1 150px;min-width:0}
+.field label{font-size:.82rem;color:var(--muted);font-family:var(--f-display)}
+input[type=text],input[type=number],select{font-family:var(--f-mono);font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;width:100%}
+input[type=range]{width:100%;accent-color:var(--c1)}
+button{font-family:var(--f-display);font-weight:500;font-size:.92rem;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--c1);color:#fff}
+button.ghost{background:var(--sunk);color:var(--fg)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px}
+.stat{background:var(--sunk);border-radius:10px;padding:8px 12px}
+.stat span{display:block;font-size:.75rem;color:var(--muted);font-family:var(--f-display)}
+.stat b{font-family:var(--f-mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.stat.hl{background:color-mix(in srgb,var(--c2) 20%,var(--sunk))}
+.verdict{margin-top:12px;padding:10px 14px;border-radius:10px;font-size:.94rem;background:var(--sunk)}
+.verdict b{font-family:var(--f-display)}
+.rec{margin-top:12px;padding:14px 16px;border-radius:12px;background:color-mix(in srgb,var(--c1) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--c1) 35%,var(--line))}
+.rec h4{margin:0 0 4px;font-family:var(--f-display);font-size:1.15rem}
+.rec p{margin:0 0 6px;font-size:.93rem}
+.rec a{color:var(--c1);font-family:var(--f-display)}
+
+.svgbox{overflow-x:auto;margin-top:12px}
+.svgbox svg{display:block;width:100%;height:auto;min-width:320px;font-family:var(--f-mono)}
+.svgbox .ax{stroke:var(--line);stroke-width:1}
+.svgbox .tk{fill:var(--muted);font-size:11px}
+.svgbox .lab{fill:var(--muted);font-size:12px;font-family:var(--f-display)}
+.svgbox .crv{fill:none;stroke:var(--c1);stroke-width:2.5}
+.svgbox .crv2{fill:none;stroke:var(--c5);stroke-width:2}
+.svgbox .rej{fill:color-mix(in srgb,var(--c5) 40%,transparent)}
+.svgbox .pv{fill:color-mix(in srgb,var(--c2) 45%,transparent)}
+.svgbox .bar{fill:color-mix(in srgb,var(--c1) 55%,transparent)}
+.svgbox .bar2{fill:color-mix(in srgb,var(--c3) 60%,transparent)}
+.svgbox .me{stroke:var(--fg);stroke-width:2}
+.svgbox .ttl{fill:var(--fg);font-size:12px;font-family:var(--f-display);font-weight:500}
+
+.py{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:16px 0;background:var(--code-bg)}
+.py .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.py .bar span{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.py .bar .btns{display:flex;gap:6px}
+.py textarea{display:block;width:100%;border:0;resize:vertical;background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:.86rem;line-height:1.55;padding:14px 16px;tab-size:4;white-space:pre;overflow-x:auto}
+.py pre.out{margin:0;padding:12px 16px;background:var(--out-bg);color:var(--out-fg);font-family:var(--f-mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+.py pre.out:empty{display:none}
+.py pre.out .e{color:#ff9c8f}
+.py pre.out .w{color:#9fb3c8;font-style:italic}
+.py .figs{background:#ffffff;display:grid;gap:8px;padding:12px;justify-items:center}
+.py .figs:empty{display:none}
+.py .figs img{max-width:100%;height:auto}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="stripe" aria-hidden="true"><span style="background:var(--c1)"></span><span style="background:var(--c2)"></span><span style="background:var(--c3)"></span><span style="background:var(--c4)"></span><span style="background:var(--c5)"></span></div>
+  <h1>Çok Değişkenli Yöntemler, Regresyon ve Sağkalım</h1>
+  <p class="lede">Usman Zafar Paracha'nın <em>Colorful Statistics and Python Programming Language</em> kitabının 301–340. sayfalarının Türkçe, etkileşimli ve insan kaynakları örnekleriyle uyarlanmış sürümü. Faktör, yol ve yapısal eşitlik modellerinden etki büyüklüklerine; korelasyon, doğrusal ve lojistik regresyondan çalışan hisse opsiyonu değerlemesine, kombinasyon-permütasyona ve Kaplan-Meier ile çalışan bağlılığı (elde tutma) analizine.</p>
+  <div class="status" id="status" role="status"><i></i><span>Python (Pyodide) yükleniyor…</span></div>
+</header>
+
+<nav class="toc" aria-label="İçindekiler">
+  <h2>İçindekiler</h2>
+  <h3>Çok değişkenli</h3>
+  <ol>
+    <li><a href="#manova"><small>0</small>MANOVA ortalamaları</a></li>
+    <li><a href="#faktor"><small>1</small>Faktör analizi</a></li>
+    <li><a href="#yol"><small>2</small>Yol analizi</a></li>
+    <li><a href="#yem"><small>3</small>Yapısal eşitlik modeli</a></li>
+  </ol>
+  <h3>Etki ve ilişki</h3>
+  <ol>
+    <li><a href="#etki"><small>4</small>Etki büyüklüğü</a></li>
+    <li><a href="#or"><small>5</small>Odds oranı ve Mantel-Haenszel</a></li>
+    <li><a href="#korelasyon"><small>6</small>Korelasyon katsayısı</a></li>
+    <li><a href="#r2"><small>7</small>R² ve düzeltilmiş R²</a></li>
+    <li><a href="#regresyon"><small>8</small>Basit doğrusal regresyon</a></li>
+    <li><a href="#lojistik"><small>9</small>Lojistik regresyon</a></li>
+  </ol>
+  <h3>Diğer</h3>
+  <ol>
+    <li><a href="#bs"><small>10</small>Black-Scholes ve hisse opsiyonu</a></li>
+    <li><a href="#kombin"><small>11</small>Kombinasyon ve permütasyon</a></li>
+    <li><a href="#sagkalim"><small>12</small>Sağkalım ve Kaplan-Meier</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 0 MANOVA -->
+<section id="manova" style="--dot:var(--c4)">
+  <div class="kicker">s. 301 · önceki sayfanın devamı</div>
+  <h2 class="sec">MANOVA: grup ortalamalarını okumak</h2>
+  <p>Anlamlı bir MANOVA'dan sonra hangi grubun hangi sonuçta öne çıktığını görmek için grup ortalamalarına bakılır. Kitap ilaç örneğinde ilacın kalp atışı açısından, ilaç ve standart ilacın hareketlilik açısından plaseboya göre daha iyi olduğunu söylüyor.</p>
+  <div class="case"><span class="tag">İK vakası</span>Önceki sayfadaki yönetici geliştirme örneğinin ortalamaları: koçluk programı hem ekip bağlılığında (6,58) hem verimlilikte (6,67) en yüksek; mentorluk verimlilikte (5,75) kontrol grubunun (4,42) üstünde, bağlılıkta (5,08) ise kontrole (4,42) yakın.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · grup ortalamaları ve grafik</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="16">import pandas as pd
+import matplotlib.pyplot as plt
+
+bag = {"Koçluk": [4,5,7,6,7,8,4,8,6,10,8,6], "Mentorluk": [8,5,6,4,5,2,7,4,5,6,6,3], "Kontrol": [6,2,6,5,2,5,6,6,6,2,4,3]}
+ver = {"Koçluk": [7,7,7,8,7,9,7,6,4,4,7,7], "Mentorluk": [8,7,6,5,3,3,5,6,4,9,6,7], "Kontrol": [4,5,6,6,3,6,7,5,2,3,4,2]}
+df = pd.DataFrame([(p, b, v) for p in bag for b, v in zip(bag[p], ver[p])],
+                  columns=["Program", "Baglilik", "Verimlilik"])
+
+ort = df.groupby("Program").mean().loc[["Kontrol", "Mentorluk", "Koçluk"]]
+print(ort.round(3))
+
+ort.plot(kind="bar", color=["#2f6fb5", "#d9822b"], rot=0)
+plt.ylabel("Ortalama puan (1–10)")
+plt.title("Programa göre ekip bağlılığı ve verimlilik")
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki yorum, ölçeğin yönüne dikkat ister: kitap “yüksek puan daha yüksek kalp atışı ve hareketlilik” diyor, ardından ilacın düşük kalp atışını “daha iyi” sayıyor. Hareketlilikte ise düşük puan iyi değildir. İK verisinde de ölçeğin yönü (ör. tükenmişlikte yüksek puan kötüdür) yorumdan önce netleştirilmelidir.</div>
+</section>
+
+<!-- 1 FAKTÖR -->
+<section id="faktor" style="--dot:var(--c1)">
+  <div class="kicker">s. 301–302<span class="kind">veri indirgeme</span></div>
+  <h2 class="sec">Faktör analizi</h2>
+  <p>Faktör analizi bir <strong>veri indirgeme</strong> ya da <strong>yapı belirleme</strong> yöntemidir. Temel kullanımları iki tanedir: değişken (madde) sayısını azaltmak ve farklı değişkenler arasındaki ilişkilerde bir yapı ya da örüntü bulmak. Birbiriyle ilişkili değişkenler kümeler, yani <em>faktörler</em> olarak ele alınır; bir faktör, birbiriyle korelasyonlu birkaç değişkeni temsil eder. Faktörler, bazı çalışmalarda tek tek değişkenlerden daha verimli sonuç verir. Sosyoekonomik statü, psikolojik çalışmalar ve veri madenciliği gibi karmaşık veri setlerinde kullanılır.</p>
+  <div class="case"><span class="tag">İK vakası</span>200 çalışana 6 maddelik bir anket uygulanıyor (1–5 Likert). A “İşime kendimi kaptırırım”, B “İşim bana enerji verir”, C “İşimle gurur duyarım”; D “Ücretimden memnunum”, E “Yöneticimden memnunum”, F “Çalışma koşullarımdan memnunum”. Faktör analizi, altı maddenin iki örtük yapıya ayrılıp ayrılmadığını gösterir: <strong>Faktör 1 · işe bağlılık</strong> (A, B, C) ve <strong>Faktör 2 · iş tatmini</strong> (D, E, F).</div>
+  <div class="svgbox" style="max-width:640px"><svg viewBox="0 0 640 210" role="img" aria-label="İki faktörlü yapı: Faktör 1 A B C maddelerine, Faktör 2 D E F maddelerine yükleniyor">
+    <g font-family="var(--f-display)" font-size="13">
+      <rect x="85" y="14" width="150" height="40" rx="20" fill="color-mix(in srgb,var(--c1) 18%,var(--surface))" stroke="var(--c1)"/><text x="160" y="39" text-anchor="middle" fill="var(--fg)">Faktör 1 · Bağlılık</text>
+      <rect x="405" y="14" width="150" height="40" rx="20" fill="color-mix(in srgb,var(--c2) 18%,var(--surface))" stroke="var(--c2)"/><text x="480" y="39" text-anchor="middle" fill="var(--fg)">Faktör 2 · Tatmin</text>
+      <g stroke="var(--c1)" stroke-width="2"><line x1="160" y1="54" x2="60" y2="150"/><line x1="160" y1="54" x2="160" y2="150"/><line x1="160" y1="54" x2="260" y2="150"/></g>
+      <g stroke="var(--c2)" stroke-width="2"><line x1="480" y1="54" x2="380" y2="150"/><line x1="480" y1="54" x2="480" y2="150"/><line x1="480" y1="54" x2="580" y2="150"/></g>
+      <g fill="var(--sunk)" stroke="var(--line)"><rect x="30" y="150" width="60" height="34" rx="6"/><rect x="130" y="150" width="60" height="34" rx="6"/><rect x="230" y="150" width="60" height="34" rx="6"/><rect x="350" y="150" width="60" height="34" rx="6"/><rect x="450" y="150" width="60" height="34" rx="6"/><rect x="550" y="150" width="60" height="34" rx="6"/></g>
+      <g fill="var(--fg)" text-anchor="middle"><text x="60" y="172">A</text><text x="160" y="172">B</text><text x="260" y="172">C</text><text x="380" y="172">D</text><text x="480" y="172">E</text><text x="580" y="172">F</text></g>
+      <text x="320" y="204" text-anchor="middle" fill="var(--muted)" font-size="12">Kare: gözlenen madde · oval: örtük faktör · ok: faktör yükü</text>
+    </g></svg></div>
+  <p>Kitaptaki benzetme: bir ürünün birkaç özelliği (faktörü) vardır; bazı özellikler (A değişkeni) ürünü daha kullanışlı yapar, bazıları (B değişkeni) yalnızca onları destekler. İK'da aynı mantıkla bir “çalışan deneyimi” anketinin onlarca maddesi birkaç anlamlı boyuta indirgenir.</p>
+  <ol class="steps">
+    <li>Maddeler arası korelasyon matrisini inceleyin; uygunluk için KMO (≥ 0,60) ve Bartlett küresellik testine bakın.</li>
+    <li>Faktör sayısına karar verin: özdeğer &gt; 1 (Kaiser), yamaç grafiği ya da paralel analiz.</li>
+    <li>Faktörleri çıkarın ve döndürün (varimax: faktörler ilişkisiz; oblimin: ilişkili).</li>
+    <li>Yükleri yorumlayın (genellikle |yük| ≥ 0,40) ve faktörleri adlandırın; her faktörün güvenirliğini (Cronbach α) hesaplayın.</li>
+  </ol>
+  <div class="py" data-cell><div class="bar"><span>Python · açımlayıcı faktör analizi</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="29">import numpy as np
+import pandas as pd
+from sklearn.decomposition import FactorAnalysis
+import matplotlib.pyplot as plt
+
+# 200 çalışanın 6 maddeye yanıtı (iki örtük yapıdan türetilmiş kurgusal veri)
+r = np.random.default_rng(7); n = 200
+baglilik, tatmin = r.normal(size=n), r.normal(size=n)
+madde = lambda f, y: np.clip(np.round(3 + y * f + r.normal(scale=.6, size=n)), 1, 5)
+df = pd.DataFrame({"A": madde(baglilik, .9), "B": madde(baglilik, .8), "C": madde(baglilik, .7),
+                   "D": madde(tatmin, .9),   "E": madde(tatmin, .8),   "F": madde(tatmin, .7)})
+
+R = df.corr()
+print("Korelasyon matrisi:\n", R.round(2), "\n")
+ozdeger = np.linalg.eigvalsh(R)[::-1]
+print("Özdeğerler:", ozdeger.round(3), "→ 1'den büyük:", int((ozdeger > 1).sum()))
+
+z = (df - df.mean()) / df.std()
+fa = FactorAnalysis(n_components=2, rotation="varimax", random_state=0).fit(z)
+yuk = pd.DataFrame(fa.components_.T, index=df.columns, columns=["Faktör 1", "Faktör 2"])
+print("\nVarimax yükleri:\n", yuk.round(2))
+print("Faktörlerin sırası ve yüklerin işareti keyfidir: hangi maddelerin birlikte yüklendiğine bakın.")
+
+plt.plot(range(1, 7), ozdeger, "o-", color="#2f6fb5")
+plt.axhline(1, color="#c2453d", ls="--", label="Kaiser ölçütü (1)")
+plt.xlabel("Faktör"); plt.ylabel("Özdeğer"); plt.legend()
+plt.title("Yamaç (scree) grafiği")
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap faktör analizini yalnızca kavram şemasıyla anlatıyor ve Python örneği vermiyor. Açımlayıcı faktör analizi (AFA) yapıyı keşfeder; ölçeğin önceden belirlenmiş yapısını sınamak için doğrulayıcı faktör analizi (DFA) kullanılır, bu da yapısal eşitlik modelinin ölçüm kısmıdır. Faktör yüklerinin işareti keyfidir: bir faktörün bütün yükleri negatif çıkarsa, faktör ters yönde adlandırılmış demektir.</div>
+</section>
+
+<!-- 2 YOL -->
+<section id="yol" style="--dot:var(--c2)">
+  <div class="kicker">s. 302–303</div>
+  <h2 class="sec">Yol analizi</h2>
+  <p>Yol analizi çoklu regresyonun bir uzantısıdır. İki şeyle ilgilenir: değişkenler arasındaki ilişkiler (korelasyonlar) ve bu ilişkilerin <strong>yönü</strong> ya da öngörülen nedenselliği. İlişkiler, çoklu regresyondan elde edilen standartlaştırılmış regresyon katsayıları olan <strong>yol katsayıları</strong> ile gösterilir. Bir değişken diğerini doğrudan ya da aracı değişkenler üzerinden dolaylı olarak etkileyebilir.</p>
+  <div class="case"><span class="tag">İK vakası</span>200 çalışanlık kurgusal veriyle bir iş talepleri-kaynakları modeli: <strong>yönetici desteği</strong> (V1) iş yükünü (V2) azaltır ve öz yeterliği (V3) artırır; iş yükü tükenmişliği (V4) artırır; performans (V5) öz yeterlik, tükenmişlik ve doğrudan destek tarafından belirlenir. Yönetici desteği performansı doğrudan (0,15) ve üç dolaylı yoldan etkiler.</div>
+  <div class="svgbox" style="max-width:660px" id="yol-svg"></div>
+  <div class="tbl"><table>
+    <thead><tr><th>Yol (V1 → V5)</th><th>Hesap</th><th class="num">Etki</th></tr></thead>
+    <tbody>
+      <tr><td>Doğrudan</td><td>V1 → V5</td><td class="num">0,151</td></tr>
+      <tr><td>Öz yeterlik üzerinden</td><td>0,336 × 0,446</td><td class="num">0,150</td></tr>
+      <tr><td>İş yükü ve öz yeterlik üzerinden</td><td>(−0,325) × (−0,185) × 0,446</td><td class="num">0,027</td></tr>
+      <tr><td>İş yükü ve tükenmişlik üzerinden</td><td>(−0,325) × 0,490 × (−0,378)</td><td class="num">0,060</td></tr>
+      <tr class="tot"><td>Toplam etki</td><td>doğrudan + dolaylı (yuvarlanmamış)</td><td class="num">0,387</td></tr>
+    </tbody></table></div>
+  <div class="py" data-cell><div class="bar"><span>Python · yol katsayıları (standartlaştırılmış regresyonlar)</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="26">import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+
+r = np.random.default_rng(42); n = 200
+destek = r.normal(size=n)
+isyuku = -0.30*destek + r.normal(scale=np.sqrt(1-.09), size=n)
+ozyeterlik = 0.40*destek - 0.20*isyuku + r.normal(scale=.85, size=n)
+tukenmis = 0.50*isyuku + r.normal(scale=.85, size=n)
+perf = 0.15*destek + 0.45*ozyeterlik - 0.35*tukenmis + r.normal(scale=.75, size=n)
+df = pd.DataFrame(dict(destek=destek, isyuku=isyuku, ozyeterlik=ozyeterlik, tukenmis=tukenmis, perf=perf))
+z = (df - df.mean()) / df.std()                    # standartlaştır → yol katsayıları
+
+denklemler = ["isyuku ~ destek", "ozyeterlik ~ destek + isyuku",
+              "tukenmis ~ isyuku", "perf ~ destek + ozyeterlik + tukenmis"]
+b = {}
+for f in denklemler:
+    m = smf.ols(f, z).fit()
+    print(f"{f:<38} R² = {m.rsquared:.3f}", m.params.drop("Intercept").round(3).to_dict())
+    for k, v in m.params.drop("Intercept").items(): b[(k, f.split()[0])] = v
+
+dolayli = (b["destek","ozyeterlik"]*b["ozyeterlik","perf"]
+           + b["destek","isyuku"]*b["isyuku","ozyeterlik"]*b["ozyeterlik","perf"]
+           + b["destek","isyuku"]*b["isyuku","tukenmis"]*b["tukenmis","perf"])
+print(f"\nDoğrudan: {b['destek','perf']:.3f}  Dolaylı: {dolayli:.3f}  Toplam: {b['destek','perf'] + dolayli:.3f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Yol analizi nedenselliği <em>kanıtlamaz</em>; kuramsal olarak öne sürülen bir nedensel düzenin veriyle tutarlı olup olmadığını sınar. Kesitsel anket verisinde ok yönleri araştırmacının varsayımıdır. Dolaylı etkilerin anlamlılığı için bootstrap güven aralığı kullanılmalıdır (ör. 5.000 yeniden örnekleme).</div>
+</section>
+
+<!-- 3 YEM -->
+<section id="yem" style="--dot:var(--c3)">
+  <div class="kicker">s. 303–304</div>
+  <h2 class="sec">Yapısal eşitlik modeli (YEM)</h2>
+  <p>Yapısal eşitlik modellemesi, değişkenler arasındaki nedensel ilişkilere dayanan yol analizinin ileri bir biçimidir. Açımlayıcı değil <strong>doğrulayıcı</strong> bir tekniktir: önerilen bir modelin işleyip işlemediğini doğrulamak ya da belirli bir ilişkiyi daha az model kurarak incelemek için kullanılır. Sosyal bilimler, nüfus genetiği, ekonomi, ekoloji ve pazarlamada yaygındır; örgütsel davranış ve İK araştırmalarının da temel yöntemlerinden biridir.</p>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c3)"><h4>Örtük değişken</h4><p>İlgilenilen, yalnızca dolaylı ölçülebilen temel değişken.</p><p class="muted">İK: dönüşümcü liderlik, işe bağlılık, psikolojik güvenlik.</p></div>
+    <div class="card" style="--kc:var(--c1)"><h4>Gözlenen değişken</h4><p>Doğrudan ölçülebilen ya da puanlanabilen gösterge.</p><p class="muted">İK: anket maddeleri, devamsızlık günü, satış rakamı.</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>Kitabın şemasındaki yapı İK'ya şöyle uyarlanabilir: <strong>Örtük 1 · dönüşümcü liderlik</strong> (gözlenen 1–3: ilham verme, bireysel ilgi, entelektüel uyarım) hem <strong>Örtük 2 · psikolojik güvenlik</strong> (gözlenen 4–6) hem <strong>Örtük 3 · iş performansı</strong> (gözlenen 7–8: yönetici değerlendirmesi, hedef gerçekleşme) üzerinde etkilidir; psikolojik güvenlik de performansı etkiler. YEM, ölçüm modeli (örtük → göstergeler, yani DFA) ile yapısal modeli (örtük → örtük, yani yol analizi) aynı anda tahmin eder ve ölçüm hatasını hesaba katar.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · ölçüm güvenirliği ve bileşik puanlarla yaklaşık yapısal model</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="25">import numpy as np
+import pandas as pd
+import statsmodels.formula.api as smf
+
+r = np.random.default_rng(3); n = 300
+lider = r.normal(size=n)
+guven = 0.55*lider + r.normal(scale=.83, size=n)
+perf  = 0.25*lider + 0.40*guven + r.normal(scale=.80, size=n)
+gosterge = lambda f, k: pd.DataFrame({f"{k}{i}": 0.8*f + r.normal(scale=.6, size=n) for i in (1, 2, 3)})
+L, G, P = gosterge(lider, "L"), gosterge(guven, "G"), gosterge(perf, "P").iloc[:, :2]
+
+def cronbach(X):
+    k = X.shape[1]
+    return k / (k - 1) * (1 - X.var(ddof=1).sum() / X.sum(axis=1).var(ddof=1))
+
+for ad, X in [("Liderlik", L), ("Psikolojik güvenlik", G), ("Performans", P)]:
+    print(f"{ad:<20} Cronbach α = {cronbach(X):.3f}")
+
+df = pd.DataFrame({"lider": L.mean(axis=1), "guven": G.mean(axis=1), "perf": P.mean(axis=1)})
+z = (df - df.mean()) / df.std()
+print("\nguven ~ lider        :", smf.ols("guven ~ lider", z).fit().params.round(3).to_dict())
+print("perf  ~ lider + guven:", smf.ols("perf ~ lider + guven", z).fit().params.round(3).to_dict())
+print("\nBileşik puanlar ölçüm hatası içerir; katsayılar gerçek değerlerden (0,55; 0,25; 0,40)")
+print("biraz farklı çıkar. Tam YEM bu hatayı modelleyerek düzeltir.")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Python'da tam YEM.</strong> Tarayıcıdaki Pyodide ortamında YEM paketi bulunmadığından yukarıdaki hücre bileşik puanlarla yaklaşık bir çözüm gösteriyor. Kendi bilgisayarınızda <code class="i">pip install semopy</code> ile lavaan sözdizimine benzer bir model yazılabilir: <code class="i">guven =~ G1 + G2 + G3</code>, <code class="i">perf ~ lider + guven</code>. Uyum için CFI ≥ 0,95, TLI ≥ 0,95, RMSEA ≤ 0,06 ve SRMR ≤ 0,08 yaygın ölçütlerdir (Hu ve Bentler, 1999).</div>
+</section>
+
+<!-- 4 ETKİ -->
+<section id="etki" style="--dot:var(--c5)">
+  <div class="kicker">s. 305–308</div>
+  <h2 class="sec">Etki büyüklüğü</h2>
+  <p>Etki büyüklüğü (ES), iki değişken ya da grup arasındaki farkın büyüklüğünü, yani farkın sayısal ölçekte ne kadar güçlü olduğunu gösterir. p-değeri “fark var mı?” sorusuna, etki büyüklüğü “fark ne kadar büyük?” sorusuna yanıt verir. Büyük örneklemde önemsiz bir fark bile anlamlı çıkabilir; bu yüzden İK kararlarında etki büyüklüğü raporlanmalıdır.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Ölçü</th><th>Formül</th><th>Yorum (küçük / orta / büyük)</th></tr></thead>
+    <tbody>
+      <tr><td><b>Mutlak etki</b></td><td>x̄₁ − x̄₂</td><td>Ölçeğin kendi birimiyle (ör. 4,2 puan, 3 gün)</td></tr>
+      <tr><td><b>Standartlaştırılmış ortalama farkı</b></td><td>θ = (μ₁ − μ₂) / σ</td><td>Evren standart sapması biliniyorsa</td></tr>
+      <tr><td><b>Cohen's d</b></td><td>d = (x̄₁ − x̄₂) / s<sub>birleşik</sub></td><td>0,2 / 0,5 / 0,8; 1,3 çok büyük</td></tr>
+      <tr><td><b>Hedges' g</b></td><td>g = d × (1 − 3 / (4(n₁ + n₂) − 9))</td><td>Küçük örneklemde d'nin yanlılığı düzeltilmiş hali</td></tr>
+      <tr><td><b>Glass Δ</b></td><td>Δ = (x̄₁ − x̄₂) / s₂</td><td>Yalnızca kontrol grubunun standart sapması; varyanslar farklıysa</td></tr>
+      <tr><td><b>Pearson r</b></td><td>iki değişkenin ilişkisi</td><td>±0,1 / ±0,3 / ±0,5 (Cohen); kitap ±0,2 / ±0,5 / ±0,8</td></tr>
+      <tr><td><b>Odds oranı</b></td><td>OR = ad / bc</td><td>1 = fark yok; kitap 1,5 / 2 / 3</td></tr>
+    </tbody></table></div>
+  <div class="case"><span class="tag">İK vakası</span>Satış ekibinden 30 kişi yeni bir müzakere eğitimine katılıyor, 30 kişi katılmıyor. Üç ay sonra aylık satış: eğitim grubu ortalama 52 bin TL (s = 10), kontrol 46 bin TL (s = 12). Mutlak fark 6 bin TL; Cohen's d = 6 / 11,05 = <strong>0,54</strong>, orta düzeyde bir etki. Bu, eğitim alan ortalama bir temsilcinin kontrol grubunun yaklaşık %71'inden daha fazla satış yaptığı anlamına gelir.</div>
+  <div class="tool">
+    <div class="lbl">Etki büyüklüğü hesaplayıcısı</div>
+    <div class="row">
+      <div class="field"><label for="es-m1">Grup 1 ortalama</label><input id="es-m1" type="number" step="0.5" value="52"></div>
+      <div class="field"><label for="es-s1">Grup 1 s</label><input id="es-s1" type="number" step="0.5" value="10"></div>
+      <div class="field"><label for="es-n1">Grup 1 n</label><input id="es-n1" type="number" step="1" value="30"></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="field"><label for="es-m2">Grup 2 (kontrol) ortalama</label><input id="es-m2" type="number" step="0.5" value="46"></div>
+      <div class="field"><label for="es-s2">Grup 2 s</label><input id="es-s2" type="number" step="0.5" value="12"></div>
+      <div class="field"><label for="es-n2">Grup 2 n</label><input id="es-n2" type="number" step="1" value="30"></div>
+    </div>
+    <div class="svgbox" id="es-svg" aria-label="İki grubun dağılımları ve örtüşmesi"></div>
+    <div class="stats" id="es-stats"></div>
+    <div class="verdict" id="es-v"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · d, g, Δ ve r</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="18">import numpy as np
+from scipy import stats
+
+m1, s1, n1 = 52, 10, 30     # eğitim grubu (bin TL)
+m2, s2, n2 = 46, 12, 30     # kontrol grubu
+
+s_bir = np.sqrt(((n1-1)*s1**2 + (n2-1)*s2**2) / (n1 + n2 - 2))
+d = (m1 - m2) / s_bir
+J = 1 - 3 / (4*(n1 + n2) - 9)
+g = d * J
+delta = (m1 - m2) / s2
+r = d / np.sqrt(d**2 + (n1 + n2)**2 / (n1 * n2))
+
+print(f"Birleşik s = {s_bir:.3f}")
+print(f"Cohen's d  = {d:.3f}   Hedges' g = {g:.3f}   Glass Δ = {delta:.3f}   r = {r:.3f}")
+print(f"Cohen U3   = %{100*stats.norm.cdf(d):.1f} (kontrol grubunun bu kadarı eğitim ortalamasının altında)")
+print(f"Örtüşme    = %{100*2*stats.norm.cdf(-abs(d)/2):.1f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki formüller hakkında.</strong> Kitap Cohen's d için birleşik standart sapmanın paydasını n₁ + n₂, Hedges' g için n₁ + n₂ − 2 alıyor ve g'yi yalnızca bu payda farkıyla tanımlıyor. Bu kullanım bazı kaynaklarda geçse de yaygın yazılımlar Cohen's d'yi n₁ + n₂ − 2 ile hesaplar; Hedges' g'yi d'den ayıran asıl şey küçük örneklem düzeltme çarpanı J'dir. Kitabın r için verdiği ±0,2 / ±0,5 / ±0,8 eşikleri, Cohen'in r için önerdiği 0,1 / 0,3 / 0,5 eşiklerinden yüksektir; d'nin eşikleri r'ye taşınmış gibi görünüyor. Odds oranı eşikleri (1,5 / 2 / 3) de kaynağa göre değişir; Chen ve arkadaşları (2010) yaklaşık 1,68 / 3,47 / 6,71 önerir.</div>
+</section>
+
+<!-- 5 OR -->
+<section id="or" style="--dot:var(--c4)">
+  <div class="kicker">s. 308–311</div>
+  <h2 class="sec">Odds oranı ve Mantel-Haenszel odds oranı</h2>
+  <p>Odds oranı (OR), iki müdahale arasındaki farkın etki büyüklüğünü belirlemek için kullanılır: bir gruptaki başarı odds'unun diğer gruptaki başarı odds'una oranıdır. Bir üçüncü değişken (tabaka) karıştırıcı olabiliyorsa, tabakaların OR'leri ağırlıklandırılarak <strong>Mantel-Haenszel OR</strong> (OR<sub>MH</sub>) hesaplanır.</p>
+  <div class="formula"><b>OR = (a × d) / (b × c)</b> &nbsp;&nbsp; <b>OR<sub>MH</sub> = Σ(aᵢdᵢ / nᵢ) / Σ(bᵢcᵢ / nᵢ)</b></div>
+  <div class="case"><span class="tag">İK vakası</span>Bir perakende zinciri 936 işe alımı inceliyor: 812 kişi serbest (yapılandırılmamış) mülakatla, 124 kişi <strong>yapılandırılmış mülakatla</strong> işe alınmış. İlk yıl içinde ayrılanlar:
+  <div class="tbl"><table><thead><tr><th></th><th class="num">Serbest mülakat</th><th class="num">Yapılandırılmış mülakat</th></tr></thead><tbody>
+    <tr><td>İlk yılda ayrıldı</td><td class="num">454 (a)</td><td class="num">19 (b)</td></tr>
+    <tr><td>Kaldı</td><td class="num">358 (c)</td><td class="num">105 (d)</td></tr>
+    <tr class="tot"><td>Toplam</td><td class="num">812</td><td class="num">124</td></tr></tbody></table></div>
+  Ayrılma odds'u: serbest 454 / 358 = 1,268; yapılandırılmış 19 / 105 = 0,181. OR = 1,268 / 0,181 = <strong>7,01</strong>. Serbest mülakatla alınanlarda ilk yılda ayrılma odds'u 7 kat daha yüksek.</div>
+  <p>İşe alım kanalı, mağaza tipine göre farklı olabilir. Bu yüzden veri merkez ofis ve saha (mağaza) çalışanları olarak tabakalara ayrılıyor:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Tabaka</th><th></th><th class="num">Serbest</th><th class="num">Yapılandırılmış</th><th class="num">Toplam</th><th class="num">OR</th></tr></thead>
+    <tbody>
+      <tr><td rowspan="3"><b>Merkez ofis</b></td><td>Ayrıldı</td><td class="num">53 (a)</td><td class="num">7 (b)</td><td class="num">60</td><td class="num" rowspan="3">2,67</td></tr>
+      <tr><td>Kaldı</td><td class="num">102 (c)</td><td class="num">36 (d)</td><td class="num">138</td></tr>
+      <tr class="tot"><td>Toplam</td><td class="num">155</td><td class="num">43</td><td class="num">198</td></tr>
+      <tr><td rowspan="3"><b>Saha</b></td><td>Ayrıldı</td><td class="num">111 (e)</td><td class="num">13 (f)</td><td class="num">124</td><td class="num" rowspan="3">3,99</td></tr>
+      <tr><td>Kaldı</td><td class="num">152 (g)</td><td class="num">71 (h)</td><td class="num">223</td></tr>
+      <tr class="tot"><td>Toplam</td><td class="num">263</td><td class="num">84</td><td class="num">347</td></tr>
+    </tbody></table></div>
+  <p>OR<sub>MH</sub> = (53 × 36 / 198 + 111 × 71 / 347) / (102 × 7 / 198 + 152 × 13 / 347) = 32,35 / 9,30 = <strong>3,48</strong>. Tabaka etkisi kontrol edildiğinde, serbest mülakatla alınanların ayrılma odds'u yapılandırılmış mülakatla alınanların yaklaşık 3,5 katı.</p>
+  <div class="tool">
+    <div class="lbl">2 × 2 tablo · OR, risk oranı ve Mantel-Haenszel</div>
+    <div class="row">
+      <div class="field"><label>Tabaka 1 · a, b, c, d</label><input id="or-1" type="text" value="53, 7, 102, 36"></div>
+      <div class="field"><label>Tabaka 2 · e, f, g, h (boş bırakılabilir)</label><input id="or-2" type="text" value="111, 13, 152, 71"></div>
+    </div>
+    <div class="row" style="margin-top:10px">
+      <button class="ghost" id="or-p1">Örnek: tek tablo (454, 19, 358, 105)</button>
+      <button class="ghost" id="or-p2">Örnek: iki tabaka</button>
+    </div>
+    <div class="tbl"><table id="or-tbl"></table></div>
+    <div class="verdict" id="or-v"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · OR, güven aralığı ve Mantel-Haenszel</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="23">import numpy as np
+from scipy import stats
+from statsmodels.stats.contingency_tables import Table2x2, StratifiedTable
+
+tablo = np.array([[454, 19], [358, 105]])         # satır: ayrıldı/kaldı, sütun: serbest/yapılandırılmış
+print(stats.fisher_exact(tablo))
+t = Table2x2(tablo)
+print(f"OR = {t.oddsratio:.3f}, %95 GA = {np.round(t.oddsratio_confint(), 3)}")
+risk_s, risk_y = 454/812, 19/124
+print(f"Ayrılma oranı: serbest {risk_s:.3f}, yapılandırılmış {risk_y:.3f}, risk oranı = {risk_s/risk_y:.2f}")
+
+# Tabakalı analiz
+merkez = np.array([[53, 7], [102, 36]])
+saha   = np.array([[111, 13], [152, 71]])
+st = StratifiedTable([merkez, saha])
+print(f"\nTabaka OR'leri: {Table2x2(merkez).oddsratio:.3f}, {Table2x2(saha).oddsratio:.3f}")
+print(f"Mantel-Haenszel OR = {st.oddsratio_pooled:.3f}, %95 GA = {np.round(st.oddsratio_pooled_confint(), 3)}")
+print("MH testi (H0: OR_MH = 1):", st.test_null_odds())
+print("Homojenlik testi (H0: tabaka OR'leri eşit):", st.test_equal_odds())
+
+# Kitabın elle formülü, doğru toplamlarla
+print("\nElle:", round((53*36/198 + 111*71/347) / (102*7/198 + 152*13/347), 3))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki hatalar.</strong> (1) Kitabın ilk tablosundaki “Odds” sütunu, satırları bölüyor (454 / 19 = 23,89). Grup odds'ları sütun içinde hesaplanır (454 / 358 ve 19 / 105). OR çapraz çarpımdan geldiği için sonuç yine 7'dir, ama etiketler yanlıştır. (2) “Standart tedavi alanlar 7 kat daha sık öldü” ifadesi OR'yi risk oranı gibi yorumluyor. Gerçek risk oranı 0,559 / 0,153 = 3,65'tir; olay sık görüldüğünde OR, risk oranını çok abartır. (3) Erkek tabakasının toplamları yanlış: 111 + 152 = 263 (kitapta 363) ve genel toplam 347 (kitapta 447). Bu yüzden kitabın OR<sub>MH</sub> sonucu 3,397 çıkıyor; doğrusu 3,478'dir. (4) Kitap bu sonucu “Mantel-Haenszel ki-kare testi” olarak adlandırıyor; hesaplanan, testin kendisi değil, birleştirilmiş odds oranıdır.</div>
+</section>
+
+<!-- 6 KORELASYON -->
+<section id="korelasyon" style="--dot:var(--c1)">
+  <div class="kicker">s. 311–316</div>
+  <h2 class="sec">Korelasyon katsayısı</h2>
+  <p>Örneklem korelasyon katsayısı r, −1 ile +1 arasında değişir. Değer −1'den +1'e doğru ilerledikçe iki değişken arasındaki doğrusal ilişkinin yönü ve gücü değişir; sıfıra yakın değer doğrusal ilişki olmadığını gösterir. Bağımsız değişken x ekseninde, bağımlı değişken y ekseninde gösterilir ve her nokta bir (x, y) çiftidir.</p>
+  <div class="formula"><b>r = [NΣxy − (Σx)(Σy)] / √([NΣx² − (Σx)²][NΣy² − (Σy)²])</b> &nbsp;&nbsp; = Cov(x, y) / (s<sub>x</sub> s<sub>y</sub>)</div>
+  <div class="case"><span class="tag">İK vakası · kısa örnek</span>Dört çalışanın aylık koçluk saati X = 1, 3, 4, 4 ve geri bildirim puanı Y = 2, 5, 5, 8. NΣxy = 69, Σx = 12, Σy = 20, Σx² = 42, Σy² = 118. r = (69 − 12 × 20 / 4) / √((42 − 12²/4)(118 − 20²/4)) = 9 / √(6 × 18) = <strong>0,866</strong>. (Kitabın şemasında payda kısaltılmış ifade N'ye bölünmüş biçimde yazılmış: Σxy − ΣxΣy/N; “NΣxy = 69” aslında Σxy = 69'dur.)</div>
+  <div class="case"><span class="tag">İK vakası · ana örnek</span>Altı yeni satış temsilcisine 5 hafta boyunca haftada farklı miktarda (1–6 saat) bire bir koçluk veriliyor. Dönem sonunda satış görüşmesi puanları (30 üzerinden): 7, 10, 15, 16, 17, 18. Koçluk saati arttıkça puan artıyor mu?</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Çalışan</th><th class="num">Koçluk (X)</th><th class="num">Puan (Y)</th><th class="num">X − x̄</th><th class="num">Y − ȳ</th><th class="num">(X − x̄)²</th><th class="num">(Y − ȳ)²</th><th class="num">(X − x̄)(Y − ȳ)</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="num">1</td><td class="num">7</td><td class="num">−2,5</td><td class="num">−6,83</td><td class="num">6,25</td><td class="num">46,69</td><td class="num">17,08</td></tr>
+      <tr><td>2</td><td class="num">2</td><td class="num">10</td><td class="num">−1,5</td><td class="num">−3,83</td><td class="num">2,25</td><td class="num">14,69</td><td class="num">5,75</td></tr>
+      <tr><td>3</td><td class="num">3</td><td class="num">15</td><td class="num">−0,5</td><td class="num">1,17</td><td class="num">0,25</td><td class="num">1,36</td><td class="num">−0,58</td></tr>
+      <tr><td>4</td><td class="num">4</td><td class="num">16</td><td class="num">0,5</td><td class="num">2,17</td><td class="num">0,25</td><td class="num">4,69</td><td class="num">1,08</td></tr>
+      <tr><td>5</td><td class="num">5</td><td class="num">17</td><td class="num">1,5</td><td class="num">3,17</td><td class="num">2,25</td><td class="num">10,03</td><td class="num">4,75</td></tr>
+      <tr><td>6</td><td class="num">6</td><td class="num">18</td><td class="num">2,5</td><td class="num">4,17</td><td class="num">6,25</td><td class="num">17,36</td><td class="num">10,42</td></tr>
+      <tr class="tot"><td>Toplam</td><td class="num">21</td><td class="num">83</td><td class="num">0</td><td class="num">≈ 0</td><td class="num">17,5</td><td class="num">94,83</td><td class="num">38,5</td></tr>
+    </tbody></table></div>
+  <p>x̄ = 3,5, ȳ = 13,83. Var(X) = 17,5 / 6 = 2,92, Var(Y) = 94,83 / 6 = 15,81, Cov = 38,5 / 6 = 6,42. r = 6,42 / √(2,92 × 15,81) = 6,42 / 6,79 = <strong>0,945</strong>: güçlü pozitif ilişki.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · korelasyon ve saçılım grafiği</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="19">import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+
+koc  = np.array([1, 2, 3, 4, 5, 6])          # haftalık koçluk saati
+puan = np.array([7, 10, 15, 16, 17, 18])     # satış görüşmesi puanı
+
+print("np.corrcoef:\n", np.corrcoef(koc, puan).round(6))
+r, p = stats.pearsonr(koc, puan)
+print(f"r = {r:.6f}, p = {p:.4f}")
+print("Kısa örnek r =", round(np.corrcoef([1, 3, 4, 4], [2, 5, 5, 8])[0, 1], 4))
+
+plt.scatter(koc, puan, color="#2f6fb5", s=60)
+plt.xlim(0, 7); plt.ylim(0, 20)
+plt.xlabel("Haftalık koçluk saati"); plt.ylabel("Satış görüşmesi puanı")
+plt.title(f"Koçluk ve performans, r = {r:.3f}")
+plt.grid(alpha=.3)
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap varyans ve kovaryansı n'ye (6) bölüyor; n − 1'e (5) bölünse de r değişmez, çünkü pay ve paydadaki bölenler sadeleşir. Kitabın elle hesabındaki 6,4 / 6,8 = 0,94 yuvarlamadan gelir; Python 0,945064 verir. Altı gözlemle elde edilen yüksek bir r, aynı zamanda geniş bir güven aralığına sahiptir; tek bir uç gözlem sonucu belirgin biçimde değiştirebilir.</div>
+</section>
+
+<!-- 7 R2 -->
+<section id="r2" style="--dot:var(--c3)">
+  <div class="kicker">s. 317</div>
+  <h2 class="sec">R² ve düzeltilmiş R²</h2>
+  <p>R² (belirleme katsayısı), bağımlı değişkendeki farklılıkların bağımsız değişken(ler)deki farklılıklarla ne ölçüde açıklandığını tahmin eder; basit regresyonda korelasyon katsayısının karesidir. Düzeltilmiş R², bu ölçüyü bağımsız değişken sayısına göre düzeltir. Her zaman düzeltilmiş R² ≤ R²'dir. Modele yararsız değişken eklemek düzeltilmiş R²'yi düşürür, yararsız değişkeni çıkarmak artırır.</p>
+  <div class="formula"><b>R̄² = 1 − (1 − R²)(N − 1) / (N − p − 1)</b> &nbsp;&nbsp; N: gözlem sayısı, p: bağımsız değişken sayısı</div>
+  <div class="case"><span class="tag">İK vakası</span>Koçluk örneğinde R² = 0,945² = 0,893: koçluk saati, performans puanındaki farklılığın yaklaşık %89'unu açıklıyor. Düzeltilmiş R² = 1 − (0,107 × 5) / 4 = 0,866. Modele çalışanın ayakkabı numarası gibi ilgisiz bir değişken eklenirse R² biraz artar ama düzeltilmiş R² düşer.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · yararsız değişkenin etkisi</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="16">import numpy as np
+import statsmodels.api as sm
+
+koc  = np.array([1, 2, 3, 4, 5, 6])
+puan = np.array([7, 10, 15, 16, 17, 18])
+r = np.random.default_rng(1)
+
+X = sm.add_constant(koc)
+m1 = sm.OLS(puan, X).fit()
+print(f"Yalnızca koçluk        R² = {m1.rsquared:.4f}  düzeltilmiş R² = {m1.rsquared_adj:.4f}")
+
+for k in (1, 2):
+    gurultu = r.normal(size=(6, k))             # ilgisiz değişkenler
+    m = sm.OLS(puan, np.column_stack([X, gurultu])).fit()
+    print(f"+ {k} ilgisiz değişken    R² = {m.rsquared:.4f}  düzeltilmiş R² = {m.rsquared_adj:.4f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+</section>
+
+<!-- 8 REGRESYON -->
+<section id="regresyon" style="--dot:var(--c2)">
+  <div class="kicker">s. 317–323</div>
+  <h2 class="sec">Basit doğrusal regresyon</h2>
+  <p>Basit doğrusal regresyon iki değişken arasındaki ilişkiyi bir doğruyla tahmin eder ve bir değişkenin değerinden diğerini kestirmeye olanak verir. <strong>Grafik yöntemde</strong> doğru, noktaların çoğundan geçecek ve kalan noktalar iki yanına yaklaşık eşit dağılacak biçimde çizilir (en iyi uyum doğrusu). <strong>Cebirsel yöntemde</strong> a ve b normal denklemlerden bulunur.</p>
+  <div class="formula"><b>Y = a + bX</b> &nbsp;&nbsp; ΣY = Na + bΣX &nbsp;·&nbsp; ΣXY = aΣX + bΣX²</div>
+  <h3>Elle hesap: koçluk ve performans</h3>
+  <ol class="steps">
+    <li>Σx = 21, Σx² = 91, Σy = 83, Σy² = 1.243, Σxy = 329; (Σx)² = 441, (Σy)² = 6.889.</li>
+    <li>SST = 1.243 − 6.889 / 6 = <b>94,83</b>; SSX = 91 − 441 / 6 = <b>17,5</b>; SSXY = 329 − 21 × 83 / 6 = <b>38,5</b>.</li>
+    <li>Eğim b = SSXY / SSX = 38,5 / 17,5 = <b>2,2</b>; kesişim a = 13,83 − 2,2 × 3,5 = <b>6,13</b>. Ŷ = 6,13 + 2,2 × koçluk saati.</li>
+    <li>SSR = b × SSXY = 2,2 × 38,5 = 84,7; SSE = SST − SSR = 10,13.</li>
+    <li>F = (84,7 / 1) / (10,13 / 4) = <b>33,43</b> &gt; F(1, 4) kritik değeri 7,71 → eğim sıfırdan farklı.</li>
+    <li>SE<sub>a</sub> = √(MSE × Σx² / (N × SSX)) = √(2,533 × 91 / 105) = 1,48; SE<sub>b</sub> = √(MSE / SSX) = √(2,533 / 17,5) = <b>0,380</b>.</li>
+    <li>t(4; 0,975) = 2,776. %95 GA: a = 6,13 ± 4,11; b = 2,2 ± 1,06 → <b>[1,14; 3,26]</b>. Aralık sıfırı içermiyor.</li>
+  </ol>
+  <div class="tbl"><table>
+    <thead><tr><th>Kaynak</th><th class="num">SS</th><th class="num">sd</th><th class="num">MS</th><th class="num">F</th></tr></thead>
+    <tbody><tr><td>Regresyon</td><td class="num">84,70</td><td class="num">1</td><td class="num">84,70</td><td class="num">33,43</td></tr>
+    <tr><td>Hata</td><td class="num">10,13</td><td class="num">4</td><td class="num">2,53</td><td class="num"></td></tr>
+    <tr class="tot"><td>Toplam</td><td class="num">94,83</td><td class="num">5</td><td class="num"></td><td class="num"></td></tr></tbody></table></div>
+  <p>Yorum: haftalık koçluk süresindeki her bir saatlik artış, performans puanında ortalama 2,2 puanlık (%95 GA: 1,1 ile 3,3 arası) bir artışla ilişkili.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · statsmodels OLS</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="20">import numpy as np
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+Y = np.array([7, 10, 15, 16, 17, 18])     # performans puanı
+x = np.array([1, 2, 3, 4, 5, 6])          # koçluk saati
+X = sm.add_constant(x)
+sonuc = sm.OLS(Y, X).fit()
+print(sonuc.summary(slim=True))
+print("\n%95 GA:\n", sonuc.conf_int().round(3))
+print("\nANOVA: SSR =", round(sonuc.ess, 2), " SSE =", round(sonuc.ssr, 2), " F =", round(sonuc.fvalue, 2))
+
+xs = np.linspace(0.5, 6.5, 50)
+pr = sonuc.get_prediction(sm.add_constant(xs)).summary_frame()
+plt.scatter(x, Y, color="#2f6fb5", s=60, zorder=3)
+plt.plot(xs, pr["mean"], color="#d9822b", label="Ŷ = 6,13 + 2,2X")
+plt.fill_between(xs, pr["mean_ci_lower"], pr["mean_ci_upper"], color="#d9822b", alpha=.2, label="%95 GA")
+plt.xlabel("Haftalık koçluk saati"); plt.ylabel("Performans puanı"); plt.legend()
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <h3>Kitabın cebirsel örneği: iki yönlü regresyon</h3>
+  <div class="case"><span class="tag">İK vakası</span>Kitabın baba ve oğul kiloları örneğindeki sayılar, 12 çalışanın <strong>işe giriş sınavı puanı</strong> (X) ve <strong>birinci yıl performans puanı</strong> (Y) olarak okunabilir: X = 69, 63, 66, 64, 67, 64, 70, 66, 68, 67, 65, 71; Y = 70, 65, 68, 65, 69, 66, 68, 65, 71, 67, 64, 72. ΣX = 800, ΣX² = 53.402, ΣY = 810, ΣY² = 54.750, ΣXY = 54.059, N = 12. Y'nin X'e göre regresyonu, sınav puanından performansı; X'in Y'ye göre regresyonu ise performanstan sınav puanını kestirir. İki doğru, korelasyon ±1 olmadıkça farklıdır.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · normal denklemler ve iki regresyon doğrusu</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="14">import numpy as np
+
+X = np.array([69, 63, 66, 64, 67, 64, 70, 66, 68, 67, 65, 71])   # sınav puanı
+Y = np.array([70, 65, 68, 65, 69, 66, 68, 65, 71, 67, 64, 72])   # performans
+N = len(X)
+print("ΣX, ΣX², ΣY, ΣY², ΣXY =", X.sum(), (X**2).sum(), Y.sum(), (Y**2).sum(), (X*Y).sum())
+
+# Y = a + bX : [N ΣX; ΣX ΣX²] [a b]' = [ΣY ΣXY]'
+a, b = np.linalg.solve([[N, X.sum()], [X.sum(), (X**2).sum()]], [Y.sum(), (X*Y).sum()])
+print(f"Y'nin X'e göre regresyonu: Y = {a:.2f} + {b:.3f} X")
+a2, b2 = np.linalg.solve([[N, Y.sum()], [Y.sum(), (Y**2).sum()]], [X.sum(), (X*Y).sum()])
+print(f"X'in Y'ye göre regresyonu: X = {a2:.2f} + {b2:.3f} Y")
+print(f"Kontrol: b × b' = {b*b2:.4f} = r² = {np.corrcoef(X, Y)[0,1]**2:.4f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki hesap hataları.</strong> Koçluk örneğinin karşılığı olan alabalık örneğinde: SE<sub>b</sub> = √(2,53 / 17,5) = 0,380'dir, kitap 0,37 yazıyor; bu yüzden eğimin güven aralığı [1,17; 3,23] yerine [1,14; 3,26] olmalı. Kitap kesişimi 13,8 ile hesaplayıp 6,1 buluyor (doğrusu 13,83 ile 6,13), F'yi de 33,48 veriyor (doğrusu 33,43; kitabın Python çıktısı da 33,43). Kitap “güven aralığı 3,23 ile 1,17 arasında” derken alt ve üst sınırı ters yazıyor. Baba-oğul örneğinde 12 × 54.059 = 648.708 olması gerekirken 648.588 yazılmış. Bu hata eğimi 0,859 yerine 0,713 yapıyor; üstelik işaret de eksi yazılmış (Y = 19,96 − 0,713X). Doğru denklemler: <b>Y = 10,22 + 0,859X</b> ve <b>X = 13,57 + 0,787Y</b>. Kitabın X = 22,58 + 0,653Y sonucu da aynı aritmetik hatadan kaynaklanıyor.</div>
+</section>
+
+<!-- 9 LOJİSTİK -->
+<section id="lojistik" style="--dot:var(--c5)">
+  <div class="kicker">s. 324–325</div>
+  <h2 class="sec">Lojistik regresyon</h2>
+  <p>Lojistik regresyon, bağımlı değişken iki kategorili (geçti/kaldı, ayrıldı/kaldı) olduğunda bir olayın olasılığını modeller. π(x) olasılığı, x her vaka için gözlenen sayısal değişkendir; α eğriyi sağa-sola kaydırır (kesişim), β eğrinin dikliğini belirler (eğim).</p>
+  <div class="formula"><b>π(x) = e<sup>α + βx</sup> / (1 + e<sup>α + βx</sup>)</b> &nbsp;&nbsp; log-odds = α + βx &nbsp;·&nbsp; e<sup>β</sup> = odds oranı</div>
+  <div class="case"><span class="tag">İK vakası</span>20 çalışan bir İK sertifika sınavına (ör. uluslararası bir İK yetkinlik sertifikası) giriyor. Her birinin şirketin sağladığı hazırlık programında geçirdiği süre (0,5–5,5 saat/hafta) ve sınavı geçip geçmediği kaydediliyor. Model: α = −4,078, β = 1,505. Haftada 2 saat hazırlanan bir çalışanın geçme olasılığı e<sup>−4,078 + 1,505×2</sup> / (1 + e<sup>…</sup>) = <strong>0,26</strong>; 4 saat hazırlanan için <strong>0,87</strong>. e<sup>1,505</sup> = 4,5: haftalık her ek saat, geçme odds'unu 4,5 katına çıkarıyor.</div>
+  <div class="tool">
+    <div class="lbl">Lojistik eğri · α ve β'yı değiştirin, log-olabilirliği izleyin</div>
+    <div class="row">
+      <div class="field"><label for="lg-a">Kesişim α: <b id="lg-av"></b></label><input id="lg-a" type="range" min="-10" max="2" step="0.05" value="-4.08"></div>
+      <div class="field"><label for="lg-b">Eğim β: <b id="lg-bv"></b></label><input id="lg-b" type="range" min="0" max="4" step="0.05" value="1.5"></div>
+      <div class="field"><label for="lg-h">Hazırlık saati: <b id="lg-hv"></b></label><input id="lg-h" type="range" min="0" max="6" step="0.25" value="2"></div>
+      <div class="field" style="flex:0 0 auto"><button id="lg-mle" class="ghost">En çok olabilirlik</button></div>
+    </div>
+    <div class="svgbox" id="lg-svg" aria-label="Lojistik eğri ve geçti-kaldı verisi"></div>
+    <div class="stats" id="lg-stats"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · statsmodels Logit</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="16">import numpy as np
+import statsmodels.api as sm
+
+saat = np.array([0.50,0.75,1.00,1.25,1.50,1.75,1.75,2.00,2.25,2.50,
+                 2.75,3.00,3.25,3.50,4.00,4.25,4.50,4.75,5.00,5.50])
+gecti = np.array([0,0,0,0,0,0,1,0,1,0,1,0,1,0,1,1,1,1,1,1])
+
+model = sm.Logit(gecti, sm.add_constant(saat)).fit()
+print(model.summary(xname=["sabit", "saat"]))
+
+a, b = model.params
+print(f"\nOdds oranı e^β = {np.exp(b):.2f}  (%95 GA: {np.exp(model.conf_int()[1]).round(2)})")
+for h in (2, 4):
+    print(f"{h} saat → P(geçer) = {model.predict([[1, h]])[0]:.2f}")
+print(f"%50 olasılık eşiği: {-a/b:.2f} saat")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitabın kodu <code class="i">statsmodels.formula.api</code>'yi <code class="i">sm</code> adıyla içe aktarıp <code class="i">sm.Logit</code> çağırıyor; bu ad karışıklığı yaratır. <code class="i">statsmodels.api.Logit</code> dizi ile, <code class="i">statsmodels.formula.api.logit</code> formül ile çalışır. Kitabın 20 gözlemli örneği yaygın bir ders örneğidir; İK'da çalışan ayrılma (turnover) tahmini, terfi olasılığı ve işe alım başarısı lojistik regresyonun tipik uygulamalarıdır.</div>
+</section>
+
+<!-- 10 BS -->
+<section id="bs" style="--dot:var(--c4)">
+  <div class="kicker">s. 325–327</div>
+  <h2 class="sec">Black-Scholes modeli ve çalışan hisse opsiyonları</h2>
+  <p>Model 1973'te Fischer Black, Myron Scholes ve Robert Merton tarafından geliştirildi. Çok işlem gören varlıkların fiyatının geometrik Brown hareketi izlediğini (sabit getiri eğilimi ve oynaklık) varsayar. Avrupa tipi bir alım (call) ya da satım (put) opsiyonunun değerini verir.</p>
+  <div class="formula"><b>C = S·N(d₁) − K·e<sup>−rT</sup>·N(d₂)</b> &nbsp;&nbsp; <b>P = K·e<sup>−rT</sup>·N(−d₂) − S·N(−d₁)</b></div>
+  <div class="formula">d₁ = [ln(S/K) + (r + σ²/2)T] / (σ√T) &nbsp;&nbsp; d₂ = d₁ − σ√T</div>
+  <p class="muted" style="font-size:.92rem">S: hisse fiyatı · K: kullanım (strike) fiyatı · T: vadeye kalan süre (yıl) · r: risksiz faiz oranı · σ: yıllık oynaklık · N(·): standart normal birikimli dağılım fonksiyonu.</p>
+  <div class="case"><span class="tag">İK vakası</span>Ücret yönetiminde Black-Scholes'un en yaygın kullanımı <strong>çalışan hisse opsiyonlarının</strong> (ESO) değerlemesidir. Bir teknoloji şirketi kilit mühendislerine, hisse 45 TL iken 105 TL kullanım fiyatlı, 2 yıl vadeli opsiyon veriyor (r = %10, σ = %50). Opsiyon başına değer <strong>4,13 TL</strong>; 10.000 opsiyonluk bir paketin gerçeğe uygun değeri yaklaşık 41.300 TL'dir. Bu değer, TFRS 2 / IFRS 2 “Hisse Bazlı Ödemeler” standardına göre hakediş süresi boyunca personel gideri olarak muhasebeleştirilir ve toplam ücret paketinde çalışana iletilir.</div>
+  <div class="tool">
+    <div class="lbl">Hisse opsiyonu değerleyici</div>
+    <div class="row">
+      <div class="field"><label for="bs-S">Hisse fiyatı S</label><input id="bs-S" type="number" step="1" value="45"></div>
+      <div class="field"><label for="bs-K">Kullanım fiyatı K</label><input id="bs-K" type="number" step="1" value="105"></div>
+      <div class="field"><label for="bs-T">Vade T (yıl)</label><input id="bs-T" type="number" step="0.5" value="2"></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="field"><label for="bs-r">Risksiz faiz r</label><input id="bs-r" type="number" step="0.01" value="0.10"></div>
+      <div class="field"><label for="bs-s">Oynaklık σ</label><input id="bs-s" type="number" step="0.05" value="0.50"></div>
+      <div class="field"><label for="bs-n">Opsiyon adedi</label><input id="bs-n" type="number" step="1000" value="10000"></div>
+    </div>
+    <div class="stats" id="bs-stats"></div>
+    <div class="svgbox" id="bs-svg" aria-label="Hisse fiyatına göre alım opsiyonu değeri"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · Black-Scholes</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="20">import numpy as np
+from scipy.stats import norm
+
+def black_scholes(S, K, T, r, sigma, opsiyon="call"):
+    d1 = (np.log(S / K) + (r + 0.5 * sigma**2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    if opsiyon == "call":
+        return S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+    return K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+
+put  = black_scholes(45, 105, 2, 0.10, 0.5, "put")
+call = black_scholes(45, 105, 2, 0.10, 0.5, "call")
+print(f"Satım (put) : {put:.6f}")
+print(f"Alım (call) : {call:.6f}")
+print(f"Put-call paritesi: C − P = {call - put:.4f}, S − K·e^(−rT) = {45 - 105*np.exp(-0.2):.4f}")
+print(f"10.000 opsiyonun değeri: {10000 * call:,.0f} TL")
+
+# Kullanım fiyatı hisse fiyatına eşit (at-the-money) bir hibe
+print(f"K = 45 olsaydı opsiyon başına: {black_scholes(45, 45, 2, 0.10, 0.5):.2f} TL")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitap hakkında ve İK için dikkat.</strong> Kitap modelin “en çok Avrupa finans piyasalarında kullanıldığını” söylüyor; doğrusu, modelin yalnızca vade sonunda kullanılabilen <em>Avrupa tipi</em> opsiyonlar için kapalı çözüm vermesidir. Coğrafi bir sınırlama yoktur; vadeden önce kullanılabilen Amerikan tipi opsiyonlar için binom gibi yöntemler gerekir. Şemada “Annualizd” yazım hatası var ve T − t “kullanım tarihi” diye etiketlenmiş; doğrusu vadeye kalan süredir. Çalışan opsiyonları devredilemez, hakediş koşulu içerir ve çoğu zaman erken kullanılır. Bu nedenle uygulamada beklenen vade kısaltılır ya da kafes (lattice) modelleri kullanılır. Halka açık olmayan şirketlerde σ benzer şirketlerden tahmin edilir.</div>
+</section>
+
+<!-- 11 KOMBİNASYON -->
+<section id="kombin" style="--dot:var(--c1)">
+  <div class="kicker">s. 328–335</div>
+  <h2 class="sec">Kombinasyon ve permütasyon</h2>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c1)"><h4>Kombinasyon</h4><p>Seçim sırası önemsenmeden yapılan seçim. C(n, r) = n! / (r!(n − r)!)</p><p class="muted">Tekrarlı: (n + r − 1)! / (r!(n − 1)!)</p></div>
+    <div class="card" style="--kc:var(--c2)"><h4>Permütasyon</h4><p>Sıralı diziliş. Tekrarsız: P(n, r) = n! / (n − r)!</p><p class="muted">Tekrarlı: nʳ</p></div>
+    <div class="card" style="--kc:var(--c3)"><h4>Dairesel permütasyon</h4><p>n farklı nesnenin sabit bir daire etrafında dizilişi: (n − 1)!</p><p class="muted">Saat yönü ile tersi aynı sayılırsa: (n − 1)! / 2</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span><strong>Kombinasyon:</strong> 7 kişilik aday havuzundan finale kalacak 2 kişi kaç farklı biçimde seçilebilir? C(7, 2) = 5.040 / 240 = <strong>21</strong>. <strong>Permütasyon:</strong> Aynı 7 kişiden biri bölge müdürü, diğeri müdür yardımcısı olarak atanacaksa sıra önemlidir: P(7, 2) = 5.040 / 120 = <strong>42</strong>. <strong>Dairesel:</strong> 6 departman yöneticisi yuvarlak bir toplantı masasına (5!) = <strong>120</strong> farklı biçimde oturabilir.</div>
+  <div class="tool">
+    <div class="lbl">Sayma hesaplayıcısı</div>
+    <div class="row">
+      <div class="field"><label for="cp-n">n (havuz)</label><input id="cp-n" type="number" min="1" max="60" value="7"></div>
+      <div class="field"><label for="cp-r">r (seçilen)</label><input id="cp-r" type="number" min="0" max="60" value="2"></div>
+      <div class="field" style="flex:2 1 260px"><label for="cp-names">Adaylar (listeleme için)</label><input id="cp-names" type="text" value="Ayşe, Burak, Cem, Deniz, Elif, Fatih, Gül"></div>
+    </div>
+    <div class="stats" id="cp-stats"></div>
+    <div class="verdict" id="cp-list" style="font-family:var(--f-mono);font-size:.82rem;max-height:180px;overflow:auto"></div>
+  </div>
+  <h3>Çift ve tek permütasyonlar</h3>
+  <p>Sıfır ya da çift sayıda ters dönüşüm (inversion, yani iki öğenin yer değiştirmesi) ile elde edilen permütasyon <strong>çift</strong> (işaret +1), tek sayıda ters dönüşümle elde edilen <strong>tek</strong> permütasyondur (işaret −1). n ≥ 2 öğe için çift ve tek permütasyonların sayısı eşittir: n! / 2. Örneğin {4, 5, 6} kümesinin 3! / 2 = 3 çift ve 3 tek permütasyonu vardır.</p>
+  <div class="case"><span class="tag">İK vakası</span>Ters dönüşüm sayısı İK'da doğrudan kullanılır: iki mülakatçının aynı adayları sıralaması arasındaki ters dönüşüm sayısı <strong>Kendall uzaklığıdır</strong> ve Kendall τ sıralama uyumu katsayısının temelidir. Birinci mülakatçı adayları 1, 2, 3, 4, 5 sıralamış, ikincisi aynı adayları 2, 1, 3, 5, 4 olarak sıralamışsa iki ters dönüşüm vardır.</div>
+  <div class="tool">
+    <div class="lbl">Ters dönüşüm sayacı · sıralama uyumu</div>
+    <div class="row"><div class="field" style="flex:2 1 260px"><label for="inv-in">İkinci mülakatçının sıralaması (birinci = 1, 2, 3, …)</label><input id="inv-in" type="text" value="2, 1, 3, 5, 4"></div></div>
+    <div class="stats" id="inv-stats"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · itertools ve math</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="24">from itertools import combinations, permutations
+from math import comb, perm, factorial
+from scipy.stats import kendalltau
+
+adaylar = ["Ayşe", "Burak", "Cem", "Deniz", "Elif", "Fatih", "Gül"]
+finalist = list(combinations(adaylar, 2))
+atama = list(permutations(adaylar, 2))
+print("Finale kalacak ikili sayısı  :", len(finalist), "=", comb(7, 2))
+print("Müdür + yardımcı ataması     :", len(atama), "=", perm(7, 2))
+print("İlk 3 ikili:", finalist[:3])
+print("Tekrarlı kombinasyon C(7+2-1, 2):", comb(8, 2))
+print("6 yönetici yuvarlak masada    :", factorial(5))
+
+def ters_donusum(p):
+    return sum(1 for i in range(len(p)) for j in range(i+1, len(p)) if p[i] > p[j])
+
+for p in permutations([4, 5, 6]):
+    k = ters_donusum(p)
+    print(p, k, "ters dönüşüm →", "çift (+1)" if k % 2 == 0 else "tek (−1)")
+
+m1, m2 = [1, 2, 3, 4, 5], [2, 1, 3, 5, 4]
+print("\nMülakatçılar arası ters dönüşüm:", ters_donusum(m2))
+print("Kendall τ:", round(kendalltau(m1, m2).statistic, 3))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Kitaptaki küçük tutarsızlıklar.</strong> Kitabın kombinasyon şemasında r “her permütasyonun büyüklüğü” olarak etiketlenmiş; kombinasyonda bu, seçilen öğe sayısıdır. Tekrarlı kombinasyon “bir nesneyi birkaç kez seçme olasılığı” diye tanımlanmış; formül bir olasılık değil, seçim sayısı verir. Çift-tek permütasyon şemasında koşul bir yerde n &gt; 2, diğer yerde n ≥ 2 yazılmış; doğrusu n ≥ 2'dir. Python bölümünün başlığı permütasyon için de “kombinasyon” diyor. Dairesel permütasyon şemasındaki dizilişler (wxyz, xyzw, …) aynı dizilişin dönmüş halleridir; bu yüzden sayılırken tek diziliş kabul edilir.</div>
+</section>
+
+<!-- 12 SAĞKALIM -->
+<section id="sagkalim" style="--dot:var(--c3)">
+  <div class="kicker">s. 335–340</div>
+  <h2 class="sec">Sağkalım analizi ve Kaplan-Meier yöntemi</h2>
+  <p>Sağkalım analizi, bir çalışmanın başlangıcından (temel çizgi) belirli bir olayın gerçekleşmesine kadar geçen süreyi modeller. Sağkalım verisi iki tür veriden oluşur: tamamen gözlenmiş veri ve <strong>sansürlü</strong> veri. Sansür, çalışma süresince kişide ilgilenilen olay gerçekleşmediğinde ya da verisi kaybolduğunda ortaya çıkar (sağdan sansürleme). Kaplan-Meier (çarpım limiti) yöntemi, sağkalım analizinde en yaygın parametrik olmayan yöntemdir.</p>
+  <div class="formula"><b>S(tᵢ) = S(tᵢ₋₁) × (Nᵢ − Dᵢ) / Nᵢ</b> &nbsp;&nbsp; Nᵢ: risk altındaki sayı, Dᵢ: olay sayısı</div>
+  <div class="case"><span class="tag">İK vakası · çalışan elde tutma</span>İK'da “sağkalım”, çalışanın şirkette kalmasıdır; olay <strong>gönüllü ayrılma</strong>dır. Bir yazılım şirketinin aynı dönemde işe aldığı 12 mühendis 25 ay izleniyor. 3 kişi istifa ediyor (2., 4. ve 14. ay). Diğerleri sansürlü: bir bölümü başka bir şirket birimine transfer edildiği ya da izlem dışı kaldığı için, 2 kişi de 25. ayın sonunda hâlâ şirkette olduğu için.
+  <div class="tbl"><table><thead><tr><th>Çalışan</th><th class="num">1</th><th class="num">2</th><th class="num">3</th><th class="num">4</th><th class="num">5</th><th class="num">6</th><th class="num">7</th><th class="num">8</th><th class="num">9</th><th class="num">10</th><th class="num">11</th><th class="num">12</th></tr></thead><tbody>
+    <tr><td>Süre (ay)</td><td class="num">25</td><td class="num">16</td><td class="num">4</td><td class="num">8</td><td class="num">17</td><td class="num">25</td><td class="num">10</td><td class="num">10</td><td class="num">14</td><td class="num">2</td><td class="num">14</td><td class="num">18</td></tr>
+    <tr><td>İstifa (1) / sansür (0)</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">0</td><td class="num">1</td><td class="num">1</td><td class="num">0</td><td class="num">0</td></tr></tbody></table></div></div>
+  <div class="tbl"><table>
+    <thead><tr><th class="num">Ay</th><th class="num">Risk altında N</th><th class="num">İstifa D</th><th class="num">Sansür C</th><th>Kalma olasılığı S(t)</th></tr></thead>
+    <tbody>
+      <tr><td class="num">2</td><td class="num">12</td><td class="num">1</td><td class="num"></td><td>1 × 11/12 = 0,917</td></tr>
+      <tr><td class="num">4</td><td class="num">11</td><td class="num">1</td><td class="num"></td><td>0,917 × 10/11 = 0,833</td></tr>
+      <tr><td class="num">8</td><td class="num">10</td><td class="num"></td><td class="num">1</td><td>0,833</td></tr>
+      <tr><td class="num">10</td><td class="num">9</td><td class="num"></td><td class="num">2</td><td>0,833</td></tr>
+      <tr><td class="num">14</td><td class="num">7</td><td class="num">1</td><td class="num">1</td><td>0,833 × 6/7 = 0,714</td></tr>
+      <tr><td class="num">16–18</td><td class="num">5 → 3</td><td class="num"></td><td class="num">3</td><td>0,714</td></tr>
+      <tr><td class="num">25</td><td class="num">2</td><td class="num"></td><td class="num">2</td><td>0,714</td></tr>
+    </tbody></table></div>
+  <p>Yorum: işe alımdan 4 ay sonra bir mühendisin şirkette kalma olasılığı %83,3; 14. aydan çalışmanın sonuna kadar %71,4. Kalma olasılığı hiçbir zaman 0,5'in altına düşmediği için ortanca kalma süresi bu izlemde tahmin edilemiyor.</p>
+  <div class="tool">
+    <div class="lbl">Kaplan-Meier hesaplayıcısı · her satıra “süre, durum” (1 = olay, 0 = sansür)</div>
+    <textarea id="km-in" rows="6" spellcheck="false" style="width:100%;font-family:var(--f-mono);font-size:.9rem;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)">25,0 16,0 4,1 8,0 17,0 25,0
+10,0 10,0 14,1 2,1 14,0 18,0</textarea>
+    <p class="muted" style="font-size:.85rem;margin:6px 0 0">Çiftleri boşluk ya da yeni satırla ayırın. Kitabın kodlamasını görmek için 25. aydaki iki kişinin durumunu 1 yapın.</p>
+    <div class="svgbox" id="km-svg" aria-label="Kaplan-Meier kalma eğrisi"></div>
+    <div class="tbl"><table id="km-tbl"></table></div>
+    <div class="stats" id="km-stats"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · statsmodels SurvfuncRight</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="20">import statsmodels.duration.survfunc as sd
+import matplotlib.pyplot as plt
+
+sure  = [25, 16, 4, 8, 17, 25, 10, 10, 14, 2, 14, 18]   # ay
+istifa = [0, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0]          # 1 = istifa, 0 = sansür
+
+km = sd.SurvfuncRight(sure, istifa)
+print(km.summary())
+
+# Kitabın kodlaması: 25. ayda çalışmayı tamamlayanlar "olay" sayılmış
+kitap = sd.SurvfuncRight(sure, [1, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0])
+print("\nKitabın kodlaması:\n", kitap.summary())
+
+fig = km.plot()
+ax = fig.axes[0]
+ax.set_ylim(0, 1.05); ax.set_xlabel("İşe alımdan bu yana ay")
+ax.set_ylabel("Şirkette kalma olasılığı")
+ax.set_title("12 mühendisin Kaplan-Meier kalma eğrisi (+ = sansür)")
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki kodlama hatası.</strong> Kitap, çalışmayı 25. yılda tamamlayan iki katılımcıyı da durum = 1 (olay) olarak kodluyor ve “1, ölen ya da çalışmayı tamamlayan katılımcıları gösterir” diyor. Çalışmayı olay yaşamadan tamamlamak sansürdür (0). Bu hata, Python çıktısında 25. yılda sağkalımı 0'a düşürüyor; kitabın “grafik 25 yıldan sonra sağkalım olasılığı olmadığını varsayıyor” yorumu da bu hatanın sonucudur. Kitabın elle hazırladığı yaşam tablosu ise doğru kodlamayla uyumludur (25. yılda 0,715). Ayrıca kitap “3 katılımcı çalışma bitmeden öldü, 2 katılımcı çalışmayı tamamladı” diyor; geri kalan 7 kişi izlem dışı kalanlardır. İK uygulamasında Cox orantılı tehlikeler modeli, ayrılmayı yönetici, ücret ya da performans gibi değişkenlerle ilişkilendirmek için Kaplan-Meier'in doğal devamıdır.</div>
+</section>
+
+</main>
+
+<footer>
+  Kaynak: Usman Zafar Paracha, <em>Colorful Statistics and Python Programming Language</em>, s. 301–340. Kavram anlatımları kitaptan çevrilmiş; örnekler insan kaynakları bağlamına uyarlanmış, kodlar güncel scipy ve statsmodels sürümlerine göre düzeltilmiş, hesaplayıcılar eklenmiştir. Örnek veriler eğitim amaçlı ve kurgusaldır. Python kodları tarayıcıda <a href="https://pyodide.org" style="color:var(--c1)">Pyodide</a> ile çalışır; ilk çalıştırmada paketlerin inmesi biraz zaman alabilir. Sayfa internet bağlantısı gerektirir.
+</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+/* ---------- Pyodide + matplotlib yakalama ---------- */
+const statusEl = document.getElementById('status');
+function setStatus(txt, cls){ statusEl.className = 'status' + (cls ? ' ' + cls : ''); statusEl.querySelector('span').textContent = txt; }
+let pyReady = null;
+function getPy(){
+  if (!pyReady){
+    pyReady = (async () => {
+      const py = await loadPyodide();
+      setStatus('Python hazır · paketler ilk kullanımda yüklenir', 'ready');
+      return py;
+    })().catch(e => { setStatus('Pyodide yüklenemedi: internet bağlantısını kontrol edin', 'err'); throw e; });
+  }
+  return pyReady;
+}
+getPy();
+const MPL_PRELUDE = `
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt, io as _io, base64 as _b64
+plt.rcParams.update({"figure.figsize": (7, 4.2), "axes.spines.top": False, "axes.spines.right": False})
+_imgs = []
+def _yakala(*a, **k):
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = _io.BytesIO()
+        f.savefig(b, format="png", dpi=110, bbox_inches="tight", facecolor="white")
+        _imgs.append(_b64.b64encode(b.getvalue()).decode())
+    plt.close("all")
+plt.show = _yakala
+`;
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.querySelectorAll('[data-cell]').forEach(cell => {
+  const ta = cell.querySelector('textarea'), out = cell.querySelector('pre.out'), figs = cell.querySelector('.figs');
+  const runBtn = cell.querySelector('[data-run]');
+  const original = ta.value;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab'){ e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runBtn.click(); }
+  });
+  cell.querySelector('[data-reset]').addEventListener('click', () => { ta.value = original; out.innerHTML = ''; figs.innerHTML = ''; });
+  runBtn.addEventListener('click', async () => {
+    runBtn.disabled = true; runBtn.textContent = 'Çalışıyor…';
+    out.innerHTML = '<span class="w">Hazırlanıyor…</span>'; figs.innerHTML = '';
+    let buf = '';
+    const usesPlot = /matplotlib|seaborn|pyplot/.test(ta.value);
+    try {
+      const py = await getPy();
+      await py.loadPackagesFromImports(usesPlot ? ta.value + '\nimport matplotlib' : ta.value, { messageCallback: m => { out.innerHTML = '<span class="w">' + esc(m) + '</span>'; } });
+      py.setStdout({ batched: s => { buf += s + '\n'; } });
+      py.setStderr({ batched: s => { if (!/Matplotlib is building the font cache/.test(s)) buf += s + '\n'; } });
+      if (usesPlot) await py.runPythonAsync(MPL_PRELUDE);
+      await py.runPythonAsync(ta.value);
+      if (usesPlot){
+        await py.runPythonAsync('_yakala()');
+        const imgs = py.globals.get('_imgs').toJs();
+        figs.innerHTML = imgs.map((b, i) => `<img alt="Grafik ${i + 1}" src="data:image/png;base64,${b}">`).join('');
+      }
+      out.innerHTML = esc(buf.trimEnd()) || (usesPlot ? '' : '<span class="w">(çıktı yok)</span>');
+    } catch (err) {
+      const msg = String(err.message || err).split('\n').filter(Boolean);
+      out.innerHTML = (buf ? esc(buf) : '') + '<span class="e">' + esc(msg.slice(-3).join('\n')) + '</span>';
+    } finally { runBtn.disabled = false; runBtn.textContent = 'Çalıştır ▸'; }
+  });
+});
+
+/* ---------- Yardımcılar ---------- */
+const fmt = (v, d = 4) => Number.isFinite(v) ? Number(v).toLocaleString('tr-TR', { maximumFractionDigits: d }) : '—';
+const parseNums = s => s.split(/[\s,;]+/).filter(t => t !== '').map(Number).filter(Number.isFinite);
+const statHTML = arr => arr.map(([k, v, hl]) => `<div class="stat${hl ? ' hl' : ''}"><span>${k}</span><b>${v}</b></div>`).join('');
+function erf(x){ const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
+  return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)); }
+const Phi = x => 0.5 * (1 + erf(x / Math.SQRT2));
+const phi = x => Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+function zinv(p){ let lo = -10, hi = 10; for (let i = 0; i < 80; i++){ const m = (lo + hi) / 2; if (Phi(m) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
+function ranks(a){ const idx = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]); const r = Array(a.length);
+  for (let i = 0; i < idx.length;){ let j = i; while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++;
+    const avg = (i + j) / 2 + 1; for (let k = i; k <= j; k++) r[idx[k][1]] = avg; i = j + 1; } return r; }
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
+
+const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+const numv = id => Number(document.getElementById(id).value);
+const pfmt = p => p < 1e-4 ? p.toExponential(2).replace('.', ',') : fmt(p, 4);
+
+/* ---------- Yol diyagramı (sabit, Python çıktısıyla aynı) ---------- */
+(function(){
+  const N = { V1: [80, 130, 'Yönetici desteği'], V2: [250, 40, 'İş yükü'], V3: [250, 220, 'Öz yeterlik'], V4: [430, 40, 'Tükenmişlik'], V5: [580, 130, 'Performans'] };
+  const E = [['V1', 'V2', -0.325], ['V1', 'V3', 0.336], ['V2', 'V3', -0.185], ['V2', 'V4', 0.490], ['V3', 'V5', 0.446], ['V4', 'V5', -0.378], ['V1', 'V5', 0.151]];
+  const W = 66, H = 20;
+  let svg = `<svg viewBox="0 0 660 270" role="img" aria-label="Yol diyagramı: yönetici desteği, iş yükü, öz yeterlik, tükenmişlik ve performans arasındaki standartlaştırılmış katsayılar"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="11" markerHeight="11" markerUnits="userSpaceOnUse" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>`;
+  E.forEach(([a, b, w]) => { const [x1, y1] = N[a], [x2, y2] = N[b];
+    const dx = x2 - x1, dy = y2 - y1, t1 = Math.min(W / Math.abs(dx || 1e-9), H / Math.abs(dy || 1e-9)), t2 = t1;
+    const sx = x1 + dx * t1, sy = y1 + dy * t1, ex = x2 - dx * t2, ey = y2 - dy * t2;
+    const col = w > 0 ? 'var(--c3)' : 'var(--c5)', sw = 1 + Math.abs(w) * 6;
+    svg += `<line x1="${sx}" y1="${sy}" x2="${ex}" y2="${ey}" stroke="${col}" stroke-width="${sw.toFixed(1)}" stroke-opacity=".75" marker-end="url(#ah)"/>`;
+    const f = a === 'V2' && b === 'V3' ? 0.3 : 0.5, mx = sx + (ex - sx) * f, my = sy + (ey - sy) * f;
+    svg += `<rect x="${mx - 24}" y="${my - 10}" width="48" height="20" rx="5" fill="var(--surface)" stroke="var(--line)"/><text x="${mx}" y="${my + 4}" text-anchor="middle" font-family="var(--f-mono)" font-size="11.5" fill="var(--fg)">${fmt(w, 3)}</text>`; });
+  Object.values(N).forEach(([x, y, l]) => svg += `<rect x="${x - W}" y="${y - H}" width="${2 * W}" height="${2 * H}" rx="8" fill="var(--sunk)" stroke="var(--line)"/><text x="${x}" y="${y + 4}" text-anchor="middle" font-family="var(--f-display)" font-size="12.5" fill="var(--fg)">${l}</text>`);
+  svg += `<text x="330" y="262" text-anchor="middle" font-family="var(--f-display)" font-size="12" fill="var(--muted)">Yeşil: pozitif · kırmızı: negatif · kalınlık: katsayının büyüklüğü</text></svg>`;
+  document.getElementById('yol-svg').innerHTML = svg;
+})();
+
+/* ---------- Etki büyüklüğü ---------- */
+function drawES(){
+  const m1 = numv('es-m1'), s1 = numv('es-s1'), n1 = numv('es-n1'), m2 = numv('es-m2'), s2 = numv('es-s2'), n2 = numv('es-n2');
+  if (!(s1 > 0 && s2 > 0 && n1 > 1 && n2 > 1)){ document.getElementById('es-stats').innerHTML = statHTML([['Uyarı', 's > 0 ve n > 1 olmalı']]); return; }
+  const sp = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2 - 2));
+  const spBook = Math.sqrt(((n1 - 1) * s1 * s1 + (n2 - 1) * s2 * s2) / (n1 + n2));
+  const d = (m1 - m2) / sp, J = 1 - 3 / (4 * (n1 + n2) - 9), g = d * J, D = (m1 - m2) / s2, r = d / Math.sqrt(d * d + (n1 + n2) ** 2 / (n1 * n2));
+  const U3 = Phi(d), ov = 2 * Phi(-Math.abs(d) / 2);
+  const lo = Math.min(m1 - 3.5 * s1, m2 - 3.5 * s2), hi = Math.max(m1 + 3.5 * s1, m2 + 3.5 * s2);
+  const W = 640, H = 200, L = 16, R = 16, T = 12, B = 30, pk = Math.max(phi(0) / s1, phi(0) / s2);
+  const sx = v => L + (v - lo) / (hi - lo) * (W - L - R), sy = v => H - B - v / pk * (H - T - B);
+  const curve = (m, s) => { const pts = []; for (let i = 0; i <= 200; i++){ const v = lo + (hi - lo) * i / 200; pts.push([sx(v), sy(phi((v - m) / s) / s)]); } return pts; };
+  const c1 = curve(m1, s1), c2 = curve(m2, s2);
+  const ovp = c1.map((p, i) => [p[0], Math.max(p[1], c2[i][1])]);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="İki normal dağılım ve örtüşme alanı">`;
+  svg += `<path d="M${sx(lo)} ${H - B}${path(ovp).replace('M', 'L')}L${sx(hi)} ${H - B}Z" fill="color-mix(in srgb,var(--c4) 28%,transparent)"/>`;
+  svg += `<path d="${path(c2)}" fill="none" stroke="var(--c1)" stroke-width="2.5"/><path d="${path(c1)}" fill="none" stroke="var(--c2)" stroke-width="2.5"/>`;
+  svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
+  const left = m1 >= m2;
+  [[m2, 'var(--c1)', 'Kontrol', left], [m1, 'var(--c2)', 'Grup 1', !left]].forEach(([m, c, l, isLeft]) => svg += `<line x1="${sx(m)}" x2="${sx(m)}" y1="${T}" y2="${H - B}" stroke="${c}" stroke-dasharray="4 3"/><text class="ttl" x="${sx(m) + (isLeft ? -6 : 6)}" y="${H - 12}" text-anchor="${isLeft ? 'end' : 'start'}" style="fill:${c}">${l} ${fmt(m, 2)}</text>`);
+  document.getElementById('es-svg').innerHTML = svg + '</svg>';
+  document.getElementById('es-stats').innerHTML = statHTML([['Mutlak fark', fmt(m1 - m2, 3)], ['Birleşik s', fmt(sp, 3)], ["Cohen's d", fmt(d, 3), true], ["Hedges' g", fmt(g, 3)], ['Glass Δ', fmt(D, 3)], ['r eşdeğeri', fmt(r, 3)], ['d (kitap, n₁+n₂)', fmt((m1 - m2) / spBook, 3)]]);
+  const lab = Math.abs(d) < 0.2 ? 'önemsiz' : Math.abs(d) < 0.5 ? 'küçük' : Math.abs(d) < 0.8 ? 'orta' : Math.abs(d) < 1.3 ? 'büyük' : 'çok büyük';
+  document.getElementById('es-v').innerHTML = `Etki: <b>${lab}</b>. Grup 1'in ortalaması kontrol grubunun <b>%${fmt(100 * U3, 1)}</b>'inden yüksek (Cohen U3). İki dağılımın örtüşmesi (mor alan) <b>%${fmt(100 * ov, 1)}</b>.`;
+}
+['es-m1', 'es-s1', 'es-n1', 'es-m2', 'es-s2', 'es-n2'].forEach(id => document.getElementById(id).addEventListener('input', drawES));
+drawES();
+
+/* ---------- Odds oranı ---------- */
+function drawOR(){
+  const t1 = parseNums(document.getElementById('or-1').value), t2 = parseNums(document.getElementById('or-2').value);
+  const tabs = [t1, t2].filter(t => t.length === 4);
+  const el = document.getElementById('or-v');
+  if (!tabs.length || t1.length !== 4){ document.getElementById('or-tbl').innerHTML = ''; el.innerHTML = 'Tabaka 1 için dört sayı girin: a (grup 1 olay), b (grup 2 olay), c (grup 1 olaysız), d (grup 2 olaysız).'; return; }
+  let num = 0, den = 0, rows = '';
+  tabs.forEach(([a, b, c, d], i) => { const n = a + b + c + d, OR = a * d / (b * c), se = Math.sqrt(1 / a + 1 / b + 1 / c + 1 / d);
+    const r1 = a / (a + c), r2 = b / (b + d);
+    num += a * d / n; den += b * c / n;
+    rows += `<tr><td>Tabaka ${i + 1}</td><td class="num">${n}</td><td class="num">${fmt(a / c, 3)}</td><td class="num">${fmt(b / d, 3)}</td><td class="num"><b>${fmt(OR, 3)}</b></td><td class="num">${fmt(Math.exp(Math.log(OR) - 1.96 * se), 2)} – ${fmt(Math.exp(Math.log(OR) + 1.96 * se), 2)}</td><td class="num">${fmt(r1 / r2, 3)}</td></tr>`; });
+  document.getElementById('or-tbl').innerHTML = `<thead><tr><th></th><th class="num">n</th><th class="num">Odds grup 1 (a/c)</th><th class="num">Odds grup 2 (b/d)</th><th class="num">OR</th><th class="num">%95 GA (Woolf)</th><th class="num">Risk oranı</th></tr></thead><tbody>${rows}</tbody>`;
+  el.innerHTML = tabs.length === 2
+    ? `Mantel-Haenszel OR = Σ(ad/n) / Σ(bc/n) = ${fmt(num, 3)} / ${fmt(den, 3)} = <b>${fmt(num / den, 3)}</b>. Tabakalar arası fark kontrol edildiğinde grup 1'de olayın odds'u grup 2'nin ${fmt(num / den, 2)} katı.`
+    : `Tek tablo: OR = ${fmt(t1[0] * t1[3] / (t1[1] * t1[2]), 3)}. Olay sık görüldüğünde OR risk oranından belirgin biçimde büyüktür; ikisini karıştırmayın.`;
+}
+['or-1', 'or-2'].forEach(id => document.getElementById(id).addEventListener('input', drawOR));
+document.getElementById('or-p1').addEventListener('click', () => { document.getElementById('or-1').value = '454, 19, 358, 105'; document.getElementById('or-2').value = ''; drawOR(); });
+document.getElementById('or-p2').addEventListener('click', () => { document.getElementById('or-1').value = '53, 7, 102, 36'; document.getElementById('or-2').value = '111, 13, 152, 71'; drawOR(); });
+drawOR();
+
+/* ---------- Lojistik ---------- */
+const LH = [0.50,0.75,1.00,1.25,1.50,1.75,1.75,2.00,2.25,2.50,2.75,3.00,3.25,3.50,4.00,4.25,4.50,4.75,5.00,5.50];
+const LP = [0,0,0,0,0,0,1,0,1,0,1,0,1,0,1,1,1,1,1,1];
+const sig = z => 1 / (1 + Math.exp(-z));
+function drawLG(){
+  const a = numv('lg-a'), b = numv('lg-b'), h = numv('lg-h');
+  document.getElementById('lg-av').textContent = fmt(a, 2); document.getElementById('lg-bv').textContent = fmt(b, 2); document.getElementById('lg-hv').textContent = fmt(h, 2);
+  const ll = LH.reduce((s, x, i) => { const p = Math.min(1 - 1e-12, Math.max(1e-12, sig(a + b * x))); return s + (LP[i] ? Math.log(p) : Math.log(1 - p)); }, 0);
+  const W = 640, H = 240, L = 40, R = 16, T = 14, B = 34, x0 = 0, x1 = 6;
+  const sx = v => L + (v - x0) / (x1 - x0) * (W - L - R), sy = p => H - B - p * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Geçme olasılığı eğrisi">`;
+  [0, 0.25, 0.5, 0.75, 1].forEach(p => svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${sy(p)}" y2="${sy(p)}" opacity=".4"/><text class="tk" x="${L - 6}" y="${sy(p) + 4}" text-anchor="end">${fmt(p, 2)}</text>`);
+  for (let t = 0; t <= 6; t++) svg += `<text class="tk" x="${sx(t)}" y="${H - B + 16}" text-anchor="middle">${t}</text>`;
+  svg += `<text class="lab" x="${W - R}" y="${H - 4}" text-anchor="end">Haftalık hazırlık saati</text>`;
+  const pts = []; for (let i = 0; i <= 200; i++){ const v = x0 + (x1 - x0) * i / 200; pts.push([sx(v), sy(sig(a + b * v))]); }
+  svg += `<path class="crv" d="${path(pts)}"/>`;
+  const seen = {}; LH.forEach((x, i) => { const k = x + '_' + LP[i]; const o = seen[k] = (seen[k] || 0) + 1;
+    svg += `<circle cx="${sx(x)}" cy="${sy(LP[i]) + (LP[i] ? 1 : -1) * (o - 1) * 9}" r="5" fill="${LP[i] ? 'var(--c3)' : 'var(--c5)'}" opacity=".85"/>`; });
+  const ph = sig(a + b * h);
+  svg += `<line class="me" x1="${sx(h)}" x2="${sx(h)}" y1="${sy(0)}" y2="${sy(ph)}" stroke-dasharray="4 3"/><line class="me" x1="${L}" x2="${sx(h)}" y1="${sy(ph)}" y2="${sy(ph)}" stroke-dasharray="4 3"/><circle cx="${sx(h)}" cy="${sy(ph)}" r="5" fill="var(--c2)"/>`;
+  document.getElementById('lg-svg').innerHTML = svg + '</svg>';
+  document.getElementById('lg-stats').innerHTML = statHTML([[`P(geçer | ${fmt(h, 2)} saat)`, fmt(ph, 3), true], ['Odds oranı e^β', fmt(Math.exp(b), 3)], ['%50 eşiği −α/β', b > 0 ? fmt(-a / b, 2) + ' saat' : '—'], ['Log-olabilirlik', fmt(ll, 3), true], ['En iyi (MLE)', '−8,030']]);
+}
+['lg-a', 'lg-b', 'lg-h'].forEach(id => document.getElementById(id).addEventListener('input', drawLG));
+document.getElementById('lg-mle').addEventListener('click', () => { document.getElementById('lg-a').value = -4.0777; document.getElementById('lg-b').value = 1.5046; drawLG(); });
+drawLG();
+
+/* ---------- Black-Scholes ---------- */
+function bsVal(S, K, T, r, s){ const d1 = (Math.log(S / K) + (r + s * s / 2) * T) / (s * Math.sqrt(T)), d2 = d1 - s * Math.sqrt(T);
+  return { d1, d2, C: S * Phi(d1) - K * Math.exp(-r * T) * Phi(d2), P: K * Math.exp(-r * T) * Phi(-d2) - S * Phi(-d1) }; }
+function drawBS(){
+  const S = numv('bs-S'), K = numv('bs-K'), T = numv('bs-T'), r = numv('bs-r'), s = numv('bs-s'), n = numv('bs-n');
+  if (!(S > 0 && K > 0 && T > 0 && s > 0)){ document.getElementById('bs-stats').innerHTML = statHTML([['Uyarı', 'S, K, T, σ pozitif olmalı']]); document.getElementById('bs-svg').innerHTML = ''; return; }
+  const v = bsVal(S, K, T, r, s);
+  document.getElementById('bs-stats').innerHTML = statHTML([['d₁', fmt(v.d1, 4)], ['d₂', fmt(v.d2, 4)], ['N(d₁)', fmt(Phi(v.d1), 4)], ['N(d₂) · kullanılma olasılığı', fmt(Phi(v.d2), 4)], ['Alım (call) değeri', fmt(v.C, 4) + ' TL', true], ['Satım (put) değeri', fmt(v.P, 4) + ' TL'], ['Paketin değeri', fmt(n * v.C, 0) + ' TL', true]]);
+  const W = 640, H = 230, L = 48, R = 16, Tp = 14, B = 34, x1 = Math.max(K, S) * 2;
+  const xs = Array.from({ length: 121 }, (_, i) => 0.01 + x1 * i / 120), cs = xs.map(x => bsVal(x, K, T, r, s).C), ymax = Math.max(...cs, x1 - K) * 1.05;
+  const sx = x => L + x / x1 * (W - L - R), sy = y => H - B - y / ymax * (H - Tp - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Hisse fiyatına göre opsiyon değeri">`;
+  for (let i = 0; i <= 4; i++){ const y = ymax * i / 4; svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${sy(y)}" y2="${sy(y)}" opacity=".4"/><text class="tk" x="${L - 6}" y="${sy(y) + 4}" text-anchor="end">${fmt(y, 0)}</text>`; }
+  for (let i = 0; i <= 4; i++){ const x = x1 * i / 4; svg += `<text class="tk" x="${sx(x)}" y="${H - B + 16}" text-anchor="middle">${fmt(x, 0)}</text>`; }
+  svg += `<path d="${path(xs.map(x => [sx(x), sy(Math.max(0, x - K))]))}" fill="none" stroke="var(--muted)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  svg += `<path class="crv" d="${path(xs.map((x, i) => [sx(x), sy(cs[i])]))}"/>`;
+  svg += `<circle cx="${sx(S)}" cy="${sy(v.C)}" r="5.5" fill="var(--c2)"/><text class="ttl" x="${Math.min(sx(S) + 8, W - 150)}" y="${sy(v.C) - 14}">S = ${fmt(S, 1)} → C = ${fmt(v.C, 2)}</text>`;
+  svg += `<text class="lab" x="${W - R}" y="${H - 4}" text-anchor="end">Hisse fiyatı (TL) · kesikli: içsel değer max(S − K, 0)</text></svg>`;
+  document.getElementById('bs-svg').innerHTML = svg;
+}
+['bs-S', 'bs-K', 'bs-T', 'bs-r', 'bs-s', 'bs-n'].forEach(id => document.getElementById(id).addEventListener('input', drawBS));
+drawBS();
+
+/* ---------- Sayma ---------- */
+function bigFact(n){ let r = 1n; for (let i = 2n; i <= BigInt(n); i++) r *= i; return r; }
+const bigFmt = b => { const s = b.toString(); return s.length > 15 ? s.slice(0, 1) + ',' + s.slice(1, 4) + ' × 10^' + (s.length - 1) : Number(s).toLocaleString('tr-TR'); };
+function drawCP(){
+  const n = Math.floor(numv('cp-n')), r = Math.floor(numv('cp-r'));
+  if (!(n >= 1 && n <= 60 && r >= 0)){ document.getElementById('cp-stats').innerHTML = statHTML([['Uyarı', '1 ≤ n ≤ 60, r ≥ 0']]); return; }
+  const C = r <= n ? bigFact(n) / (bigFact(r) * bigFact(n - r)) : 0n, P = r <= n ? bigFact(n) / bigFact(n - r) : 0n;
+  const Crep = bigFact(n + r - 1) / (bigFact(r) * bigFact(n - 1)), Prep = BigInt(n) ** BigInt(r);
+  const circ = bigFact(n - 1);
+  document.getElementById('cp-stats').innerHTML = statHTML([['C(n, r) kombinasyon', bigFmt(C), true], ['Tekrarlı kombinasyon', bigFmt(Crep)], ['P(n, r) permütasyon', bigFmt(P), true], ['Tekrarlı permütasyon nʳ', bigFmt(Prep)], ['n! tüm sıralamalar', bigFmt(bigFact(n))], ['Dairesel (n − 1)!', bigFmt(circ)], ['Dairesel, yön önemsiz', n >= 3 ? bigFmt(circ / 2n) : bigFmt(circ)]]);
+  let names = document.getElementById('cp-names').value.split(',').map(s => s.trim()).filter(Boolean);
+  const el = document.getElementById('cp-list');
+  if (names.length !== n){ el.innerHTML = `Listeleme için ${n} ad girin (şu an ${names.length}).`; return; }
+  if (C > 200n){ el.innerHTML = `${bigFmt(C)} kombinasyon listelenemeyecek kadar çok.`; return; }
+  const out = [], rec = (st, acc) => { if (acc.length === r){ out.push(acc.join(' + ')); return; } for (let i = st; i < n; i++) rec(i + 1, [...acc, names[i]]); };
+  rec(0, []);
+  el.innerHTML = `<b style="font-family:var(--f-display)">${out.length} kombinasyon:</b> ` + out.map(esc).join(' · ');
+}
+['cp-n', 'cp-r', 'cp-names'].forEach(id => document.getElementById(id).addEventListener('input', drawCP));
+drawCP();
+
+function drawInv(){
+  const p = parseNums(document.getElementById('inv-in').value), n = p.length, el = document.getElementById('inv-stats');
+  if (n < 2){ el.innerHTML = statHTML([['Uyarı', 'En az 2 sıra']]); return; }
+  let k = 0; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) if (p[i] > p[j]) k++;
+  const pairs = n * (n - 1) / 2;
+  el.innerHTML = statHTML([['Ters dönüşüm', k, true], ['Parite', k % 2 ? 'tek (−1)' : 'çift (+1)'], ['Uyumlu çift', pairs - k], ['Toplam çift', pairs], ['Kendall τ', fmt(1 - 2 * k / pairs, 3), true]]);
+}
+document.getElementById('inv-in').addEventListener('input', drawInv);
+drawInv();
+
+/* ---------- Kaplan-Meier ---------- */
+function drawKM(){
+  const toks = document.getElementById('km-in').value.trim().split(/\s+/).map(t => t.split(/[,;]/).map(Number)).filter(t => t.length === 2 && t.every(Number.isFinite) && t[0] >= 0);
+  const st = document.getElementById('km-stats');
+  if (toks.length < 2){ st.innerHTML = statHTML([['Uyarı', 'En az 2 “süre,durum” çifti']]); document.getElementById('km-svg').innerHTML = ''; document.getElementById('km-tbl').innerHTML = ''; return; }
+  const times = [...new Set(toks.map(t => t[0]))].sort((a, b) => a - b);
+  let S = 1, atRisk = toks.length, rows = '', steps = [[0, 1]], cens = [], median = null;
+  times.forEach(t => { const d = toks.filter(x => x[0] === t && x[1] === 1).length, c = toks.filter(x => x[0] === t && x[1] !== 1).length;
+    const prev = S; if (d) S = S * (atRisk - d) / atRisk;
+    rows += `<tr><td class="num">${fmt(t, 2)}</td><td class="num">${atRisk}</td><td class="num">${d || ''}</td><td class="num">${c || ''}</td><td>${d ? `${fmt(prev, 3)} × ${atRisk - d}/${atRisk} = ` : ''}<b>${fmt(S, 3)}</b></td></tr>`;
+    if (d) steps.push([t, S]); if (c) cens.push([t, S]); if (median === null && S <= 0.5) median = t;
+    atRisk -= d + c; });
+  document.getElementById('km-tbl').innerHTML = `<thead><tr><th class="num">Süre</th><th class="num">Risk altında N</th><th class="num">Olay D</th><th class="num">Sansür C</th><th>S(t)</th></tr></thead><tbody>${rows}</tbody>`;
+  const tmax = times[times.length - 1] * 1.05 || 1, W = 640, H = 240, L = 40, R = 16, T = 14, B = 34;
+  const sx = t => L + t / tmax * (W - L - R), sy = p => H - B - p * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Kaplan-Meier basamak eğrisi">`;
+  [0, 0.25, 0.5, 0.75, 1].forEach(p => svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${sy(p)}" y2="${sy(p)}" opacity="${p === 0.5 ? .9 : .4}"${p === 0.5 ? ' stroke-dasharray="4 3"' : ''}/><text class="tk" x="${L - 6}" y="${sy(p) + 4}" text-anchor="end">${fmt(p, 2)}</text>`);
+  const st5 = tmax > 40 ? 10 : 5; for (let t = 0; t <= tmax; t += st5) svg += `<text class="tk" x="${sx(t)}" y="${H - B + 16}" text-anchor="middle">${t}</text>`;
+  let d = `M${sx(0)} ${sy(1)}`; steps.slice(1).forEach(([t, p], i) => { d += `H${sx(t)}V${sy(p)}`; }); d += `H${sx(times[times.length - 1])}`;
+  svg += `<path d="${d}" fill="none" stroke="var(--c1)" stroke-width="2.5"/>`;
+  cens.forEach(([t, p]) => svg += `<line x1="${sx(t)}" x2="${sx(t)}" y1="${sy(p) - 7}" y2="${sy(p) + 7}" stroke="var(--c2)" stroke-width="2"/>`);
+  svg += `<text class="lab" x="${W - R}" y="${H - 4}" text-anchor="end">Süre (ay) · turuncu çizgi = sansür</text></svg>`;
+  document.getElementById('km-svg').innerHTML = svg;
+  st.innerHTML = statHTML([['Kişi', toks.length], ['Olay', toks.filter(t => t[1] === 1).length], ['Sansür', toks.filter(t => t[1] !== 1).length], ['Son S(t)', fmt(S, 3), true], ['Ortanca süre', median === null ? 'tahmin edilemez' : fmt(median, 2), true]]);
+}
+document.getElementById('km-in').addEventListener('input', drawKM);
+drawKM();
+</script>
+</body>
+</html>

@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Veri Toplama ve Örnekleme</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Düzen: solda yapışkan içindekiler, sağda okunur sütun; her kavram = açıklama + İK vakası + etkileşimli araç / Python hücresi */
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --sunk:#f1efe9; --line:#e2ddd2;
+  --fg:#1f2328; --muted:#5d6470;
+  --c1:#2f6fb5; --c2:#d9822b; --c3:#3f9a5c; --c4:#8a4fb0; --c5:#c2453d;
+  --code-bg:#f6f4ef; --code-fg:#24292f; --out-bg:#0f1720; --out-fg:#d6e2ee;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Literata",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:240px minmax(0,1fr);gap:48px}
+@media (max-width:880px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}}
+
+header.hero{grid-column:1/-1;padding-block:48px 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.stripe{display:flex;gap:6px;margin-bottom:18px}
+.stripe span{width:28px;height:8px;border-radius:4px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:62ch;margin:0}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-family:var(--f-mono);font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--c2);display:inline-block}
+.status.ready i{background:var(--c3)} .status.err i{background:var(--c5)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:28px;max-height:100vh;overflow:auto}
+nav.toc h2{font-family:var(--f-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--fg);font-family:var(--f-display);font-size:.95rem;padding:5px 8px;border-radius:6px}
+nav.toc a small{font-family:var(--f-mono);color:var(--muted);font-size:.72rem;min-width:22px}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sunk);outline:none}
+@media (max-width:880px){nav.toc{position:static;max-height:none;padding-top:20px}
+  nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
+
+main{min-width:0}
+section{padding-block:36px 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.kicker{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.04em}
+h2.sec{font-family:var(--f-display);font-weight:700;font-size:1.75rem;margin:4px 0 14px;text-wrap:balance;display:flex;align-items:center;gap:12px}
+h2.sec::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--dot,var(--c1));flex:none}
+h3{font-family:var(--f-display);font-weight:500;font-size:1.15rem;margin:26px 0 8px}
+p{max-width:68ch;margin:0 0 14px}
+.muted{color:var(--muted)}
+code.i{font-family:var(--f-mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+
+.formula{font-family:var(--f-mono);font-size:1rem;background:var(--sunk);border-radius:10px;padding:14px 18px;margin:14px 0;overflow-x:auto;white-space:nowrap}
+.formula b{color:var(--dot,var(--c1))}
+.note{border-left:4px solid var(--c2);background:var(--sunk);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.note strong{font-family:var(--f-display)}
+.case{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dot,var(--c1));padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.case .tag{font-family:var(--f-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dot,var(--c1));display:block;margin-bottom:4px}
+
+/* Kart ızgarası */
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--kc,var(--c1));border-radius:10px;padding:14px 16px;min-width:0}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1.05rem;margin:0 0 4px}
+.card .def{font-size:.92rem;margin:0 0 8px}
+.card .ex{font-size:.88rem;color:var(--muted);margin:0}
+.card .ex b{color:var(--fg);font-weight:600}
+.card ul{margin:6px 0 0;padding-left:18px;font-size:.9rem}
+
+.branch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+@media (max-width:680px){.branch{grid-template-columns:minmax(0,1fr)}}
+.branch > div{background:var(--sunk);border-radius:12px;padding:14px}
+.branch h4{font-family:var(--f-display);font-size:1.1rem;margin:0 0 4px}
+.branch .sub{display:grid;gap:8px;margin-top:10px}
+.branch .sub div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font-size:.9rem}
+.branch .sub div b{font-family:var(--f-display);font-weight:500;display:block}
+.pill{display:inline-block;font-family:var(--f-display);font-size:.72rem;padding:2px 8px;border-radius:999px;background:color-mix(in srgb,var(--c5) 18%,transparent);color:var(--c5);margin-left:6px;vertical-align:1px}
+
+ol.steps{list-style:none;padding:0;margin:16px 0;display:grid;gap:10px;counter-reset:s}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:start;max-width:74ch}
+ol.steps li::before{content:counter(s);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;color:#fff;background:var(--sc,var(--c1))}
+ol.steps li:nth-child(1){--sc:var(--c3)} ol.steps li:nth-child(2){--sc:var(--c4)} ol.steps li:nth-child(3){--sc:var(--c2)}
+ol.steps li:nth-child(4){--sc:var(--c1)} ol.steps li:nth-child(5){--sc:var(--c5)} ol.steps li:nth-child(6){--sc:var(--c1)}
+ol.steps li:nth-child(7){--sc:var(--c3)}
+ol.steps .hr{display:block;font-size:.9rem;color:var(--muted)}
+
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.95rem;min-width:100%}
+th,td{padding:7px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-display);font-weight:500;color:var(--muted);font-size:.85rem}
+td.num{text-align:right;white-space:nowrap}
+
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin:18px 0}
+.tool .lbl{font-family:var(--f-display);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.field{display:grid;gap:4px;flex:1 1 150px;min-width:0}
+.field label{font-size:.82rem;color:var(--muted);font-family:var(--f-display)}
+input[type=text],input[type=number],select{font-family:var(--f-mono);font-size:.92rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;width:100%}
+button{font-family:var(--f-display);font-weight:500;font-size:.92rem;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--c1);color:#fff}
+button.ghost{background:var(--sunk);color:var(--fg)}
+button.opt{background:var(--sunk);color:var(--fg);padding:6px 10px;font-size:.85rem}
+button.opt.right{background:var(--c3);color:#fff} button.opt.wrong{background:var(--c5);color:#fff}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-top:14px}
+.stat{background:var(--sunk);border-radius:10px;padding:10px 12px}
+.stat span{display:block;font-size:.75rem;color:var(--muted);font-family:var(--f-display)}
+.stat b{font-family:var(--f-mono);font-size:1.15rem;font-variant-numeric:tabular-nums}
+.stat small{display:block;font-size:.75rem;color:var(--muted);font-family:var(--f-mono)}
+
+/* Sınıflandırma oyunu */
+.quiz{display:grid;gap:8px}
+.qrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.qrow:last-child{border-bottom:0}
+.qrow .v{font-size:.95rem}
+.qrow .v small{display:block;color:var(--muted);font-size:.82rem}
+.qrow .opts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+@media (max-width:620px){.qrow{grid-template-columns:minmax(0,1fr)}.qrow .opts{justify-content:flex-start}}
+
+/* Örnekleme laboratuvarı */
+.lab-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}
+@media (max-width:620px){.lab-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.branchbox{background:color-mix(in srgb,var(--c3) 14%,var(--surface));border:2px solid transparent;border-radius:10px;padding:8px;min-width:0}
+.branchbox.on{border-color:var(--c2)}
+.branchbox h5{margin:0 0 6px;font-family:var(--f-display);font-size:.8rem;font-weight:500;color:var(--muted);text-align:center}
+.dots{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;justify-items:center}
+.dots span{width:18px;height:18px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--fg) 30%,transparent);opacity:.35;transition:opacity .2s,transform .2s;position:relative}
+.dots span.sel{opacity:1;transform:scale(1.15);box-shadow:0 0 0 2px var(--fg)}
+.dots span.dup::after{content:"2";position:absolute;inset:-6px -6px auto auto;font-size:9px;font-family:var(--f-mono);background:var(--c2);color:#fff;border-radius:50%;width:12px;height:12px;display:grid;place-items:center}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px;border:1px solid color-mix(in srgb,var(--fg) 25%,transparent)}
+.methods{display:flex;flex-wrap:wrap;gap:6px}
+.methods button.active{background:var(--c2)}
+.lab-out{margin-top:12px;font-size:.92rem}
+.comp{display:grid;gap:6px;margin-top:10px}
+.comp .cr{display:grid;grid-template-columns:70px minmax(0,1fr) 92px;gap:8px;align-items:center;font-size:.84rem;font-family:var(--f-mono)}
+.comp .track{height:10px;background:var(--sunk);border-radius:5px;position:relative;overflow:hidden}
+.comp .track i{position:absolute;inset:0 auto 0 0;border-radius:5px}
+.comp .track em{position:absolute;top:-2px;bottom:-2px;width:2px;background:var(--fg)}
+
+.py{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:18px 0;background:var(--code-bg)}
+.py .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.py .bar span{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.py .bar .btns{display:flex;gap:6px}
+.py textarea{display:block;width:100%;border:0;resize:vertical;background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:.88rem;line-height:1.55;padding:14px 16px;tab-size:4;white-space:pre;overflow-x:auto}
+.py pre.out{margin:0;padding:12px 16px;background:var(--out-bg);color:var(--out-fg);font-family:var(--f-mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+.py pre.out:empty{display:none}
+.py pre.out .e{color:#ff9c8f}
+.py pre.out .w{color:#9fb3c8;font-style:italic}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="stripe" aria-hidden="true"><span style="background:var(--c1)"></span><span style="background:var(--c2)"></span><span style="background:var(--c3)"></span><span style="background:var(--c4)"></span><span style="background:var(--c5)"></span></div>
+  <h1>Veri Toplama ve Örnekleme</h1>
+  <p class="lede">Usman Zafar Paracha'nın <em>Colorful Statistics and Python Programming Language</em> kitabının 34–42. sayfalarının Türkçe, etkileşimli ve insan kaynakları örnekleriyle uyarlanmış sürümü. Veri türlerinden tabakalı örneklemeye kadar her kavramın yanında tarayıcıda çalışan bir Python hücresi ya da etkileşimli bir araç var.</p>
+  <div class="status" id="status" role="status"><i></i><span>Python (Pyodide) yükleniyor…</span></div>
+</header>
+
+<nav class="toc" aria-label="İçindekiler">
+  <h2>İçindekiler</h2>
+  <ol>
+    <li><a href="#turler"><small>1</small>Veri türleri</a></li>
+    <li><a href="#toplama"><small>2</small>Veri toplama</a></li>
+    <li><a href="#plan"><small>3</small>Örnekleme planı</a></li>
+    <li><a href="#yontemler"><small>4</small>Örnekleme yöntemleri</a></li>
+    <li><a href="#buyukluk"><small>5</small>Örneklem büyüklüğü</a></li>
+    <li><a href="#basit"><small>6</small>Basit rastgele örnekleme</a></li>
+    <li><a href="#sistematik"><small>7</small>Sistematik örnekleme</a></li>
+    <li><a href="#kume"><small>8</small>Küme örneklemesi</a></li>
+    <li><a href="#tabakali"><small>9</small>Tabakalı örnekleme</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 VERİ TÜRLERİ -->
+<section id="turler" style="--dot:var(--c1)">
+  <div class="kicker">s. 34</div>
+  <h2 class="sec">İstatistikte veri türleri</h2>
+  <p>Kitap verileri üç türe ayırıyor. Bir İK bilgi sistemindeki (İKBS) değişkenlerin hangi türe girdiği, onlarla hangi hesabı yapabileceğimizi belirler.</p>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c1)"><h4>Sınıflama (nominal)</h4><p class="def">Adlar ya da kategorilerle gösterilir. Kategoriler arasında sıra yoktur.</p><p class="ex">Kitap: kahverengi, mavi, beyaz, pembe, yeşil ve benekli yumurtalar.<br><b>İK:</b> departman (Üretim, Satış, BT…), sözleşme türü (belirsiz süreli, belirli süreli), işe alım kanalı (LinkedIn, referans, kariyer fuarı).</p></div>
+    <div class="card" style="--kc:var(--c2)"><h4>Sıralı (ordinal)</h4><p class="def">Öğelerin derecelendirildiği ya da sıralandığı veridir. Sıra vardır ama basamaklar arası uzaklık eşit olmak zorunda değildir.</p><p class="ex">Kitap: açık yeşil, yeşil, koyu yeşil yumurtalar.<br><b>İK:</b> unvan kademesi (uzman yardımcısı → uzman → kıdemli uzman → müdür), performans notu (A, B, C, D), eğitim düzeyi.</p></div>
+    <div class="card" style="--kc:var(--c3)"><h4>Aralıklı (interval)</h4><p class="def">Sayılar yalnızca bir dizide sıralanmaz, aralarında belirli ve tam bir fark da vardır.</p><p class="ex">Kitap: 4, 5, 6, 7 eşit aralıklı (birer); 7, 9, 11 başka bir eşit aralıklı dizi (ikişer).<br><b>İK:</b> standartlaştırılmış yetenek testi puanı, toplam puanı aralık ölçeği gibi işlenen tutum ölçekleri.</p></div>
+  </div>
+  <div class="note"><strong>Not.</strong> Kitap dördüncü türü, <strong>oranlı (ratio)</strong> ölçeği ayrı göstermiyor. Oranlı veride gerçek bir sıfır noktası vardır ve “iki katı” demek anlamlıdır. Ücret, kıdem yılı, devamsızlık günü, eğitim saati ve çalışan sayısı oranlı veridir: 20 günlük devamsızlık 10 günün iki katıdır. Aralıklı veride bu söylenemez.</div>
+
+  <div class="tool">
+    <div class="lbl">Alıştırma: İKBS değişkenlerini sınıflandırın</div>
+    <div class="quiz" id="quiz"></div>
+    <p class="muted" id="quiz-score" style="margin:10px 0 0;font-size:.92rem">Her değişken için bir tür seçin.</p>
+  </div>
+
+  <p>Veri türü, pandas'ta hangi işlemin anlamlı olduğunu da belirler. Sınıflama verisinde yalnızca sayım ve tepe değer, sıralı veride ortanca, aralıklı ve oranlı veride ortalama anlamlıdır.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · veri türleri ve uygun özet istatistikler</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="27">import pandas as pd
+
+df = pd.DataFrame({
+    "departman": ["Satış", "BT", "Satış", "Üretim", "İK", "Satış", "BT"],          # sınıflama
+    "unvan":     ["Uzman", "Kıdemli Uzman", "Uzman Yrd.", "Uzman", "Müdür",
+                  "Uzman", "Kıdemli Uzman"],                                       # sıralı
+    "test_puani":[54, 61, 47, 58, 66, 50, 63],                                      # aralıklı
+    "kidem_yil": [2, 6, 1, 4, 12, 3, 7],                                            # oranlı
+})
+
+# Sıralı değişkeni sırası olan bir kategori olarak tanımla
+kademe = ["Uzman Yrd.", "Uzman", "Kıdemli Uzman", "Müdür"]
+df["unvan"] = pd.Categorical(df["unvan"], categories=kademe, ordered=True)
+
+print("Sınıflama → sayım ve tepe değer")
+print(df["departman"].value_counts().to_string(), "\nTepe değer:", df["departman"].mode()[0])
+
+print("\nSıralı → ortanca kademe")
+kod = df["unvan"].cat.codes                      # 0, 1, 2, 3
+print("Ortanca unvan:", kademe[int(kod.median())])
+print("Kıdemli Uzman ve üstü:", (df["unvan"] >= "Kıdemli Uzman").sum(), "kişi")
+
+print("\nAralıklı → ortalama ve fark anlamlı")
+print("Ortalama test puanı:", df["test_puani"].mean().round(2))
+
+print("\nOranlı → oranlar da anlamlı")
+print("En kıdemli / en yeni:", df["kidem_yil"].max() / df["kidem_yil"].min(), "kat")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+</section>
+
+<!-- 2 VERİ TOPLAMA -->
+<section id="toplama" style="--dot:var(--c2)">
+  <div class="kicker">s. 34–35</div>
+  <h2 class="sec">Veri toplama ve türleri</h2>
+  <p>Veri toplama, seçilen değişkenlerle ilgili bilgi derleme sürecidir. İki ana tür vardır: <strong>ikincil veri</strong> ve <strong>birincil veri</strong>.</p>
+  <div class="branch">
+    <div>
+      <h4>İkincil veri</h4>
+      <p style="margin:0;font-size:.92rem">Başkasının başka bir amaçla topladığı veridir. Kitaptaki örnek ABD Nüfus Sayım Bürosu verileridir.</p>
+      <div class="sub">
+        <div><b>İK örnekleri</b>TÜİK Hanehalkı İşgücü Araştırması, SGK istatistikleri, sektörel ücret raporları, şirketin kendi İKBS kayıtları ve geçmiş bordro verisi.</div>
+      </div>
+    </div>
+    <div>
+      <h4>Birincil veri</h4>
+      <p style="margin:0;font-size:.92rem">Araştırmacının kendi sorusu için ilk elden topladığı veridir. Nicel ya da nitel olabilir.</p>
+      <div class="sub">
+        <div><b>Nicel veri</b>Sayılarla ifade edilebilir ve istatistikle değerlendirilebilir. Kitap: insanların kilosu, boyu, yaşı ve bunların ortalamaları. İK: bağlılık puanı, fazla mesai saati, işe alım süresi.</div>
+        <div><b>Nitel veri</b>Yalnızca betimlenebilir, istatistikle kolay değerlendirilemez. Kitap: insanların bir politikaya karşı tutumu. İK: çalışanların yeni esnek çalışma politikası hakkındaki görüşleri.</div>
+      </div>
+    </div>
+  </div>
+  <h3>Nicel veri toplama yöntemleri</h3>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c1)"><h4>Kapalı uçlu anketler</h4><p class="ex"><b>İK:</b> yıllık çalışan bağlılığı anketi, 5'li Likert maddeleri.</p></div>
+    <div class="card" style="--kc:var(--c4)"><h4>Deneyler</h4><p class="def">Klinik deneyler ve randomize kontrollü deneyler.</p><p class="ex"><b>İK:</b> yeni oryantasyon programı, yeni işe girenlerin rastgele yarısına uygulanır; 6. aydaki ayrılma oranları karşılaştırılır.</p></div>
+    <div class="card" style="--kc:var(--c3)"><h4>Gözlemsel çalışma</h4>
+      <ul>
+        <li><b>Kesitsel tarama:</b> tek bir anda tüm şubelerde iş yükü ölçümü.</li>
+        <li><b>Vaka-kontrol:</b> son bir yılda ayrılanlar (vaka) ile kalanların (kontrol) geçmiş verileri karşılaştırılır.</li>
+        <li><b>Kohort:</b> belirli özellikleri paylaşan bir grup. İK: 2023'te işe giren yeni mezunlar 3 yıl boyunca izlenir.</li>
+      </ul></div>
+  </div>
+  <h3>Nitel veri toplama yöntemleri</h3>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c2)"><h4>Derinlemesine görüşme</h4><p class="ex"><b>İK:</b> ayrılan çalışanlarla çıkış görüşmesi.</p></div>
+    <div class="card" style="--kc:var(--c2)"><h4>Odak grup görüşmesi</h4><p class="ex"><b>İK:</b> 6–8 vardiya amiriyle yeni vardiya düzeni üzerine tartışma.</p></div>
+    <div class="card" style="--kc:var(--c2)"><h4>Dolaylı görüşme</h4><p class="def">Kitaptaki örnek: hikâye tamamlama çalışması.</p><p class="ex"><b>İK:</b> “Ayşe toplantıda fikrini söylemek istedi ama…” cümlesini tamamlatarak psikolojik güven algısını dolaylı yoldan yoklamak.</p></div>
+  </div>
+</section>
+
+<!-- 3 ÖRNEKLEME PLANI -->
+<section id="plan" style="--dot:var(--c3)">
+  <div class="kicker">s. 35–36</div>
+  <h2 class="sec">Örnekleme planı</h2>
+  <p>Örnekleme planı, çalışmadaki ölçümlerin ayrıntılı taslağıdır: ölçümlerin türleri, zamanları, kullanılacak araçlar, yöntem ve sorumlu kişiler bu planda yer alır.</p>
+  <div class="case"><span class="tag">İK vakası</span>2.400 çalışanlı bir lojistik şirketi, şoför ve depo personelinin iş-yaşam dengesi algısını ölçecek. Aşağıdaki adımlar bu araştırmanın planıdır.</div>
+  <ol class="steps">
+    <li><div><strong>Özniteliklerin ya da parametrelerin belirlenmesi.</strong> Olası değer aralıkları ve uygun ölçme aracını seçmek için gereken çözünürlük. <span class="hr">İK: iş-yaşam dengesi 1–5 Likert, 8 madde; ayrıca vardiya tipi ve haftalık çalışma saati.</span></div></li>
+    <li><div><strong>Örnekleme yönteminin seçilmesi.</strong> <span class="hr">İK: şoför ve depo grupları farklı olduğundan görev grubuna göre tabakalı örnekleme.</span></div></li>
+    <li><div><strong>Örneklem büyüklüğünün belirlenmesi.</strong> İncelenecek evren parametreleri, örnekleme maliyeti, mevcut bilgi, uygulanabilirlik ve evrendeki yayılım göz önüne alınır. <span class="hr">İK: Cochran formülüyle %95 güven, ±%5 hata payı (bkz. 5. bölüm).</span></div></li>
+    <li><div><strong>Örneklenen verinin saklama biçiminin belirlenmesi.</strong> <span class="hr">İK: anonim çevrimiçi form, CSV dışa aktarımı; KVKK uyarınca kimlik bilgisi tutulmaz.</span></div></li>
+    <li><div><strong>Çalışmayla ilgili her kişiye rol ve sorumluluk verilmesi.</strong> <span class="hr">İK: İK analisti anketi kurar, şube yöneticileri katılımı duyurur, veri koruma sorumlusu onay verir.</span></div></li>
+    <li><div><strong>Örnekleme planının ve uygulanmasının doğrulanması.</strong> <span class="hr">İK: 20 kişilik pilot uygulama; yanıt oranı ve madde anlaşılırlığı kontrol edilir.</span></div></li>
+  </ol>
+</section>
+
+<!-- 4 ÖRNEKLEME YÖNTEMLERİ -->
+<section id="yontemler" style="--dot:var(--c4)">
+  <div class="kicker">s. 36–37</div>
+  <h2 class="sec">Örnekleme yöntemleri</h2>
+  <p>Örnekleme yöntemleri iki ana türdedir: (1) olasılıklı örnekleme ve (2) olasılıksız örnekleme.</p>
+  <div class="branch">
+    <div>
+      <h4>Olasılıklı örnekleme</h4>
+      <p style="margin:0;font-size:.92rem">Her birimin seçilme olasılığı bilinir.</p>
+      <div class="sub">
+        <div><b>Basit rastgele örnekleme</b>Her birimin seçilme şansı eşittir.</div>
+        <div><b>Tabakalı örnekleme</b>Orantılı ya da orantısız.</div>
+        <div><b>Sistematik örnekleme</b>Rastgele seçilen bir başlangıçtan sonra her k'ıncı birim seçilir.</div>
+        <div><b>Küme örneklemesi</b>Tek aşamalı, iki aşamalı ya da çok aşamalı.</div>
+        <div><b>Çok aşamalı örnekleme</b>İki ya da daha fazla örnekleme yönteminin birleşimi.</div>
+      </div>
+    </div>
+    <div>
+      <h4>Olasılıksız örnekleme</h4>
+      <p style="margin:0;font-size:.92rem">Birimlerin seçilme olasılığı bilinmez.</p>
+      <div class="sub">
+        <div><b>Gönüllü örneklem <span class="pill">örnekleme felaketi</span></b>İK: intranette “ankete katılmak isteyen herkes” duyurusu. Genellikle en memnun ya da en memnuniyetsiz çalışanlar yanıt verir.</div>
+        <div><b>Kolayda (gelişigüzel) örneklem <span class="pill">örnekleme felaketi</span></b>İK: yalnızca genel müdürlük binasındaki çalışanlara sormak; sahadaki personel hiç temsil edilmez.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tool" id="lab">
+    <div class="lbl">Örnekleme laboratuvarı · 75 çalışan, 5 şube</div>
+    <p style="margin:0 0 10px;font-size:.92rem">Her nokta bir çalışan, renk departmanı gösteriyor. Şubeler <strong>küme</strong>, departmanlar <strong>tabaka</strong> olarak kullanılıyor. Hedef örneklem: 15 çalışan (%20). Bir yöntem seçin ve örneklemin departman dağılımını evrenle karşılaştırın.</p>
+    <div class="methods" role="group" aria-label="Örnekleme yöntemi">
+      <button data-m="srs">Basit rastgele (iadesiz)</button>
+      <button data-m="srswr">Basit rastgele (iadeli)</button>
+      <button data-m="sys">Sistematik (k = 5)</button>
+      <button data-m="strp">Tabakalı · orantılı</button>
+      <button data-m="strd">Tabakalı · orantısız</button>
+      <button data-m="cl1">Küme · tek aşamalı</button>
+      <button data-m="cl2">Küme · iki aşamalı</button>
+      <button data-m="conv">Kolayda (Genel Müdürlük)</button>
+    </div>
+    <div class="lab-grid" id="lab-grid"></div>
+    <div class="legend" id="lab-legend"></div>
+    <div class="lab-out" id="lab-out" aria-live="polite"><p class="muted" style="margin:0">Bir yöntem seçin.</p></div>
+  </div>
+</section>
+
+<!-- 5 ÖRNEKLEM BÜYÜKLÜĞÜ -->
+<section id="buyukluk" style="--dot:var(--c2)">
+  <div class="kicker">s. 38–39</div>
+  <h2 class="sec">Gerekli örneklem büyüklüğü</h2>
+  <p>Örneklem büyüklüğü öznel bir yaklaşımla ya da matematiksel bir yaklaşımla belirlenebilir.</p>
+  <h3>Öznel yaklaşım şunlara bağlıdır</h3>
+  <div class="tbl"><table>
+    <thead><tr><th>Etken</th><th>Kitaptaki açıklama</th><th>İK örneği</th></tr></thead>
+    <tbody>
+      <tr><td>1. Evrenin yapısı</td><td>Evrenin homojen ya da heterojen olması</td><td>Tek tip çağrı merkezi ekibi mi, yoksa mühendis, şoför ve satışçının birlikte olduğu bir holding mi?</td></tr>
+      <tr><td>2. Yanıtlayıcının yapısı</td><td>Yanıtlayıcılara erişim ve ulaşılabilirlik</td><td>Sahadaki şoförlere ulaşmak ofis çalışanlarından zordur.</td></tr>
+      <tr><td>3. Çalışmanın yapısı</td><td>—</td><td>Keşifsel bir nabız anketi mi, yoksa ücret politikasını değiştirecek bir araştırma mı?</td></tr>
+      <tr><td>4. Kullanılan örnekleme tekniği</td><td>—</td><td>Küme örneklemesi aynı kesinlik için daha büyük örneklem ister.</td></tr>
+      <tr><td>5. Bulguların karmaşıklığı</td><td>Toplanacak bulguların sayısı ve türleri</td><td>Sonuçlar 12 departman × 3 kıdem grubu kırılımında raporlanacaksa her hücreye yeterli kişi düşmelidir.</td></tr>
+      <tr><td>6. Zaman ve kaynak</td><td>Az zaman ve kaynak küçük örnekleme yol açabilir</td><td>Bütçe sınırlıysa yüz yüze görüşme yerine çevrimiçi anket.</td></tr>
+      <tr><td>7. Gereken kesinlik ve doğruluk</td><td>Daha fazla kesinlik için daha büyük örneklem</td><td>±%3 hata payı ±%5'e göre yaklaşık üç kat örneklem ister.</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Matematiksel yaklaşım</h3>
+  <div class="formula"><b>1. Cochran:</b> n₀ = Z² · p · q / e² &nbsp;&nbsp;(q = 1 − p)</div>
+  <div class="formula"><b>Küçük evren düzeltmesi:</b> n = n₀ / (1 + (n₀ − 1) / N)</div>
+  <div class="formula"><b>2. Slovin:</b> n = N / (1 + N · e²)</div>
+  <p>Z: z-tablosundan alınan değer (%95 güven için 1,96), p: evrende ilgilenilen özelliğin tahmini oranı, e: hata payı (istenen kesinlik), N: evren büyüklüğü.</p>
+  <div class="case"><span class="tag">İK vakası</span>10.000 çalışanlı bir holding, çalışanların ne kadarının haftada en az iki gün uzaktan çalışmayı tercih ettiğini öğrenmek istiyor. Önceki nabız anketine göre bu oranın yaklaşık <strong>%60</strong> olduğu tahmin ediliyor. %95 güven ve ±%5 kesinlik isteniyor. Aynı soru 1.000 çalışanlı bir fabrikada da sorulacak.</div>
+
+  <div class="tool">
+    <div class="lbl">Örneklem büyüklüğü hesaplayıcı</div>
+    <div class="row">
+      <div class="field"><label for="ss-z">Güven düzeyi</label><select id="ss-z"><option value="1.645">%90 (Z = 1,645)</option><option value="1.96" selected>%95 (Z = 1,96)</option><option value="2.576">%99 (Z = 2,576)</option></select></div>
+      <div class="field"><label for="ss-p">Tahmini oran p</label><input id="ss-p" type="number" min="0.01" max="0.99" step="0.05" value="0.6"></div>
+      <div class="field"><label for="ss-e">Hata payı e</label><input id="ss-e" type="number" min="0.01" max="0.2" step="0.01" value="0.05"></div>
+      <div class="field"><label for="ss-n">Çalışan sayısı N</label><input id="ss-n" type="number" min="10" step="100" value="10000"></div>
+    </div>
+    <div class="stats" id="ss-stats"></div>
+    <p class="muted" id="ss-txt" style="margin:10px 0 0;font-size:.92rem"></p>
+  </div>
+
+  <div class="py" data-cell><div class="bar"><span>Python · Cochran ve Slovin</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="27">import math
+from scipy.stats import norm
+
+# Kitaptaki tek satırlık hesaplar
+print((((1.96)**2) * 0.6 * 0.4) / 0.05**2)     # 368.7936 → 369
+print(369 / (1 + (368 / 1000)))                # 269.7368 → 270
+print(10000 / (1 + 10000 * 0.05**2))           # 384.6154 → 385
+
+# Aynı hesaplar fonksiyon olarak
+def cochran(p, e, guven=0.95, N=None):
+    z = norm.ppf(1 - (1 - guven) / 2)          # 0.95 → 1.959964
+    n0 = z**2 * p * (1 - p) / e**2
+    if N is not None:                           # küçük evren düzeltmesi
+        n0 = n0 / (1 + (n0 - 1) / N)
+    return math.ceil(n0)
+
+def slovin(N, e):
+    return math.ceil(N / (1 + N * e**2))
+
+print()
+print("Holding (N=10.000), Cochran:", cochran(0.6, 0.05, N=10_000))
+print("Fabrika (N=1.000), Cochran :", cochran(0.6, 0.05, N=1_000))
+print("Holding (N=10.000), Slovin :", slovin(10_000, 0.05))
+print()
+print("Oran bilinmiyorsa (p = 0.5, en temkinli):", cochran(0.5, 0.05))
+for e in [0.03, 0.05, 0.10]:
+    print(f"e = ±{e:.0%} → Cochran n₀ = {cochran(0.6, e)}")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <div class="note"><strong>Not.</strong> Kitap düzeltilmiş formülde n₀'ı 369'a yuvarlayıp 368 ile böler. Burada küsuratlı n₀ kullanıldığı için sonuç bir kişi farklı çıkabilir. Örneklem büyüklüğü her zaman <em>yukarı</em> yuvarlanır. Slovin formülü güven düzeyini ve p'yi açıkça içermez: örtük olarak p = 0,5 ve yaklaşık %95 güven varsayar. Bu yüzden kitaptaki örnekte Cochran'dan (369) farklı bir sonuç (385) verir.</div>
+  <p class="muted" style="font-size:.92rem">Uygulamada yanıt oranını da hesaba katın: 370 tamamlanmış anket için yanıt oranı %40 bekleniyorsa yaklaşık 925 çalışana davet gönderilmelidir.</p>
+</section>
+
+<!-- 6 BASİT RASTGELE -->
+<section id="basit" style="--dot:var(--c3)">
+  <div class="kicker">s. 39–40</div>
+  <h2 class="sec">Basit rastgele örnekleme</h2>
+  <p>N birimlik bir evren ve n birimlik bir örneklem vardır. Her birimin seçilme şansı eşittir ve yöntem yansız, temsili bir örneklem verir. İadeli ya da iadesiz yapılabilir.</p>
+  <div class="branch">
+    <div><h4>İadeli</h4><p style="margin:0;font-size:.92rem">Seçilen birim evrene geri konur, yani yeniden seçilebilir. İK: bir kurada aynı çalışanın iki kez çıkabilmesi.</p></div>
+    <div><h4>İadesiz <span class="pill" style="background:color-mix(in srgb,var(--c3) 18%,transparent);color:var(--c3)">tercih edilen</span></h4><p style="margin:0;font-size:.92rem">Seçilen birim geri konmaz; sonraki seçimler kalan birimlerden yapılır. İK: anket uygulanacak çalışanların seçimi; aynı kişiye iki kez anket gönderilmez.</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>75 kişilik personel listesinden (sicil numaraları 1001–1075) nabız anketi için 15 kişi seçilecek.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · iadeli ve iadesiz seçim</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="27">import random
+import numpy as np
+import pandas as pd
+
+sicil = list(range(1001, 1076))        # 75 çalışan
+random.seed(42)
+
+iadesiz = random.sample(sicil, k=15)   # her sicil en fazla bir kez
+iadeli  = random.choices(sicil, k=15)  # aynı sicil tekrar çıkabilir
+print("İadesiz:", sorted(iadesiz))
+print("İadeli :", sorted(iadeli))
+print("İadeli seçimde tekrar eden kişi sayısı:", 15 - len(set(iadeli)))
+
+# pandas ile: personel tablosundan örneklem
+rng = np.random.default_rng(2026)
+personel = pd.DataFrame({
+    "sicil": sicil,
+    "departman": rng.choice(["Üretim", "Satış", "BT", "Finans", "İK"], size=75,
+                            p=[0.40, 0.24, 0.16, 0.12, 0.08]),
+    "baglilik": rng.normal(68, 12, 75).round(1),
+})
+orneklem = personel.sample(n=15, replace=False, random_state=1)
+print()
+print(orneklem.head())
+print(f"\nEvren ortalaması μ = {personel.baglilik.mean():.2f}, "
+      f"örneklem ortalaması x̄ = {orneklem.baglilik.mean():.2f}")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+</section>
+
+<!-- 7 SİSTEMATİK -->
+<section id="sistematik" style="--dot:var(--c1)">
+  <div class="kicker">s. 37</div>
+  <h2 class="sec">Sistematik örnekleme</h2>
+  <p>Kitapta yöntemler şemasında yer alır: önce rastgele bir n'inci birim seçilir, ardından sırayla her n'inci birim alınır. Adım aralığı genellikle k = N / n ile bulunur.</p>
+  <div class="case"><span class="tag">İK vakası</span>İK, bordro listesinden denetim için her 5. kaydı kontrol edecek (75 kayıt, 15 kontrol). Başlangıç noktası 1–5 arasından rastgele seçilir.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · bordro denetiminde sistematik örnekleme</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="14">import random
+
+bordro = list(range(1001, 1076))   # sicile göre sıralı 75 kayıt
+n = 15
+k = len(bordro) // n               # adım aralığı = 5
+
+baslangic = random.randint(0, k - 1)
+secilen = bordro[baslangic::k]
+print(f"k = {k}, başlangıç sırası = {baslangic + 1}")
+print("Denetlenecek siciller:", secilen)
+
+# Dikkat: listede k'lık bir döngü varsa (ör. her 5. kayıt bir ekip lideri)
+# sistematik örnekleme yanlı sonuç verir.</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+</section>
+
+<!-- 8 KÜME -->
+<section id="kume" style="--dot:var(--c5)">
+  <div class="kicker">s. 41</div>
+  <h2 class="sec">Küme örneklemesi</h2>
+  <p>Küme örneklemesinde evren, küme denilen ayrı gruplara bölünür ve ardından kümelerden basit rastgele örnekleme yapılır (örneklenen kümeler). Kümelerin her biri evrenin küçük bir kopyası gibi karma olmalıdır.</p>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c5)"><h4>Tek aşamalı</h4><p class="def">Örneklenen kümelerdeki <em>her</em> birimden veri toplanır.</p><p class="ex"><b>İK:</b> 5 şubeden 1'i seçilir, oradaki tüm çalışanlara anket uygulanır.</p></div>
+    <div class="card" style="--kc:var(--c5)"><h4>İki aşamalı</h4><p class="def">Örneklenen kümelerdeki birimlerden rastgele seçim yapılır.</p><p class="ex"><b>İK:</b> 3 şube seçilir, her birinden 5 çalışan rastgele seçilir.</p></div>
+    <div class="card" style="--kc:var(--c5)"><h4>Çok aşamalı</h4><p class="def">Kümeler ya da birimler birden fazla aşamada seçilir.</p><p class="ex"><b>İK:</b> önce bölgeler, sonra o bölgelerdeki şubeler, sonra şubelerdeki ekipler, en son ekiplerdeki çalışanlar.</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>Ulusal bir perakende zincirinin 5 şubesinde 15'er çalışan var. Bütün şubelere gitmek pahalı olduğundan küme örneklemesiyle seyahat maliyeti düşürülecek.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · şubeleri küme olarak kullanmak</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="26">import numpy as np
+import pandas as pd
+
+rng = np.random.default_rng(7)
+subeler = ["İstanbul", "Ankara", "İzmir", "Bursa", "Kocaeli"]
+personel = pd.DataFrame({
+    "sicil": range(1001, 1076),
+    "sube": np.repeat(subeler, 15),
+    "baglilik": rng.normal(68, 12, 75).round(1),
+})
+# Şubeler arasında gerçek farklar olsun (ör. İzmir daha yüksek)
+personel.loc[personel.sube == "İzmir", "baglilik"] += 8
+
+# Tek aşamalı: 1 şube seç, tüm çalışanları al
+k1 = rng.choice(subeler, size=1, replace=False).tolist()
+tek = personel[personel.sube.isin(k1)]
+print("Tek aşamalı  → seçilen şube:", k1, "| n =", len(tek))
+
+# İki aşamalı: 3 şube seç, her birinden 5 çalışan
+k3 = rng.choice(subeler, size=3, replace=False).tolist()
+iki = personel[personel.sube.isin(k3)].groupby("sube").sample(n=5, random_state=1)
+print("İki aşamalı  → seçilen şubeler:", k3, "| n =", len(iki))
+
+print(f"\nμ = {personel.baglilik.mean():.2f}")
+print(f"x̄ (tek aşamalı) = {tek.baglilik.mean():.2f}")
+print(f"x̄ (iki aşamalı) = {iki.baglilik.mean():.2f}")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <p class="muted" style="font-size:.92rem">Hücreyi birkaç kez farklı tohumlarla çalıştırın: İzmir seçildiğinde tek aşamalı tahmin belirgin biçimde sapar. Kümeler birbirinden farklıysa küme örneklemesinin hatası büyür.</p>
+</section>
+
+<!-- 9 TABAKALI -->
+<section id="tabakali" style="--dot:var(--c4)">
+  <div class="kicker">s. 42</div>
+  <h2 class="sec">Tabakalı örnekleme</h2>
+  <p>Tabakalı örneklemede evren, tabaka denilen ayrı gruplara bölünür ve ardından <em>her</em> tabakadan basit rastgele örnekleme yapılır. Küme örneklemesinin tersine, tabakaların kendi içinde benzer, birbirinden farklı olması istenir.</p>
+  <div class="branch">
+    <div><h4>Orantılı tabakalı örnekleme</h4><p style="margin:0;font-size:.92rem">Her tabakadan alınan birim sayısı tabakanın büyüklüğüyle orantılıdır. Kitaptaki örnekte örneklem %50, her tabakadan örnekleme oranı ½'dir. İK: Üretim çalışanların %40'ıysa örneklemin de %40'ı Üretim'den gelir.</p></div>
+    <div><h4>Orantısız tabakalı örnekleme</h4><p style="margin:0;font-size:.92rem">Toplam örneklem yine aynıdır, ama örnekleme oranı tabakadan tabakaya değişir. İK: küçük İK ve Finans ekiplerinden de anlamlı sayıda görüş almak için her departmandan eşit sayıda kişi seçmek.</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>75 çalışanlık bir şirkette departmanlar (tabakalar): Üretim 30, Satış 18, BT 12, Finans 9, İK 6. Toplam 15 kişilik (%20) bir örneklem seçilecek.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · departmanlara göre tabakalı örnekleme</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="32">import numpy as np
+import pandas as pd
+
+rng = np.random.default_rng(2026)
+dept = np.repeat(["Üretim", "Satış", "BT", "Finans", "İK"], [30, 18, 12, 9, 6])
+personel = pd.DataFrame({"sicil": range(1001, 1076), "departman": dept})
+# Departmanlara göre farklı bağlılık düzeyleri
+ort = {"Üretim": 60, "Satış": 66, "BT": 74, "Finans": 70, "İK": 78}
+personel["baglilik"] = [rng.normal(ort[d], 8) for d in personel.departman]
+
+# Orantılı: her departmandan %20
+orantili = personel.groupby("departman").sample(frac=0.20, random_state=1)
+print("Orantılı tabakalı:")
+print(orantili.departman.value_counts().to_string())
+
+# Orantısız: her departmandan 3 kişi
+orantisiz = personel.groupby("departman").sample(n=3, random_state=1)
+print("\nOrantısız tabakalı:")
+print(orantisiz.departman.value_counts().to_string())
+
+# Orantısız örneklemde şirket ortalaması için ağırlık gerekir
+N_h = personel.departman.value_counts()
+n_h = orantisiz.departman.value_counts()
+w = orantisiz.departman.map(N_h / n_h)          # her yanıtın temsil ettiği kişi sayısı
+agirlikli = np.average(orantisiz.baglilik, weights=w)
+
+print(f"\nμ (şirket geneli)            = {personel.baglilik.mean():.2f}")
+print(f"x̄ (orantılı)                 = {orantili.baglilik.mean():.2f}")
+print(f"x̄ (orantısız, ağırlıksız)    = {orantisiz.baglilik.mean():.2f}  ← küçük ekipler fazla temsil")
+print(f"x̄ (orantısız, ağırlıklı)     = {agirlikli:.2f}")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <div class="note"><strong>Not.</strong> Orantısız tabakalı örneklemde şirket geneli için ağırlıksız ortalama alınırsa küçük departmanlar sonuca fazla etki eder. Her yanıt, temsil ettiği çalışan sayısıyla (N<sub>h</sub> / n<sub>h</sub>) ağırlıklandırılmalıdır.</div>
+</section>
+
+</main>
+
+<footer>
+  Kaynak: Usman Zafar Paracha, <em>Colorful Statistics and Python Programming Language</em>, s. 34–42. Kavram anlatımları kitaptan çevrilmiş; örnekler insan kaynakları bağlamına uyarlanmış, Python hücreleri ve etkileşimli araçlar eklenmiştir. Örnek veriler eğitim amaçlı ve kurgusaldır. Python kodları tarayıcıda <a href="https://pyodide.org" style="color:var(--c1)">Pyodide</a> ile çalışır; ilk çalıştırmada numpy, scipy ve pandas paketlerinin inmesi biraz zaman alabilir. Sayfa internet bağlantısı gerektirir.
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+/* ---------- Pyodide ---------- */
+const statusEl = document.getElementById('status');
+function setStatus(txt, cls){ statusEl.className = 'status' + (cls ? ' ' + cls : ''); statusEl.querySelector('span').textContent = txt; }
+let pyReady = null;
+function getPy(){
+  if (!pyReady){
+    pyReady = (async () => {
+      const py = await loadPyodide();
+      setStatus('Python hazır · paketler ilk kullanımda yüklenir', 'ready');
+      return py;
+    })().catch(e => { setStatus('Pyodide yüklenemedi: internet bağlantısını kontrol edin', 'err'); throw e; });
+  }
+  return pyReady;
+}
+getPy();
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.querySelectorAll('[data-cell]').forEach(cell => {
+  const ta = cell.querySelector('textarea'), out = cell.querySelector('pre.out'), runBtn = cell.querySelector('[data-run]');
+  const original = ta.value;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab'){ e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runBtn.click(); }
+  });
+  cell.querySelector('[data-reset]').addEventListener('click', () => { ta.value = original; out.innerHTML = ''; });
+  runBtn.addEventListener('click', async () => {
+    runBtn.disabled = true; runBtn.textContent = 'Çalışıyor…';
+    out.innerHTML = '<span class="w">Hazırlanıyor…</span>';
+    let buf = '';
+    try {
+      const py = await getPy();
+      await py.loadPackagesFromImports(ta.value, { messageCallback: m => { out.innerHTML = '<span class="w">' + esc(m) + '</span>'; } });
+      py.setStdout({ batched: s => { buf += s + '\n'; } });
+      py.setStderr({ batched: s => { buf += s + '\n'; } });
+      const res = await py.runPythonAsync(ta.value);
+      if (res !== undefined && res !== null && !buf) buf = String(res);
+      out.innerHTML = esc(buf.trimEnd()) || '<span class="w">(çıktı yok)</span>';
+    } catch (err) {
+      const msg = String(err.message || err).split('\n').filter(Boolean);
+      out.innerHTML = (buf ? esc(buf) : '') + '<span class="e">' + esc(msg.slice(-3).join('\n')) + '</span>';
+    } finally { runBtn.disabled = false; runBtn.textContent = 'Çalıştır ▸'; }
+  });
+});
+
+/* ---------- Veri türü alıştırması ---------- */
+const TYPES = ['Sınıflama', 'Sıralı', 'Aralıklı', 'Oranlı'];
+const QUIZ = [
+  ['Departman', 'Üretim, Satış, BT, Finans…', 'Sınıflama', 'Kategoriler arasında sıra yok.'],
+  ['Performans notu', 'A, B, C, D', 'Sıralı', 'A, B\'den iyidir ama aradaki fark ölçülemez.'],
+  ['Aylık brüt ücret (TL)', '42.500, 58.000…', 'Oranlı', 'Gerçek sıfır var: 60.000 TL, 30.000 TL\'nin iki katıdır.'],
+  ['İşe alım kanalı', 'LinkedIn, referans, kariyer fuarı', 'Sınıflama', 'Kanallar yalnızca ad olarak ayrılır.'],
+  ['Eğitim düzeyi', 'Lise, ön lisans, lisans, YL, doktora', 'Sıralı', 'Sıra var, basamaklar arası eşit uzaklık yok.'],
+  ['Standart yetenek testi puanı', 'Ortalama 100, SS 15', 'Aralıklı', 'Farklar anlamlı ama 0 puan “hiç yetenek yok” demek değil.'],
+  ['Yıllık devamsızlık günü', '0, 3, 12…', 'Oranlı', '0 gerçek sıfırdır; 10 gün 5 günün iki katıdır.'],
+  ['Sözleşme türü', 'Belirsiz süreli, belirli süreli', 'Sınıflama', 'İki kategori, sıra yok.'],
+];
+const quizEl = document.getElementById('quiz');
+const answered = new Map();
+QUIZ.forEach(([name, ex, ans, why], qi) => {
+  const r = document.createElement('div'); r.className = 'qrow';
+  r.innerHTML = `<div class="v">${name}<small>${ex}</small><small class="fb" aria-live="polite"></small></div><div class="opts">${TYPES.map(t => `<button class="opt" data-t="${t}">${t}</button>`).join('')}</div>`;
+  r.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    r.querySelectorAll('button').forEach(x => x.classList.remove('right', 'wrong'));
+    const ok = b.dataset.t === ans;
+    b.classList.add(ok ? 'right' : 'wrong');
+    if (!ok) r.querySelector(`[data-t="${ans}"]`).classList.add('right');
+    r.querySelector('.fb').textContent = (ok ? 'Doğru. ' : `Yanıt: ${ans}. `) + why;
+    if (!answered.has(qi)) answered.set(qi, ok);
+    const correct = [...answered.values()].filter(Boolean).length;
+    document.getElementById('quiz-score').textContent = `İlk denemede doğru: ${correct} / ${answered.size} (toplam ${QUIZ.length} değişken)`;
+  }));
+  quizEl.appendChild(r);
+});
+
+/* ---------- Örneklem büyüklüğü ---------- */
+function ssCalc(){
+  const z = Number(document.getElementById('ss-z').value);
+  const p = Math.min(0.99, Math.max(0.01, Number(document.getElementById('ss-p').value) || 0.5));
+  const e = Math.min(0.5, Math.max(0.005, Number(document.getElementById('ss-e').value) || 0.05));
+  const N = Math.max(1, Number(document.getElementById('ss-n').value) || 1);
+  const n0 = z * z * p * (1 - p) / (e * e);
+  const nAdj = n0 / (1 + (n0 - 1) / N);
+  const sl = N / (1 + N * e * e);
+  const f = (v, d = 2) => v.toLocaleString('tr-TR', { maximumFractionDigits: d });
+  document.getElementById('ss-stats').innerHTML = [
+    ['Cochran n₀', Math.ceil(n0), `= ${f(n0)}`],
+    ['Düzeltilmiş n (N ile)', Math.ceil(nAdj), `= ${f(nAdj)}`],
+    ['Slovin n', Math.ceil(sl), `= ${f(sl)}`],
+    ['Örnekleme oranı', '%' + f(Math.ceil(nAdj) / N * 100, 1), 'düzeltilmiş n / N']
+  ].map(([k, v, s]) => `<div class="stat"><span>${k}</span><b>${v}</b><small>${s}</small></div>`).join('');
+  const ratio = n0 / N;
+  document.getElementById('ss-txt').textContent = ratio > 0.05
+    ? `n₀, çalışan sayısının %${f(ratio * 100, 1)}'i kadar; evren küçük sayıldığı için düzeltilmiş değeri kullanın.`
+    : `n₀, çalışan sayısının yalnızca %${f(ratio * 100, 1)}'i; düzeltme sonucu çok az değiştirir.`;
+}
+['ss-z', 'ss-p', 'ss-e', 'ss-n'].forEach(id => document.getElementById(id).addEventListener('input', ssCalc));
+ssCalc();
+
+/* ---------- Örnekleme laboratuvarı ---------- */
+const DEPT = [['Üretim', '#e9e6dc', 30], ['Satış', '#b9aee0', 18], ['BT', '#2f8fa6', 12], ['Finans', '#f2cf6b', 9], ['İK', '#a24b1f', 6]];
+const BRANCHES = ['Genel Müdürlük', 'Ankara', 'İzmir', 'Bursa', 'Kocaeli'];
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+const seeded = mulberry32(2026);
+const deptList = DEPT.flatMap(([d, , n]) => Array(n).fill(d));
+for (let i = deptList.length - 1; i > 0; i--){ const j = Math.floor(seeded() * (i + 1)); [deptList[i], deptList[j]] = [deptList[j], deptList[i]]; }
+// Genel Müdürlük'e masa başı departmanları yoğunlaştır (kolayda örneklem yanlılığı için)
+const emp = deptList.map((d, i) => ({ id: i, dept: d, branch: Math.floor(i / 15) }));
+// Genel Müdürlük (şube 0) içinde Üretim'i başka şubelerle takas et → GM çoğunlukla ofis personeli
+for (const e of emp.filter(x => x.branch === 0 && x.dept === 'Üretim')){
+  const swap = emp.find(x => x.branch > 0 && x.dept !== 'Üretim');
+  if (swap){ const t = e.dept; e.dept = swap.dept; swap.dept = t; }
+}
+const color = Object.fromEntries(DEPT.map(([d, c]) => [d, c]));
+const grid = document.getElementById('lab-grid');
+BRANCHES.forEach((b, bi) => {
+  const box = document.createElement('div'); box.className = 'branchbox'; box.dataset.b = bi;
+  box.innerHTML = `<h5>${b}</h5><div class="dots">${emp.filter(e => e.branch === bi).map(e => `<span data-id="${e.id}" title="${e.dept}" style="background:${color[e.dept]}"></span>`).join('')}</div>`;
+  grid.appendChild(box);
+});
+document.getElementById('lab-legend').innerHTML = DEPT.map(([d, c]) => `<span><i style="background:${c}"></i>${d} (${emp.filter(e => e.dept === d).length})</span>`).join('');
+
+const rnd = n => Math.floor(Math.random() * n);
+const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--){ const j = rnd(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const N = emp.length, n = 15;
+const METHODS = {
+  srs: () => ({ ids: shuffle(emp.map(e => e.id)).slice(0, n), txt: 'Her çalışanın seçilme olasılığı eşit (15/75). Dağılım evrene yakın çıkma eğiliminde ama her çekilişte oynar.' }),
+  srswr: () => { const ids = Array.from({ length: n }, () => rnd(N)); const u = new Set(ids).size;
+    return { ids, txt: `İadeli seçimde aynı kişi birden çok kez çıkabilir: bu çekilişte ${n - u} tekrar var (turuncu rozet). Anket için uygun değildir.` }; },
+  sys: () => { const s = rnd(5); return { ids: emp.filter(e => e.id % 5 === s).map(e => e.id), txt: `Rastgele başlangıç ${s + 1}. kayıt, ardından her 5. çalışan seçildi.` }; },
+  strp: () => { const total = DEPT.map(([d, , c]) => [d, c * n / N]);
+    let alloc = total.map(([d, v]) => [d, Math.floor(v), v - Math.floor(v)]);
+    let left = n - alloc.reduce((s, a) => s + a[1], 0);
+    alloc.sort((a, b) => b[2] - a[2]).forEach(a => { if (left > 0){ a[1]++; left--; } });
+    const ids = alloc.flatMap(([d, k]) => shuffle(emp.filter(e => e.dept === d).map(e => e.id)).slice(0, k));
+    return { ids, txt: 'Her departmandan büyüklüğüyle orantılı sayıda kişi seçildi: dağılım evrenle neredeyse birebir örtüşür.' }; },
+  strd: () => ({ ids: DEPT.flatMap(([d]) => shuffle(emp.filter(e => e.dept === d).map(e => e.id)).slice(0, 3)), txt: 'Her departmandan 3 kişi. Küçük İK ve Finans ekipleri fazla temsil ediliyor; şirket geneli için ağırlık gerekir.' }),
+  cl1: () => { const b = rnd(5); return { ids: emp.filter(e => e.branch === b).map(e => e.id), clusters: [b], txt: `Yalnızca ${BRANCHES[b]} kümesi seçildi ve oradaki 15 kişinin tamamı alındı. Ucuz ama tek şubenin yapısına bağımlı.` }; },
+  cl2: () => { const bs = shuffle([0, 1, 2, 3, 4]).slice(0, 3);
+    const ids = bs.flatMap(b => shuffle(emp.filter(e => e.branch === b).map(e => e.id)).slice(0, 5));
+    return { ids, clusters: bs, txt: `Önce 3 şube (${bs.map(b => BRANCHES[b]).join(', ')}), sonra her birinden 5 çalışan rastgele seçildi.` }; },
+  conv: () => ({ ids: emp.filter(e => e.branch === 0).map(e => e.id), clusters: [0], txt: 'Kolayda örneklem: yalnızca Genel Müdürlük binasındakilere soruldu. Bu binada Üretim personeli yok; sahadaki çoğunluk hiç temsil edilmiyor.' }),
+};
+function runLab(m){
+  document.querySelectorAll('.methods button').forEach(b => b.classList.toggle('active', b.dataset.m === m));
+  const { ids, txt, clusters = [] } = METHODS[m]();
+  const cnt = {}; ids.forEach(i => cnt[i] = (cnt[i] || 0) + 1);
+  grid.querySelectorAll('.dots span').forEach(s => { const c = cnt[s.dataset.id] || 0; s.classList.toggle('sel', c > 0); s.classList.toggle('dup', c > 1); });
+  grid.querySelectorAll('.branchbox').forEach(b => b.classList.toggle('on', clusters.includes(Number(b.dataset.b))));
+  const rows = DEPT.map(([d, c, tot]) => {
+    const k = ids.filter(i => emp[i].dept === d).length;
+    const ps = k / ids.length * 100, pp = tot / N * 100;
+    return `<div class="cr"><span>${d}</span><div class="track"><i style="width:${ps}%;background:${c}"></i><em style="left:${pp}%"></em></div><span>${k} kişi · %${ps.toFixed(0)}</span></div>`;
+  }).join('');
+  document.getElementById('lab-out').innerHTML = `<p style="margin:0">${txt}</p><div class="comp">${rows}</div><p class="muted" style="margin:8px 0 0;font-size:.82rem">Çubuk: örneklemdeki pay · siyah çizgi: evrendeki pay · n = ${ids.length}</p>`;
+}
+document.querySelectorAll('.methods button').forEach(b => b.addEventListener('click', () => runLab(b.dataset.m)));
+runLab('strp');
+</script>
+</body>
+</html>

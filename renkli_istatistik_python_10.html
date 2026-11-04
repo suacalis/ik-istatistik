@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Ek Konular: Dağılımlar ve Meta-analiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Düzen: solda yapışkan içindekiler, sağda okunur sütun; temel kavramlar → test seçici → her test = adımlar + İK vakası + Python hücresi */
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --sunk:#f1efe9; --line:#e2ddd2;
+  --fg:#1f2328; --muted:#5d6470;
+  --c1:#2f6fb5; --c2:#d9822b; --c3:#3f9a5c; --c4:#8a4fb0; --c5:#c2453d;
+  --code-bg:#f6f4ef; --code-fg:#24292f; --out-bg:#0f1720; --out-fg:#d6e2ee;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Literata",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:240px minmax(0,1fr);gap:48px}
+@media (max-width:880px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}}
+
+header.hero{grid-column:1/-1;padding-block:48px 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.stripe{display:flex;gap:6px;margin-bottom:18px}
+.stripe span{width:28px;height:8px;border-radius:4px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:62ch;margin:0}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-family:var(--f-mono);font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--c2);display:inline-block}
+.status.ready i{background:var(--c3)} .status.err i{background:var(--c5)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:28px;max-height:100vh;overflow:auto}
+nav.toc h2{font-family:var(--f-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
+nav.toc h3{font-family:var(--f-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:12px 0 4px 8px;font-weight:500}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:1px}
+nav.toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--fg);font-family:var(--f-display);font-size:.9rem;padding:3px 8px;border-radius:6px}
+nav.toc a small{font-family:var(--f-mono);color:var(--muted);font-size:.7rem;min-width:22px}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sunk);outline:none}
+@media (max-width:880px){nav.toc{position:static;max-height:none;padding-top:20px}
+  nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
+
+main{min-width:0}
+section{padding-block:32px 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.kicker{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.04em}
+.kicker .kind{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-family:var(--f-display);font-size:.7rem;background:var(--sunk)}
+h2.sec{font-family:var(--f-display);font-weight:700;font-size:1.65rem;margin:4px 0 12px;text-wrap:balance;display:flex;align-items:center;gap:12px}
+h2.sec::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--dot,var(--c1));flex:none}
+h3{font-family:var(--f-display);font-weight:500;font-size:1.12rem;margin:24px 0 8px}
+p{max-width:68ch;margin:0 0 14px}
+ul.pl{max-width:68ch;margin:0 0 14px;padding-left:22px}
+.muted{color:var(--muted)}
+code.i{font-family:var(--f-mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+
+.formula{font-family:var(--f-mono);font-size:.95rem;background:var(--sunk);border-radius:10px;padding:12px 18px;margin:12px 0;overflow-x:auto;white-space:nowrap}
+.formula b{color:var(--dot,var(--c1))}
+.note{border-left:4px solid var(--c2);background:var(--sunk);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.94rem}
+.note strong{font-family:var(--f-display)}
+.warn{border-left-color:var(--c5)}
+.case{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dot,var(--c1));padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0;max-width:72ch;font-size:.95rem}
+.case .tag{font-family:var(--f-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dot,var(--c1));display:block;margin-bottom:4px}
+.assume{border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:12px 0;max-width:72ch;font-size:.92rem}
+.assume b{font-family:var(--f-display);display:block;margin-bottom:2px}
+.assume ul{margin:0;padding-left:20px}
+
+ol.steps{list-style:none;padding:0;margin:14px 0;display:grid;gap:8px;counter-reset:s;max-width:74ch}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;font-size:.94rem}
+ol.steps li::before{content:counter(s);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:.82rem;color:#fff;background:var(--dot,var(--c1))}
+
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.93rem;min-width:100%}
+th,td{padding:6px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:500;color:var(--muted);font-size:.85rem}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+td.pos{color:var(--c3);font-weight:600} td.neg{color:var(--c5);font-weight:600}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--kc,var(--c1));border-radius:10px;padding:12px 14px;min-width:0;font-size:.92rem}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 4px}
+.card p{margin:0 0 6px}
+
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin:18px 0}
+.tool .lbl{font-family:var(--f-display);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:grid;gap:4px;flex:1 1 150px;min-width:0}
+.field label{font-size:.82rem;color:var(--muted);font-family:var(--f-display)}
+input[type=text],input[type=number],select{font-family:var(--f-mono);font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;width:100%}
+input[type=range]{width:100%;accent-color:var(--c1)}
+button{font-family:var(--f-display);font-weight:500;font-size:.92rem;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--c1);color:#fff}
+button.ghost{background:var(--sunk);color:var(--fg)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px}
+.stat{background:var(--sunk);border-radius:10px;padding:8px 12px}
+.stat span{display:block;font-size:.75rem;color:var(--muted);font-family:var(--f-display)}
+.stat b{font-family:var(--f-mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.stat.hl{background:color-mix(in srgb,var(--c2) 20%,var(--sunk))}
+.verdict{margin-top:12px;padding:10px 14px;border-radius:10px;font-size:.94rem;background:var(--sunk)}
+.verdict b{font-family:var(--f-display)}
+.rec{margin-top:12px;padding:14px 16px;border-radius:12px;background:color-mix(in srgb,var(--c1) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--c1) 35%,var(--line))}
+.rec h4{margin:0 0 4px;font-family:var(--f-display);font-size:1.15rem}
+.rec p{margin:0 0 6px;font-size:.93rem}
+.rec a{color:var(--c1);font-family:var(--f-display)}
+
+.svgbox{overflow-x:auto;margin-top:12px}
+.svgbox svg{display:block;width:100%;height:auto;min-width:320px;font-family:var(--f-mono)}
+.svgbox .ax{stroke:var(--line);stroke-width:1}
+.svgbox .tk{fill:var(--muted);font-size:11px}
+.svgbox .lab{fill:var(--muted);font-size:12px;font-family:var(--f-display)}
+.svgbox .crv{fill:none;stroke:var(--c1);stroke-width:2.5}
+.svgbox .crv2{fill:none;stroke:var(--c5);stroke-width:2}
+.svgbox .rej{fill:color-mix(in srgb,var(--c5) 40%,transparent)}
+.svgbox .pv{fill:color-mix(in srgb,var(--c2) 45%,transparent)}
+.svgbox .bar{fill:color-mix(in srgb,var(--c1) 55%,transparent)}
+.svgbox .bar2{fill:color-mix(in srgb,var(--c3) 60%,transparent)}
+.svgbox .me{stroke:var(--fg);stroke-width:2}
+.svgbox .ttl{fill:var(--fg);font-size:12px;font-family:var(--f-display);font-weight:500}
+
+.py{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:16px 0;background:var(--code-bg)}
+.py .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.py .bar span{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.py .bar .btns{display:flex;gap:6px}
+.py textarea{display:block;width:100%;border:0;resize:vertical;background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:.86rem;line-height:1.55;padding:14px 16px;tab-size:4;white-space:pre;overflow-x:auto}
+.py pre.out{margin:0;padding:12px 16px;background:var(--out-bg);color:var(--out-fg);font-family:var(--f-mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+.py pre.out:empty{display:none}
+.py pre.out .e{color:#ff9c8f}
+.py pre.out .w{color:#9fb3c8;font-style:italic}
+.py .figs{background:#ffffff;display:grid;gap:8px;padding:12px;justify-items:center}
+.py .figs:empty{display:none}
+.py .figs img{max-width:100%;height:auto}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="stripe" aria-hidden="true"><span style="background:var(--c1)"></span><span style="background:var(--c2)"></span><span style="background:var(--c3)"></span><span style="background:var(--c4)"></span><span style="background:var(--c5)"></span></div>
+  <h1>Ek Konular: Dağılımlardan Meta-analize</h1>
+  <p class="lede">Usman Zafar Paracha'nın <em>Colorful Statistics and Python Programming Language</em> kitabının 341–356. sayfalarındaki “Bonus Topics” bölümünün Türkçe, etkileşimli ve insan kaynakları örnekleriyle uyarlanmış sürümü. Normal olmayan dağılımlar, dairesel permütasyon, zaman serileri, Monte Carlo simülasyonu, yoğunluk kestirimi, karar ağaçları, meta-analiz ve araştırmalarda kullanılan istatistik teknikleri.</p>
+  <div class="status" id="status" role="status"><i></i><span>Python (Pyodide) yükleniyor…</span></div>
+</header>
+
+<nav class="toc" aria-label="İçindekiler">
+  <h2>İçindekiler</h2>
+  <ol>
+    <li><a href="#dagilim"><small>1</small>Normal olmayan dağılımlar</a></li>
+    <li><a href="#dairesel"><small>2</small>Doğada dairesel permütasyon</a></li>
+    <li><a href="#zaman"><small>3</small>Zaman serileri</a></li>
+    <li><a href="#montecarlo"><small>4</small>Monte Carlo simülasyonu</a></li>
+    <li><a href="#yogunluk"><small>5</small>Yoğunluk kestirimi</a></li>
+    <li><a href="#agac"><small>6</small>Karar ağacı</a></li>
+    <li><a href="#testagaci"><small>★</small>Test seçme ağacı</a></li>
+    <li><a href="#meta"><small>7</small>Meta-analiz</a></li>
+    <li><a href="#teknikler"><small>8</small>Araştırmalarda istatistik teknikleri</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 DAĞILIMLAR -->
+<section id="dagilim" style="--dot:var(--c1)">
+  <div class="kicker">s. 341–342</div>
+  <h2 class="sec">Sağlık, eğitim ve sosyal bilimlerde en sık kullanılan normal olmayan dağılımlar</h2>
+  <p>Kitap bu bölümü Bono, Blanca, Arnau ve Gómez-Benito'nun <em>Frontiers in Psychology</em> dergisinde yayımlanan “Non-normal Distributions Commonly Used in Health, Education, and Social Sciences: A Systematic Review” (2017) makalesine dayandırıyor. Sistematik derlemede kullanım sıklığına göre (çoktan aza) şu dağılımlar öne çıkıyor:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>#</th><th>Dağılım</th><th>Veri türü</th><th>Kitaptaki kullanım alanı</th><th>İK karşılığı</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><b>Gamma</b></td><td>Sürekli, pozitif, sağa çarpık</td><td>Sağlık harcamaları, gelir</td><td>Ücret, prim, sağlık sigortası gideri</td></tr>
+      <tr><td>2</td><td><b>Negatif binom</b></td><td>Sayım, aşırı yayılımlı</td><td>—</td><td>Yıllık devamsızlık günü (birkaç kişi çok yüksek)</td></tr>
+      <tr><td>3</td><td><b>Çok terimli (multinomial)</b></td><td>Kesikli, çok kategorili</td><td>Kesikli ölçüm ölçekleri</td><td>5'li Likert yanıt dağılımı, performans notu (A–D)</td></tr>
+      <tr><td>4</td><td><b>Binom</b></td><td>Kesikli, iki sonuçlu</td><td>Kesikli ölçüm ölçekleri</td><td>n adaydan kaçının teklifi kabul ettiği</td></tr>
+      <tr><td>5</td><td><b>Lognormal</b></td><td>Sürekli, pozitif, sağa çarpık</td><td>Bulaşıcı hastalıklarda kuluçka süresi</td><td>Pozisyon doldurma süresi, yönetici ücretleri</td></tr>
+      <tr><td>6</td><td><b>Üstel</b></td><td>Sürekli, bekleme süresi</td><td>—</td><td>Ardışık iki istifa arasındaki gün</td></tr>
+      <tr><td>7</td><td><b>Poisson</b></td><td>Sayım, ortalama = varyans</td><td>—</td><td>Aylık iş kazası ya da şikâyet sayısı</td></tr>
+    </tbody></table></div>
+  <div class="tool">
+    <div class="lbl">Dağılım gezgini · İK değişkenleriyle</div>
+    <div class="row">
+      <div class="field" style="flex:2 1 240px"><label for="dg-sel">Dağılım</label><select id="dg-sel">
+        <option value="gamma">Gamma · aylık ücret (bin TL)</option>
+        <option value="nbinom">Negatif binom · yıllık devamsızlık günü</option>
+        <option value="multi">Çok terimli · 5'li Likert yanıtları</option>
+        <option value="binom">Binom · 10 teklifin kabul edilen sayısı</option>
+        <option value="lognorm">Lognormal · pozisyon doldurma süresi (gün)</option>
+        <option value="expon">Üstel · istifalar arası gün</option>
+        <option value="poisson">Poisson · aylık iş kazası sayısı</option>
+      </select></div>
+      <div class="field"><label for="dg-p1" id="dg-l1"></label><input id="dg-p1" type="range"></div>
+      <div class="field"><label for="dg-p2" id="dg-l2"></label><input id="dg-p2" type="range"></div>
+    </div>
+    <div class="svgbox" id="dg-svg" aria-label="Seçilen dağılımın olasılık fonksiyonu"></div>
+    <div class="stats" id="dg-stats"></div>
+    <div class="verdict" id="dg-v"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · İK verisine dağılım uydurma ve AIC ile karşılaştırma</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="28">import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+
+r = np.random.default_rng(5)
+ucret = r.gamma(shape=4, scale=12, size=400)          # aylık ücret, bin TL
+doldurma = r.lognormal(mean=3.5, sigma=0.5, size=200)  # pozisyon doldurma süresi, gün
+
+def aic(dist, x, **sabit):
+    par = dist.fit(x, **sabit)
+    return 2 * len(par) - 2 * dist.logpdf(x, *par).sum(), par
+
+for ad, x in [("Ücret", ucret), ("Doldurma süresi", doldurma)]:
+    print(f"\n{ad}: ortalama = {x.mean():.1f}, ortanca = {np.median(x):.1f}, çarpıklık = {stats.skew(x):.2f}")
+    for dad, dist in [("Normal", stats.norm), ("Gamma", stats.gamma), ("Lognormal", stats.lognorm)]:
+        a, _ = aic(dist, x, **({} if dad == "Normal" else {"floc": 0}))
+        print(f"   {dad:<10} AIC = {a:8.1f}")
+
+fig, ax = plt.subplots(1, 2, figsize=(9, 3.6))
+for a, x, renk, bas in [(ax[0], ucret, "#2f6fb5", "Aylık ücret (bin TL)"), (ax[1], doldurma, "#d9822b", "Doldurma süresi (gün)")]:
+    a.hist(x, bins=30, density=True, color=renk, alpha=.5)
+    g = np.linspace(0.1, x.max(), 300)
+    a.plot(g, stats.gamma.pdf(g, *stats.gamma.fit(x, floc=0)), label="Gamma")
+    a.plot(g, stats.lognorm.pdf(g, *stats.lognorm.fit(x, floc=0)), label="Lognormal")
+    a.plot(g, stats.norm.pdf(g, *stats.norm.fit(x)), "--", label="Normal")
+    a.set_title(bas); a.legend()
+plt.tight_layout(); plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="py" data-cell><div class="bar"><span>Python · Poisson mu, negatif binom mu? Aşırı yayılım</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="17">import numpy as np
+from scipy import stats
+
+# 300 çalışanın yıllık devamsızlık günü: çoğu 0–4 gün, birkaç kişi çok yüksek
+r = np.random.default_rng(9)
+gun = r.negative_binomial(n=1.5, p=0.25, size=300)
+ort, var = gun.mean(), gun.var(ddof=1)
+print(f"Ortalama = {ort:.2f}, varyans = {var:.2f}, varyans/ortalama = {var/ort:.2f}")
+print("Poisson'da bu oran 1 olmalı; 1'den çok büyükse aşırı yayılım vardır.\n")
+
+# Momentler yöntemiyle negatif binom parametreleri
+p = ort / var; n = ort * p / (1 - p)
+print(f"Negatif binom: n = {n:.2f}, p = {p:.3f}")
+for k in [0, 5, 10, 20]:
+    print(f"P(devamsızlık = {k:>2}) · Poisson: {stats.poisson.pmf(k, ort):.4f}   NB: {stats.nbinom.pmf(k, n, p):.4f}   gözlenen: {(gun == k).mean():.4f}")
+print(f"\n20 gün ve üzeri · Poisson: {stats.poisson.sf(19, ort):.5f}   NB: {stats.nbinom.sf(19, n, p):.4f}   gözlenen: {(gun >= 20).mean():.4f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitabın şemasında “sağlık harcamaları ya da gelir” kutusu hem gamma hem negatif binom dağılımına bağlanıyor. Gamma sürekli ve pozitif değişkenler (harcama, gelir) içindir; negatif binom ise <em>sayım</em> verisi içindir ve ortalamadan büyük varyansı (aşırı yayılım) modeller. İK'da devamsızlık günü, şikâyet sayısı ve fazla mesai talebi gibi sayımlar çoğu zaman negatif binomdur; Poisson varsayımı uç değerlerin olasılığını ciddi biçimde küçümser.</div>
+</section>
+
+<!-- 2 DAİRESEL -->
+<section id="dairesel" style="--dot:var(--c2)">
+  <div class="kicker">s. 342–343</div>
+  <h2 class="sec">Doğada dairesel permütasyon</h2>
+  <p>Proteinlerin peptit dizilerinde amino asitlerin sırası değişebilir. Proteinlerde dairesel permütasyon peptit düzeyinde ya da genetik düzeyde ortaya çıkabilir; doğada genetik yeniden düzenlemeler daha yaygındır (lektinler, transglutaminazlar, glikozil hidrolazlar, saposinler, metiltransferazlar). Genellikle protein alanları (domain) farklı dizilim sırasındadır. Örneğin bir T proteini A, B ve C bağımsız alanlarından ABC biçiminde oluşabilir; bu alanlar BCA ya da CAB olarak da birleşebilir ve böylece alan sıraları farklı iki protein daha ortaya çıkar. Proteinler dairesel permütasyondan sonra genellikle aynı ya da benzer işlevi gösterir. Alan, protein zincirinin geri kalanından bağımsız olarak işlev görebilen, evrimleşebilen ve var olabilen, belirli sayıda amino asit içeren parçasıdır.</p>
+  <div class="case"><span class="tag">İK vakası · benzetme</span>Aynı mantık <strong>dönüşümlü vardiya</strong> planlamasında karşımıza çıkar. Üç ekip (A, B, C) sabah, akşam ve gece vardiyalarını ABC sırasıyla tutuyorsa, bir sonraki hafta BCA, ardından CAB düzenine geçilir. Bunlar ABC'nin dairesel kaydırmalarıdır: döngüdeki sıra (A'dan sonra B, B'den sonra C) korunur ve plan aynı işlevi görür. ACB ise farklı bir döngüdür, kaydırmayla elde edilemez. 3 ekibin 3! = 6 dizilişi, 3 kaydırmadan oluşan 2 farklı döngüye ayrılır: (3 − 1)! = 2.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · dairesel kaydırmalar ve döngüler</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="16">from itertools import permutations
+
+ekipler = "ABC"
+kaydir = lambda s, k: s[k:] + s[:k]
+print("ABC'nin dairesel kaydırmaları:", [kaydir(ekipler, k) for k in range(3)])
+
+# Tüm dizilişleri döngülerine göre grupla
+dongu = {}
+for p in permutations(ekipler):
+    s = "".join(p)
+    anahtar = min(kaydir(s, k) for k in range(len(s)))
+    dongu.setdefault(anahtar, []).append(s)
+for k, v in dongu.items():
+    print(f"Döngü {k}: {v}")
+print("Farklı döngü sayısı = (n − 1)! =", len(dongu))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitabın şemasındaki “Transolidases” muhtemelen “transglutaminases” (transglutaminazlar) olmalıdır. “BCA ya da CAB, iki farklı protein daha” ifadesi, ABC'nin üç dairesel kaydırmasından ikisini anlatır; matematikteki dairesel permütasyon sayısı (n − 1)! ise kaydırmalar <em>aynı</em> sayıldığında farklı döngülerin sayısıdır. Proteinlerde kaydırılmış diziler farklı moleküllerdir; bu yüzden biyolojideki terim ile sayma problemindeki terim birebir aynı şeyi saymaz.</div>
+</section>
+
+<!-- 3 ZAMAN SERİSİ -->
+<section id="zaman" style="--dot:var(--c3)">
+  <div class="kicker">s. 344–348</div>
+  <h2 class="sec">Zaman serileri</h2>
+  <p>Zaman serisi, belirli zamanlarda ya da zaman aralıklarında kaydedilen veri noktalarından oluşur. Değerlerin y ekseninde, zamanın x ekseninde gösterildiği bir zaman grafiğiyle sunulur. Verideki zamanla değişimi göstermeye, örüntüleri bulmaya ve zamana bağlı tahmin yapmaya yarar.</p>
+  <p>Eşit aralıklı veri noktası sayısı arttıkça örüntüleri görmek zorlaşır. Bu durumda <strong>düzleştirme</strong> (smoothing) kullanılır. Düzleştirme, gelecekteki olayları tahmin etmede ve uç değerleri fark etmede de yararlıdır; en basit yolu <strong>hareketli ortalamadır</strong>. Zaman serilerinde sık görülen dönemsel dalgalanmalara <strong>mevsimsellik</strong> denir. Mevsimsellik herhangi bir periyotta ortaya çıkabilir: hava sıcaklığı gün ortasında artar, gece düşer.</p>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c3)"><h4>Kitaptaki örnekler</h4><p>Günlük hava sıcaklığı, bir organizmanın günlük boyu, günlük borsa kapanışları, haftalık faiz oranları, milli gelir, yıllık deprem sayısı.</p></div>
+    <div class="card" style="--kc:var(--c1)"><h4>İK karşılıkları</h4><p>Haftalık iş başvurusu sayısı, aylık işten ayrılma oranı, günlük devamsızlık, çeyreklik çalışan bağlılığı endeksi, yıllık işgücü maliyeti.</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>Yeni açılan bir kariyer sayfasının ilk 8 haftasında gelen başvurular (yüz kişi): 3, 2, 7, 5, 10, 9, 8, 5. Başvurular artış eğiliminde mi? Doğrusal eğilim çizgisi: Ŷ = 3,18 + 0,65 × hafta. Haftada ortalama 65 başvuru artış.</div>
+  <div class="tool">
+    <div class="lbl">Zaman serisi düzleştirici</div>
+    <div class="row">
+      <div class="field" style="flex:3 1 280px"><label for="ts-in">Seri</label><input id="ts-in" type="text" value="3, 2, 7, 5, 10, 9, 8, 5"></div>
+      <div class="field"><label for="ts-w">Hareketli ortalama penceresi: <b id="ts-wv"></b></label><input id="ts-w" type="range" min="1" max="7" step="1" value="3"></div>
+      <div class="field"><label for="ts-d">Polinom derecesi: <b id="ts-dv"></b></label><input id="ts-d" type="range" min="0" max="7" step="1" value="1"></div>
+    </div>
+    <div class="svgbox" id="ts-svg" aria-label="Seri, hareketli ortalama ve polinom eğrisi"></div>
+    <div class="stats" id="ts-stats"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · zaman grafiği, hareketli ortalama ve eğilim çizgisi</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="23">import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+hafta = np.arange(1, 9)
+basvuru = pd.Series([3, 2, 7, 5, 10, 9, 8, 5], index=hafta)   # yüz kişi
+
+ma3 = basvuru.rolling(3, center=True).mean()          # hareketli ortalama
+egim, kes = np.polyfit(hafta, basvuru, 1)              # doğrusal eğilim
+p5 = np.poly1d(np.polyfit(hafta, basvuru, 5))          # kitabın 5. derece polinomu
+print(f"Eğilim: Ŷ = {kes:.2f} + {egim:.3f} × hafta")
+print("3 haftalık hareketli ortalama:", ma3.round(2).tolist())
+print("9. hafta tahmini · doğrusal:", round(kes + egim*9, 2), " · 5. derece polinom:", round(p5(9), 2))
+
+plt.plot(hafta, basvuru, "o-", color="#2f6fb5", label="Başvuru")
+plt.plot(hafta, ma3, color="#3f9a5c", lw=2.5, label="3 haftalık hareketli ort.")
+plt.plot(hafta, kes + egim*hafta, "r--", label="Doğrusal eğilim")
+g = np.linspace(1, 9, 100)
+plt.plot(g, p5(g), color="#8a4fb0", alpha=.7, label="5. derece polinom")
+plt.ylim(0, 14); plt.xlabel("Hafta"); plt.ylabel("Başvuru (yüz kişi)"); plt.legend()
+plt.title("Kariyer sayfası başvuruları")
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="py" data-cell><div class="bar"><span>Python · mevsimsellik: aylık işten ayrılmaların ayrıştırılması</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="19">import numpy as np
+import pandas as pd
+from statsmodels.tsa.seasonal import seasonal_decompose
+import matplotlib.pyplot as plt
+
+# 3 yıllık aylık gönüllü ayrılma sayısı: yükselen eğilim + yaz/ikramiye sonrası (Mart) dalgalar
+r = np.random.default_rng(2)
+ay = pd.date_range("2023-01-01", periods=36, freq="MS")
+mevsim = np.tile([2, 1, 6, 3, 2, 4, 7, 6, 3, 1, 0, -1], 3)
+seri = pd.Series(20 + 0.25*np.arange(36) + mevsim + r.normal(0, 1.2, 36), index=ay)
+
+ayr = seasonal_decompose(seri, model="additive", period=12)
+print("Mevsimsel bileşen (ay bazında, ortalamadan sapma):")
+print(pd.Series(ayr.seasonal[:12].values, index=["Oca","Şub","Mar","Nis","May","Haz","Tem","Ağu","Eyl","Eki","Kas","Ara"]).round(2))
+
+fig = ayr.plot(); fig.set_size_inches(8, 6)
+fig.axes[0].set_title("Aylık gönüllü ayrılmalar: gözlenen, eğilim, mevsimsellik, artık")
+plt.tight_layout(); plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki düzleştirme kodu hakkında.</strong> Kitap düzleştirmeyi metinde hareketli ortalama olarak anlatıyor, kodda ise 8 noktaya 5. derece bir polinom uyduruyor. Bu düzleştirme değil <em>aşırı uyum</em>dur: 6 parametreli eğri 8 noktanın neredeyse hepsinden geçer ve seri dışına çıkıldığında anlamsız tahminler üretir (yukarıdaki hücrede 9. hafta tahminine bakın). Araçta polinom derecesini 7'ye çıkararak bunu görebilirsiniz. Kitabın düzleştirme tanımı (“noktalar olmadan çizgi grafiği kullanılması”) de bir gösterim tercihidir, yöntem değil. Kitabın eğilim kodunda <code class="i">pandas</code> içe aktarılıyor ama kullanılmıyor. Sekiz gözlemle “yükselen eğilim” yorumu da temkinli yapılmalıdır: eğimin p-değeri yaklaşık 0,15'tir, yani eğilim 0,05 düzeyinde anlamlı değildir.</div>
+</section>
+
+<!-- 4 MONTE CARLO -->
+<section id="montecarlo" style="--dot:var(--c4)">
+  <div class="kicker">s. 348–349</div>
+  <h2 class="sec">Monte Carlo simülasyonu</h2>
+  <p>Monte Carlo yöntemi, matematiksel problemleri çok sayıda rastgele örnekleme yaparak çözen sayısal bir yöntemdir. Analitik çözümü çok karmaşık olan problemlere sayısal çözüm bulmaya yarar. Kitaptaki örnekler: çok boyutlu uzaydaki şekillerin hacmini hesaplamak, bazı belirli integralleri hesaplamak, akışkanlar gibi çok serbestlik dereceli sistemleri simüle etmek ve ekonomide iflas ile kredili mevduat maliyetlerini tahmin etmek.</p>
+  <ol class="steps">
+    <li><b>Girdi örneklemi oluşturun.</b> Her belirsiz girdi için bir dağılım seçin ve rastgele girdi değişkenleri x = (x₁, x₂, …, xₙ) çekin.</li>
+    <li><b>Modeli çözün.</b> Her girdi seti için model çıktısını y = g(x) hesaplayın.</li>
+    <li><b>Çıktıyı istatistiksel olarak analiz edin.</b> y = (y₁, y₂, …, yₙ) dağılımından olasılıksal bilgi ve çıktının belirsizliğini elde edin.</li>
+  </ol>
+  <div class="case"><span class="tag">İK vakası</span>500 kişilik bir şirket gelecek yılın <strong>işten ayrılma maliyeti</strong> için bütçe yapıyor. İki girdi belirsiz: yıllık ayrılma oranı (en az %8, en olası %12, en çok %20; üçgen dağılım) ve ayrılan kişi başına yenileme maliyeti (işe alım, oryantasyon, verim kaybı; ortalama 180 bin TL, kişiden kişiye çok değişken; lognormal). Model: maliyet = Σ (ayrılan her kişinin yenileme maliyeti). Tek bir “ortalama” tahmin yerine maliyetin dağılımını ve örneğin %90 olasılıkla aşılmayacak tutarı (P90) verir.</div>
+  <div class="tool">
+    <div class="lbl">İşten ayrılma maliyeti simülasyonu</div>
+    <div class="row">
+      <div class="field"><label for="mc-n">Çalışan sayısı</label><input id="mc-n" type="number" step="10" value="500"></div>
+      <div class="field"><label for="mc-a">Ayrılma oranı en az</label><input id="mc-a" type="number" step="0.01" value="0.08"></div>
+      <div class="field"><label for="mc-m">en olası</label><input id="mc-m" type="number" step="0.01" value="0.12"></div>
+      <div class="field"><label for="mc-b">en çok</label><input id="mc-b" type="number" step="0.01" value="0.20"></div>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <div class="field"><label for="mc-c">Kişi başı maliyet ort. (bin TL)</label><input id="mc-c" type="number" step="10" value="180"></div>
+      <div class="field"><label for="mc-cv">Maliyet değişkenlik katsayısı</label><input id="mc-cv" type="number" step="0.1" value="0.6"></div>
+      <div class="field"><label for="mc-r">Simülasyon sayısı</label><select id="mc-r"><option>1000</option><option selected>5000</option><option>20000</option></select></div>
+      <div class="field" style="flex:0 0 auto"><button id="mc-go" class="ghost">Yeniden çek</button></div>
+    </div>
+    <div class="svgbox" id="mc-svg" aria-label="Simüle edilen toplam maliyet histogramı"></div>
+    <div class="stats" id="mc-stats"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · Monte Carlo ile maliyet dağılımı</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="27">import numpy as np
+import matplotlib.pyplot as plt
+
+r = np.random.default_rng(2026)
+N, kosu = 500, 10_000
+ort, cv = 180, 0.6                                 # bin TL, değişkenlik katsayısı
+s2 = np.log(1 + cv**2); mu = np.log(ort) - s2/2    # lognormal parametreleri
+
+# Adım 1: girdileri örnekle
+oran = r.triangular(0.08, 0.12, 0.20, size=kosu)
+ayrilan = r.binomial(N, oran)
+# Adım 2: modeli çöz (her ayrılan kişi için ayrı maliyet çek ve topla)
+maliyet = np.array([r.lognormal(mu, np.sqrt(s2), k).sum() for k in ayrilan]) / 1000   # milyon TL
+# Adım 3: çıktıyı analiz et
+p5, p50, p90, p95 = np.percentile(maliyet, [5, 50, 90, 95])
+print(f"Ayrılan kişi · ortalama {ayrilan.mean():.1f}, %90 aralık {np.percentile(ayrilan, [5, 95])}")
+print(f"Maliyet (milyon TL) · ortalama {maliyet.mean():.2f}, ortanca {p50:.2f}")
+print(f"%90 güven bandı: {p5:.2f} – {p95:.2f}   ·   P90 (bütçe önerisi): {p90:.2f}")
+print(f"Basit tahmin (500 × %12 × 180 bin): {500*0.12*180/1000:.2f} milyon TL")
+
+plt.hist(maliyet, bins=60, color="#8a4fb0", alpha=.7)
+for v, l in [(p50, "P50"), (p90, "P90")]:
+    plt.axvline(v, color="#c2453d", ls="--"); plt.text(v, plt.ylim()[1]*.92, f" {l}", color="#c2453d")
+plt.xlabel("Yıllık işten ayrılma maliyeti (milyon TL)"); plt.ylabel("Simülasyon sayısı")
+plt.title("10.000 Monte Carlo simülasyonu")
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki tanım (“çok sayıda değişkenin rastgele örneklenmesi”) tam isabetli değil: Monte Carlo'nun gücü az sayıda belirsiz girdiden <em>çok sayıda rastgele tekrar</em> çekmesinden gelir. Basit çarpım tahmini (500 × %12 × 180 bin) beklenen ayrılma oranını (en olası değeri değil, üçgen dağılımın ortalamasını, %13,3) kullanmadığı için maliyeti küçümser. Monte Carlo ayrıca bütçenin aşılma olasılığını da gösterir.</div>
+</section>
+
+<!-- 5 YOĞUNLUK -->
+<section id="yogunluk" style="--dot:var(--c5)">
+  <div class="kicker">s. 349–350</div>
+  <h2 class="sec">Yoğunluk kestirimi</h2>
+  <p>Yoğunluk kestirimi, sürekli bir yoğunluk alanını o alandan kesikli olarak örneklenmiş veri noktalarından tahmin etme işlemidir.</p>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c1)"><h4>Parametrik</h4><p>Dağılımın biçimi bilinir; yalnızca parametreleri tahmin edilir.</p><p class="muted">En çok olabilirlik (MLE) · Bayesçi kestirim</p></div>
+    <div class="card" style="--kc:var(--c2)"><h4>Parametrik olmayan</h4><p>Yoğunluğun biçimi bir modelle değil, tamamen veriyle belirlenir.</p><p class="muted">Parzen pencereleri (çekirdek yoğunluk kestirimi, KDE) · en yakın komşu</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>Ücret araştırması için 40 uzman pozisyonunun aylık brüt ücreti toplanıyor. Parametrik yaklaşım ücretlerin lognormal dağıldığını varsayıp iki parametresini MLE ile tahmin eder. Parametrik olmayan yaklaşım (KDE) her gözlemin üstüne küçük bir çan eğrisi koyup toplar; ücret bandında birden fazla tepe (ör. iki farklı kıdem seviyesi) varsa bunu ortaya çıkarabilir. Bant genişliği (h) küçüldükçe eğri pürüzlü, büyüdükçe düzgün olur.</div>
+  <div class="tool">
+    <div class="lbl">Çekirdek yoğunluk kestirimi (Parzen pencereleri)</div>
+    <div class="row">
+      <div class="field" style="flex:3 1 280px"><label for="kd-in">Ücretler (bin TL)</label><input id="kd-in" type="text" value="42, 45, 47, 48, 50, 51, 52, 53, 54, 55, 55, 56, 57, 58, 59, 60, 61, 62, 63, 65, 66, 68, 70, 74, 78, 82, 84, 86, 87, 88, 89, 90, 91, 92, 94, 96, 99, 104, 112, 125"></div>
+      <div class="field"><label for="kd-h">Bant genişliği h: <b id="kd-hv"></b></label><input id="kd-h" type="range" min="1" max="30" step="0.5" value="0"></div>
+      <div class="field" style="flex:0 0 auto"><button id="kd-silv" class="ghost">Silverman kuralı</button></div>
+    </div>
+    <div class="svgbox" id="kd-svg" aria-label="Histogram, KDE ve lognormal uyum"></div>
+    <div class="stats" id="kd-stats"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · parametrik (MLE) ve parametrik olmayan (KDE) kestirim</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="23">import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+
+ucret = np.array([42,45,47,48,50,51,52,53,54,55,55,56,57,58,59,60,61,62,63,65,
+                  66,68,70,74,78,82,84,86,87,88,89,90,91,92,94,96,99,104,112,125])
+
+# Parametrik: lognormal, MLE
+s, loc, olcek = stats.lognorm.fit(ucret, floc=0)
+print(f"Lognormal MLE: μ = {np.log(olcek):.3f}, σ = {s:.3f}  →  ortanca ≈ {olcek:.1f} bin TL")
+
+# Parametrik olmayan: Gauss çekirdekli KDE
+g = np.linspace(20, 150, 400)
+plt.hist(ucret, bins=12, density=True, color="#c2453d", alpha=.25, label="Histogram")
+plt.plot(g, stats.lognorm.pdf(g, s, loc, olcek), "k--", label="Lognormal (MLE)")
+for bw, renk in [(0.15, "#d9822b"), ("silverman", "#2f6fb5"), (0.8, "#3f9a5c")]:
+    kde = stats.gaussian_kde(ucret, bw_method=bw)
+    plt.plot(g, kde(g), color=renk, label=f"KDE, bant = {bw if isinstance(bw, str) else bw}")
+print("Silverman bant çarpanı:", round(stats.gaussian_kde(ucret, "silverman").factor, 3))
+plt.xlabel("Aylık brüt ücret (bin TL)"); plt.ylabel("Yoğunluk"); plt.legend(fontsize=8)
+plt.title("Ücret dağılımı: iki tepe lognormal varsayımında kayboluyor")
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap Parzen pencerelerini ve en yakın komşu yöntemini parametrik olmayan yöntemler olarak sayıyor ama ayrıntı vermiyor. Parzen penceresi, bugün çoğunlukla Gauss çekirdekli KDE olarak uygulanır. Bant genişliği seçimi, çekirdek türünden çok daha önemlidir. Örnekteki veride iki kıdem grubu (yaklaşık 55 ve 90 bin TL) var; tek tepeli lognormal model bunu gizliyor, küçük bant genişliğiyle KDE ise gösteriyor. Silverman kuralı normal dağılım varsayımıyla türetildiği için çok tepeli veride fazla düzleştirme eğilimindedir. scipy'nin <code class="i">"silverman"</code> seçeneği yalnızca standart sapmaya dayandığından grafikte ikinci tepe neredeyse kayboluyor; araçtaki 0,9 × min(s, IQR / 1,34) × n<sup>−1/5</sup> sürümü çarpık ve çok tepeli veriye daha dayanıklıdır ve iki tepeyi koruyor.</div>
+</section>
+
+<!-- 6 KARAR AĞACI -->
+<section id="agac" style="--dot:var(--c1)">
+  <div class="kicker">s. 350–351</div>
+  <h2 class="sec">Karar ağacı</h2>
+  <p>Karar ağacı; sınıflandırma, tahmin, kestirim, kümeleme ve görselleştirme için kullanılır. Bunu, aralarında ilişki bulunan verilerin dallanan yapısıyla yapar.</p>
+  <div class="tbl" style="max-width:560px"><table>
+    <thead><tr><th>Öğe</th><th>Anlamı</th></tr></thead>
+    <tbody><tr><td><b>Kök</b></td><td>İlk soru</td></tr><tr><td><b>Dallar</b></td><td>İlk sorunun yanıtları</td></tr><tr><td><b>Alt gruplar</b></td><td>Sonraki sorular</td></tr><tr><td><b>Yeni dallar</b></td><td>Sonraki yanıtlar</td></tr><tr><td><b>Yaprak</b></td><td>Dalı olmayan alt grup: karar</td></tr></tbody></table></div>
+  <div class="case"><span class="tag">İK vakası</span>Bir şirket 600 çalışanın verisiyle kimin önümüzdeki yıl ayrılma riskinin yüksek olduğunu tahmin etmek istiyor. Değişkenler: kıdem (yıl), karşılaştırma oranı (compa-ratio: ücret / bant orta noktası), aylık fazla mesai saati ve memnuniyet puanı (1–5). Ağacın kökü en ayırt edici soruyu sorar (bu veride “memnuniyet 2,75 ya da altında mı?”), dallar yanıtları, yapraklar ise “yüksek risk” ya da “düşük risk” kararını verir. Ağacın kurallar biçiminde okunabilmesi, İK yöneticilerine açıklanabilirlik sağlar.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · işten ayrılma için karar ağacı</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="30">import numpy as np
+import pandas as pd
+from sklearn.tree import DecisionTreeClassifier, export_text, plot_tree
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, recall_score, roc_auc_score
+import matplotlib.pyplot as plt
+
+r = np.random.default_rng(4); n = 600
+df = pd.DataFrame({
+    "kidem": r.gamma(2, 2.5, n).round(1),
+    "compa_ratio": r.normal(1.0, 0.12, n).round(2),
+    "fazla_mesai": r.poisson(12, n),
+    "memnuniyet": np.clip(r.normal(3.4, 0.9, n), 1, 5).round(1),
+})
+logit = -1.6 - 2.2*(df.memnuniyet - 3) - 7*(df.compa_ratio - 1) + 0.12*(df.fazla_mesai - 12) - 0.25*df.kidem
+df["ayrildi"] = (r.random(n) < 1/(1 + np.exp(-logit))).astype(int)
+print("Ayrılma oranı:", df.ayrildi.mean().round(3))
+
+X, y = df.drop(columns="ayrildi"), df.ayrildi
+Xe, Xt, ye, yt = train_test_split(X, y, test_size=0.3, random_state=0, stratify=y)
+agac = DecisionTreeClassifier(max_depth=3, min_samples_leaf=20, class_weight="balanced", random_state=0).fit(Xe, ye)
+print(export_text(agac, feature_names=list(X.columns)))
+tahmin = agac.predict(Xt)
+print(f"Test doğruluğu: {accuracy_score(yt, tahmin):.3f}   duyarlılık: {recall_score(yt, tahmin):.3f}   "
+      f"AUC: {roc_auc_score(yt, agac.predict_proba(Xt)[:, 1]):.3f}")
+print("Değişken önemleri:", {k: round(float(v), 3) for k, v in zip(X.columns, agac.feature_importances_)})
+
+plt.figure(figsize=(11, 5))
+plot_tree(agac, feature_names=list(X.columns), class_names=["kaldı", "ayrıldı"], filled=True, fontsize=7, impurity=False)
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Karar ağaçları denetimli öğrenme yöntemidir; kitabın saydığı “kümeleme” kullanımı (kümeleme ağaçları) istisnai bir uygulamadır. Derin ağaçlar eğitim verisini ezberler; derinlik sınırı, yaprak başına en az gözlem ve test verisiyle doğrulama şarttır. Ayrılma tahmininde sınıflar dengesiz olduğundan doğruluk yanıltıcıdır; ayrılanların ne kadarının yakalandığı (duyarlılık) da raporlanmalıdır. İşe alım ya da işten çıkarma kararlarında kullanılan modeller ayrımcılık açısından denetlenmelidir: Türkiye'de KVKK ve 6701 sayılı Kanun, AB'de ise Yapay Zekâ Yasası, istihdam kararlarındaki algoritmaları yüksek riskli sayar.</div>
+</section>
+
+<!-- TEST AĞACI -->
+<section id="testagaci" style="--dot:var(--c2)">
+  <div class="kicker">s. 351–352 · araç</div>
+  <h2 class="sec">Test istatistikleri için karar ağacı</h2>
+  <p>Kitap, doğru testi seçmek için bir karar ağacı veriyor: kök, soru ya da hipotezin türüdür (ilişki mi, karşılaştırma mı?); dallar yordayıcı sayısı, grup sayısı ve örneklemlerin bağımsız ya da bağımlı olmasıdır; yapraklar testlerdir. Aşağıdaki araç bu ağacı soru soru izler ve her yaprak için bir İK örneği verir.</p>
+  <div class="tool">
+    <div class="lbl">Test seçme ağacı</div>
+    <div id="ta-path" class="row" style="gap:6px;margin-bottom:10px"></div>
+    <div id="ta-q" style="font-family:var(--f-display);font-size:1.1rem;margin-bottom:10px"></div>
+    <div id="ta-opts" class="row"></div>
+    <div id="ta-leaf"></div>
+  </div>
+  <div class="note"><strong>Kitaptaki ağaç hakkında.</strong> Şemada grupları ayıran düğüm “ilişki” (relationship) diye etiketlenmiş; aslında sorulan, örneklemlerin bağımsız mı bağımlı (eşleştirilmiş) mı olduğudur. Ağaçta iki bağımsız grup için t testi ve Mann-Whitney U yan yana duruyor ama aralarındaki seçimi belirleyen normallik sorusu yok; ilişki dalında Spearman korelasyonu ve kategorik veri için ki-kare testi de eksik. Araç bu boşlukları tamamlıyor.</div>
+</section>
+
+<!-- 7 META -->
+<section id="meta" style="--dot:var(--c3)">
+  <div class="kicker">s. 353–354</div>
+  <h2 class="sec">Meta-analiz</h2>
+  <p>Kitap bu bölümü yazarın “Basics of Meta-analysis with Basic Steps in R” kitabından aktarıyor. Meta-analiz, önceki çalışmaların sonuçlarını birleştirerek sonuca ulaşan nicel ve sistematik bir yöntemdir. Sonuç, genel etki büyüklüğü ya da birleştirilmiş istatistiksel sonuç olarak raporlanır.</p>
+  <ol class="steps">
+    <li><b>Araştırma sorusunu oluşturun.</b></li>
+    <li><b>Makaleleri ve bilgileri tarayın.</b> Dahil etme ve dışlama ölçütlerini belirleyin; bilgi akışını PRISMA (Sistematik Derleme ve Meta-analizler için Tercih Edilen Raporlama Öğeleri) ile kaydedin.</li>
+    <li><b>Özet verileri toplayın:</b> katılımcı yaşı, örneklem büyüklüğü, sonuçlar vb.</li>
+    <li><b>İstatistiksel analiz yapın.</b> Etki büyüklüğünü (iki grup arasındaki etki farkının büyüklüğü) hesaplayın ve orman grafiği (forest plot) çizin. Heterojenlik istatistiklerini (Q, τ², I²) ve huni (funnel), Baujat, L'Abbé gibi grafikleri inceleyin.</li>
+  </ol>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c1)"><h4>Q</h4><p>Çalışmaların birleşik etkiden ağırlıklı kare sapmalarının toplamı. Q / sd &gt; 1 ise çalışmalar arası gözlenen değişkenlik, örnekleme hatasıyla beklenenden fazladır.</p></div>
+    <div class="card" style="--kc:var(--c2)"><h4>τ²</h4><p>Çalışmalar arası gerçek etki büyüklüğü varyansı (rastgele etkiler modeli).</p></div>
+    <div class="card" style="--kc:var(--c3)"><h4>I²</h4><p>Gözlenen değişkenliğin, çalışmalar arasındaki gerçek farklılıklardan kaynaklanan oranı. Yaklaşık %25 düşük, %50 orta, %75 yüksek.</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>Bir araştırmacı, yönetici geliştirme eğitimlerinin liderlik davranışına etkisini inceleyen 8 deneysel çalışmayı birleştiriyor. Her çalışma eğitim ve kontrol grubunu karşılaştırıp Cohen's d raporluyor. Birleşik etki (rastgele etkiler) d ≈ 0,36: eğitimlerin orta düzeye yakın bir etkisi var. I² ≈ %33: değişkenliğin üçte biri çalışmalar arası gerçek farklılıklardan (eğitimin süresi, sektör, ölçüm türü) kaynaklanıyor.</div>
+  <div class="tool">
+    <div class="lbl">Meta-analiz hesaplayıcısı · her satıra “çalışma; d; n₁; n₂”</div>
+    <textarea id="ma-in" rows="8" spellcheck="false" style="width:100%;font-family:var(--f-mono);font-size:.88rem;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg)">Kaya 2018; 0.45; 40; 40
+Smith 2019; 0.62; 25; 25
+Demir 2019; 0.18; 120; 110
+Lee 2020; 0.80; 18; 20
+Arslan 2021; 0.35; 60; 58
+Müller 2021; 0.55; 35; 35
+Öztürk 2022; 0.10; 150; 145
+Silva 2023; 0.70; 22; 24</textarea>
+    <div class="row" style="margin-top:8px"><div class="field" style="flex:0 1 240px"><label for="ma-mod">Model</label><select id="ma-mod"><option value="re">Rastgele etkiler (DerSimonian-Laird)</option><option value="fe">Sabit etki</option></select></div></div>
+    <div class="svgbox" id="ma-svg" aria-label="Orman grafiği"></div>
+    <div class="stats" id="ma-stats"></div>
+    <div class="svgbox" id="ma-fun" aria-label="Huni grafiği" style="max-width:420px"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · sabit ve rastgele etkiler, heterojenlik, orman ve huni grafiği</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="30">import numpy as np
+from scipy import stats
+import matplotlib.pyplot as plt
+
+ad = ["Kaya 2018", "Smith 2019", "Demir 2019", "Lee 2020", "Arslan 2021", "Müller 2021", "Öztürk 2022", "Silva 2023"]
+d  = np.array([0.45, 0.62, 0.18, 0.80, 0.35, 0.55, 0.10, 0.70])
+n1 = np.array([40, 25, 120, 18, 60, 35, 150, 22]); n2 = np.array([40, 25, 110, 20, 58, 35, 145, 24])
+
+v = (n1 + n2) / (n1 * n2) + d**2 / (2 * (n1 + n2))     # d'nin örnekleme varyansı
+w = 1 / v
+sabit = (w * d).sum() / w.sum()
+Q = (w * (d - sabit)**2).sum(); sd = len(d) - 1
+C = w.sum() - (w**2).sum() / w.sum()
+tau2 = max(0, (Q - sd) / C)                              # DerSimonian-Laird
+I2 = max(0, (Q - sd) / Q)
+ws = 1 / (v + tau2); rast = (ws * d).sum() / ws.sum(); se = np.sqrt(1 / ws.sum())
+print(f"Sabit etki      d = {sabit:.3f} (SE {np.sqrt(1/w.sum()):.3f})")
+print(f"Rastgele etkiler d = {rast:.3f}, %95 GA [{rast - 1.96*se:.3f}; {rast + 1.96*se:.3f}]")
+print(f"Q = {Q:.2f} (sd = {sd}, p = {stats.chi2.sf(Q, sd):.3f}), τ² = {tau2:.4f}, I² = %{100*I2:.1f}")
+
+fig, ax = plt.subplots(1, 2, figsize=(10, 4), gridspec_kw={"width_ratios": [1.6, 1]})
+y = np.arange(len(d))[::-1] + 1
+ax[0].errorbar(d, y, xerr=1.96*np.sqrt(v), fmt="s", color="#2f6fb5", ecolor="#5d6470", capsize=3)
+ax[0].scatter([rast], [0], marker="D", s=120, color="#c2453d", zorder=3)
+ax[0].axvline(0, color="k", lw=.8); ax[0].axvline(rast, color="#c2453d", ls="--", lw=.8)
+ax[0].set_yticks(list(y) + [0]); ax[0].set_yticklabels(ad + ["Birleşik (RE)"])
+ax[0].set_xlabel("Cohen's d ve %95 GA"); ax[0].set_title("Orman grafiği")
+ax[1].scatter(d, np.sqrt(v), color="#2f6fb5"); ax[1].invert_yaxis()
+s = np.linspace(0, np.sqrt(v).max()*1.1, 50)
+ax[1].plot(sabit - 1.96*s, s, "k:", sabit + 1.96*s, s, "k:"); ax[1].axvline(sabit, color="k", lw=.8)
+ax[1].set_xlabel("Cohen's d"); ax[1].set_ylabel("Standart hata"); ax[1].set_title("Huni grafiği")
+plt.tight_layout(); plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki şema hakkında.</strong> Şemada Q, “gözlenen değişkenliğin çalışma içi varyansa oranı” diye tanımlanıyor; bu tanım daha çok H² = Q / sd istatistiğine uyar. Q, çalışmaların birleşik etkiden ağırlıklı kare sapmalarının toplamıdır ve sd = k − 1 ile ki-kare dağılımına göre sınanır. Şemadaki örnek orman ve huni grafiklerinin x ekseni “Incidence Rate” (insidans hızı); yani etki büyüklüğü olarak d değil, oran kullanılmış. “Research quation” yazım hatasıdır (question). Huni grafiğinde asimetri yayın yanlılığına işaret edebilir; 8 çalışmayla bu yorum güvenilir değildir (genellikle en az 10 çalışma önerilir). Örnek veride küçük çalışmalar daha büyük etki raporladığı için huni belirgin biçimde asimetrik; bu, sabit etki (0,30) ile rastgele etkiler (0,36) tahmini arasındaki farkın da nedenidir: rastgele etkiler modeli küçük çalışmalara görece daha fazla ağırlık verir. Python'da kapsamlı meta-analiz için <code class="i">statsmodels.stats.meta_analysis</code> modülü kullanılabilir.</div>
+</section>
+
+<!-- 8 TEKNİKLER -->
+<section id="teknikler" style="--dot:var(--c4)">
+  <div class="kicker">s. 355–356</div>
+  <h2 class="sec">Araştırmalarda önemli istatistik teknikleri</h2>
+  <p>Kitap bu tabloyu Arnold, Braganza, Salih ve Colditz'in <em>PLoS ONE</em>'da yayımlanan “Statistical trends in the Journal of the American Medical Association and implications for training across the continuum of medical education” (2013) makalesinden alıyor. Tablo, JAMA'da son 30 yılda kullanımı artan, azalan ya da sabit kalan teknikleri gösteriyor. Son sütun bu sayfalardaki İK karşılıklarını ve hangi sayfada işlendiklerini ekliyor.</p>
+  <div class="row" style="margin-bottom:8px">
+    <div class="field" style="flex:0 1 260px"><label for="tk-f">Filtre</label><select id="tk-f"><option value="all">Tümü</option><option value="up">Kullanımı artanlar</option><option value="flat">Sabit kalanlar</option><option value="down">Kullanımı azalanlar</option></select></div>
+  </div>
+  <div class="tbl"><table id="tk-tbl"></table></div>
+  <div class="note"><strong>Not.</strong> Tablo tıp araştırmalarına ait bir eğilimi gösteriyor; İK ve örgütsel davranış araştırmalarında öne çıkan yöntemler biraz farklıdır: yapısal eşitlik modeli, çok düzeyli modeller (çalışanlar ekiplerin, ekipler birimlerin içinde), aracılık ve düzenleyicilik analizleri, panel veri ve son yıllarda metin madenciliği ile makine öğrenmesi. Tablodaki genel yön (basit tekniklerden çok değişkenli modellere, güç analizine ve duyarlılık analizine geçiş) İK araştırmaları için de geçerlidir.</div>
+</section>
+
+</main>
+
+<footer>
+  Kaynak: Usman Zafar Paracha, <em>Colorful Statistics and Python Programming Language</em>, s. 341–356 (Bonus Topics). Kitabın aktardığı kaynaklar: Bono, R., Blanca, M. J., Arnau, J. ve Gómez-Benito, J. (2017), <em>Frontiers in Psychology</em>, 8, 1602; Arnold, L. D., Braganza, M., Salih, R. ve Colditz, G. A. (2013), <em>PLoS ONE</em>, 8(10), e77301. Kavram anlatımları kitaptan çevrilmiş; örnekler insan kaynakları bağlamına uyarlanmış, kodlar güncellenmiş ve hesaplayıcılar eklenmiştir. Örnek veriler eğitim amaçlı ve kurgusaldır. Python kodları tarayıcıda <a href="https://pyodide.org" style="color:var(--c1)">Pyodide</a> ile çalışır; ilk çalıştırmada paketlerin inmesi biraz zaman alabilir. Sayfa internet bağlantısı gerektirir.
+</footer>
+</div>
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+/* ---------- Pyodide + matplotlib yakalama ---------- */
+const statusEl = document.getElementById('status');
+function setStatus(txt, cls){ statusEl.className = 'status' + (cls ? ' ' + cls : ''); statusEl.querySelector('span').textContent = txt; }
+let pyReady = null;
+function getPy(){
+  if (!pyReady){
+    pyReady = (async () => {
+      const py = await loadPyodide();
+      setStatus('Python hazır · paketler ilk kullanımda yüklenir', 'ready');
+      return py;
+    })().catch(e => { setStatus('Pyodide yüklenemedi: internet bağlantısını kontrol edin', 'err'); throw e; });
+  }
+  return pyReady;
+}
+getPy();
+const MPL_PRELUDE = `
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt, io as _io, base64 as _b64
+plt.rcParams.update({"figure.figsize": (7, 4.2), "axes.spines.top": False, "axes.spines.right": False})
+_imgs = []
+def _yakala(*a, **k):
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = _io.BytesIO()
+        f.savefig(b, format="png", dpi=110, bbox_inches="tight", facecolor="white")
+        _imgs.append(_b64.b64encode(b.getvalue()).decode())
+    plt.close("all")
+plt.show = _yakala
+`;
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.querySelectorAll('[data-cell]').forEach(cell => {
+  const ta = cell.querySelector('textarea'), out = cell.querySelector('pre.out'), figs = cell.querySelector('.figs');
+  const runBtn = cell.querySelector('[data-run]');
+  const original = ta.value;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab'){ e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runBtn.click(); }
+  });
+  cell.querySelector('[data-reset]').addEventListener('click', () => { ta.value = original; out.innerHTML = ''; figs.innerHTML = ''; });
+  runBtn.addEventListener('click', async () => {
+    runBtn.disabled = true; runBtn.textContent = 'Çalışıyor…';
+    out.innerHTML = '<span class="w">Hazırlanıyor…</span>'; figs.innerHTML = '';
+    let buf = '';
+    const usesPlot = /matplotlib|seaborn|pyplot/.test(ta.value);
+    try {
+      const py = await getPy();
+      await py.loadPackagesFromImports(usesPlot ? ta.value + '\nimport matplotlib' : ta.value, { messageCallback: m => { out.innerHTML = '<span class="w">' + esc(m) + '</span>'; } });
+      py.setStdout({ batched: s => { buf += s + '\n'; } });
+      py.setStderr({ batched: s => { if (!/Matplotlib is building the font cache/.test(s)) buf += s + '\n'; } });
+      if (usesPlot) await py.runPythonAsync(MPL_PRELUDE);
+      await py.runPythonAsync(ta.value);
+      if (usesPlot){
+        await py.runPythonAsync('_yakala()');
+        const imgs = py.globals.get('_imgs').toJs();
+        figs.innerHTML = imgs.map((b, i) => `<img alt="Grafik ${i + 1}" src="data:image/png;base64,${b}">`).join('');
+      }
+      out.innerHTML = esc(buf.trimEnd()) || (usesPlot ? '' : '<span class="w">(çıktı yok)</span>');
+    } catch (err) {
+      const msg = String(err.message || err).split('\n').filter(Boolean);
+      out.innerHTML = (buf ? esc(buf) : '') + '<span class="e">' + esc(msg.slice(-3).join('\n')) + '</span>';
+    } finally { runBtn.disabled = false; runBtn.textContent = 'Çalıştır ▸'; }
+  });
+});
+
+/* ---------- Yardımcılar ---------- */
+const fmt = (v, d = 4) => Number.isFinite(v) ? Number(v).toLocaleString('tr-TR', { maximumFractionDigits: d }) : '—';
+const parseNums = s => s.split(/[\s,;]+/).filter(t => t !== '').map(Number).filter(Number.isFinite);
+const statHTML = arr => arr.map(([k, v, hl]) => `<div class="stat${hl ? ' hl' : ''}"><span>${k}</span><b>${v}</b></div>`).join('');
+function erf(x){ const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
+  return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)); }
+const Phi = x => 0.5 * (1 + erf(x / Math.SQRT2));
+const phi = x => Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+function zinv(p){ let lo = -10, hi = 10; for (let i = 0; i < 80; i++){ const m = (lo + hi) / 2; if (Phi(m) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
+function ranks(a){ const idx = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]); const r = Array(a.length);
+  for (let i = 0; i < idx.length;){ let j = i; while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++;
+    const avg = (i + j) / 2 + 1; for (let k = i; k <= j; k++) r[idx[k][1]] = avg; i = j + 1; } return r; }
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
+
+const mean = a => a.reduce((s, v) => s + v, 0) / a.length;
+const numv = id => Number(document.getElementById(id).value);
+function lgamma(z){
+  if (z < 0.5) return Math.log(Math.PI / Math.abs(Math.sin(Math.PI * z))) - lgamma(1 - z);
+  z -= 1; const c = [0.99999999999980993, 676.5203681218851, -1259.1392167224028, 771.32342877765313, -176.61502916214059, 12.507343278686905, -0.13857109526572012, 9.9843695780195716e-6, 1.5056327351493116e-7];
+  let x = c[0]; for (let i = 1; i < 9; i++) x += c[i] / (z + i);
+  const t = z + 7.5; return 0.5 * Math.log(2 * Math.PI) + (z + 0.5) * Math.log(t) - t + Math.log(x);
+}
+const lchoose = (n, k) => lgamma(n + 1) - lgamma(k + 1) - lgamma(n - k + 1);
+
+/* Ortak grafik: çubuk (kesikli) ya da eğri (sürekli) */
+function plotDist(id, xs, ys, discrete, xlab, marks){
+  const W = 640, H = 230, L = 46, R = 16, T = 14, B = 36;
+  const x0 = xs[0], x1 = xs[xs.length - 1], ymax = Math.max(...ys.filter(Number.isFinite)) * 1.08 || 1;
+  const sx = v => L + (v - x0) / (x1 - x0 || 1) * (W - L - R), sy = v => H - B - v / ymax * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${xlab}">`;
+  for (let i = 0; i <= 4; i++){ const y = ymax * i / 4; svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${sy(y)}" y2="${sy(y)}" opacity=".35"/><text class="tk" x="${L - 6}" y="${sy(y) + 4}" text-anchor="end">${fmt(y, y < 0.01 ? 4 : 3)}</text>`; }
+  if (discrete){ const bw = Math.max(2, (W - L - R) / (xs.length + 1) * 0.8);
+    xs.forEach((x, i) => svg += `<rect class="bar" x="${sx(x) - bw / 2}" y="${sy(ys[i])}" width="${bw}" height="${H - B - sy(ys[i])}"/>`); }
+  else svg += `<path class="crv" d="${path(xs.map((x, i) => [sx(x), sy(ys[i])]))}"/>`;
+  const step = (x1 - x0) / 6, mag = 10 ** Math.floor(Math.log10(step || 1)), st = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step) || 1;
+  for (let t = Math.ceil(x0 / st) * st; t <= x1 + 1e-9; t += st) svg += `<text class="tk" x="${sx(t)}" y="${H - B + 15}" text-anchor="middle">${fmt(t, 1)}</text>`;
+  (marks || []).forEach(([v, l]) => { if (v >= x0 && v <= x1) svg += `<line class="me" x1="${sx(v)}" x2="${sx(v)}" y1="${T}" y2="${H - B}" stroke-dasharray="4 3"/><text class="ttl" x="${sx(v) + 4}" y="${T + 10}">${l}</text>`; });
+  svg += `<text class="lab" x="${W - R}" y="${H - 4}" text-anchor="end">${xlab}</text></svg>`;
+  document.getElementById(id).innerHTML = svg;
+}
+
+/* ---------- Dağılım gezgini ---------- */
+const DG = {
+  gamma:   { l1: 'Biçim k', r1: [0.5, 12, 0.5, 4], l2: 'Ölçek θ (bin TL)', r2: [2, 30, 1, 12], x: 'Aylık ücret (bin TL)', d: false,
+    f: (k, th) => { const xs = [], ys = [], hi = k * th + 5 * Math.sqrt(k) * th; for (let i = 0; i <= 300; i++){ const x = hi * i / 300 + 1e-6; xs.push(x); ys.push(Math.exp((k - 1) * Math.log(x) - x / th - lgamma(k) - k * Math.log(th))); } return [xs, ys, k * th, k * th * th]; },
+    v: 'Sağa çarpık, pozitif. Gelir ve harcama verisinin klasik modeli. k büyüdükçe normale yaklaşır.' },
+  nbinom:  { l1: 'Ortalama μ (gün)', r1: [0.5, 15, 0.5, 5], l2: 'Dağılım r (küçük = aşırı yayılım)', r2: [0.3, 20, 0.1, 1.5], x: 'Yıllık devamsızlık günü', d: true,
+    f: (mu, r) => { const p = r / (r + mu), xs = [], ys = [], hi = Math.ceil(mu + 5 * Math.sqrt(mu + mu * mu / r)); for (let k = 0; k <= hi; k++){ xs.push(k); ys.push(Math.exp(lgamma(k + r) - lgamma(r) - lgamma(k + 1) + r * Math.log(p) + k * Math.log(1 - p))); } return [xs, ys, mu, mu + mu * mu / r]; },
+    v: 'Sayım verisi; varyans ortalamadan büyük. r → ∞ iken Poisson\'a dönüşür.' },
+  multi:   { l1: 'Yanıtlayan sayısı n', r1: [10, 500, 10, 200], l2: 'Olumluya eğilim', r2: [-2, 2, 0.1, 0.6], x: 'Likert kategorisi (1 = hiç katılmıyorum … 5 = tamamen katılıyorum)', d: true,
+    f: (n, e) => { const w = [1, 2, 3, 4, 5].map(c => Math.exp(e * (c - 3) - 0.35 * (c - 3) ** 2)), s = w.reduce((a, b) => a + b); const ps = w.map(x => x / s); return [[1, 2, 3, 4, 5], ps.map(p => n * p), ps.reduce((a, p, i) => a + p * (i + 1), 0), null, ps]; },
+    v: 'Her yanıtlayan beş kategoriden birini seçer; çubuklar beklenen yanıt sayısıdır. Her kategori tek başına binom dağılır.' },
+  binom:   { l1: 'Teklif sayısı n', r1: [1, 40, 1, 10], l2: 'Kabul olasılığı p', r2: [0.05, 0.95, 0.05, 0.7], x: 'Kabul edilen teklif sayısı', d: true,
+    f: (n, p) => { const xs = [], ys = []; for (let k = 0; k <= n; k++){ xs.push(k); ys.push(Math.exp(lchoose(n, k) + k * Math.log(p) + (n - k) * Math.log(1 - p))); } return [xs, ys, n * p, n * p * (1 - p)]; },
+    v: 'Bağımsız, iki sonuçlu denemelerde başarı sayısı.' },
+  lognorm: { l1: 'Ortanca (gün)', r1: [5, 120, 1, 35], l2: 'σ (log ölçeğinde)', r2: [0.1, 1.5, 0.05, 0.5], x: 'Pozisyon doldurma süresi (gün)', d: false,
+    f: (med, s) => { const mu = Math.log(med), xs = [], ys = [], hi = Math.exp(mu + 3.2 * s); for (let i = 0; i <= 300; i++){ const x = hi * i / 300 + 1e-6; xs.push(x); ys.push(Math.exp(-((Math.log(x) - mu) ** 2) / (2 * s * s)) / (x * s * Math.sqrt(2 * Math.PI))); } return [xs, ys, Math.exp(mu + s * s / 2), (Math.exp(s * s) - 1) * Math.exp(2 * mu + s * s)]; },
+    v: 'Logaritması normal dağılır. Süreler ve yönetici ücretleri gibi çarpımsal etkilerle oluşan değişkenler.' },
+  expon:   { l1: 'Ortalama bekleme (gün)', r1: [1, 60, 1, 12], l2: '(kullanılmıyor)', r2: [0, 1, 1, 0], x: 'Ardışık iki istifa arasındaki gün', d: false,
+    f: m => { const xs = [], ys = [], hi = 5 * m; for (let i = 0; i <= 300; i++){ const x = hi * i / 300; xs.push(x); ys.push(Math.exp(-x / m) / m); } return [xs, ys, m, m * m]; },
+    v: 'Belleksiz bekleme süresi: son istifadan bu yana geçen süre, sonraki istifanın ne zaman olacağını değiştirmez. İstifa sayısı Poisson ise aradaki süre üsteldir.' },
+  poisson: { l1: 'Aylık ortalama λ', r1: [0.2, 20, 0.2, 2.4], l2: '(kullanılmıyor)', r2: [0, 1, 1, 0], x: 'Aylık iş kazası sayısı', d: true,
+    f: lam => { const xs = [], ys = [], hi = Math.ceil(lam + 5 * Math.sqrt(lam) + 2); for (let k = 0; k <= hi; k++){ xs.push(k); ys.push(Math.exp(k * Math.log(lam) - lam - lgamma(k + 1))); } return [xs, ys, lam, lam]; },
+    v: 'Nadir, bağımsız olayların sabit bir süredeki sayısı; ortalama = varyans.' },
+};
+function setDG(){ const D = DG[document.getElementById('dg-sel').value];
+  [['dg-p1', D.r1, 'dg-l1', D.l1], ['dg-p2', D.r2, 'dg-l2', D.l2]].forEach(([id, r, lid, l]) => { const el = document.getElementById(id); el.min = r[0]; el.max = r[1]; el.step = r[2]; el.value = r[3]; el.disabled = l.startsWith('('); document.getElementById(lid).dataset.l = l; });
+  drawDG(); }
+function drawDG(){
+  const D = DG[document.getElementById('dg-sel').value], a = numv('dg-p1'), b = numv('dg-p2');
+  document.getElementById('dg-l1').innerHTML = `${document.getElementById('dg-l1').dataset.l}: <b>${fmt(a, 2)}</b>`;
+  document.getElementById('dg-l2').innerHTML = `${document.getElementById('dg-l2').dataset.l}${document.getElementById('dg-p2').disabled ? '' : ': <b>' + fmt(b, 2) + '</b>'}`;
+  const [xs, ys, m, v, ps] = D.f(a, b);
+  plotDist('dg-svg', xs, ys, D.d, D.x, [[m, 'ortalama']]);
+  const st = [['Ortalama', fmt(m, 3), true]];
+  if (v !== null) st.push(['Varyans', fmt(v, 3)], ['Std sapma', fmt(Math.sqrt(v), 3)], ['Varyans / ortalama', fmt(v / m, 2)]);
+  if (ps) ps.forEach((p, i) => st.push([`P(kategori ${i + 1})`, fmt(p, 3)]));
+  document.getElementById('dg-stats').innerHTML = statHTML(st);
+  document.getElementById('dg-v').innerHTML = D.v;
+}
+document.getElementById('dg-sel').addEventListener('change', setDG);
+['dg-p1', 'dg-p2'].forEach(id => document.getElementById(id).addEventListener('input', drawDG));
+setDG();
+
+/* ---------- Zaman serisi ---------- */
+function polyfit(x, y, d){ const n = d + 1, A = Array.from({ length: n }, () => Array(n + 1).fill(0));
+  const xm = mean(x), xs = Math.max(...x.map(v => Math.abs(v - xm))) || 1, u = x.map(v => (v - xm) / xs);
+  for (let i = 0; i < n; i++){ for (let j = 0; j < n; j++) A[i][j] = u.reduce((s, v) => s + v ** (i + j), 0); A[i][n] = u.reduce((s, v, k) => s + y[k] * v ** i, 0); }
+  for (let c = 0; c < n; c++){ let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(A[r][c]) > Math.abs(A[p][c])) p = r; [A[c], A[p]] = [A[p], A[c]];
+    if (Math.abs(A[c][c]) < 1e-12) return null; for (let r = 0; r < n; r++) if (r !== c){ const f = A[r][c] / A[c][c]; for (let k = c; k <= n; k++) A[r][k] -= f * A[c][k]; } }
+  const co = A.map((r, i) => r[n] / r[i]); return t => co.reduce((s, c, i) => s + c * ((t - xm) / xs) ** i, 0); }
+function drawTS(){
+  const y = parseNums(document.getElementById('ts-in').value), w = numv('ts-w'), d = numv('ts-d');
+  document.getElementById('ts-wv').textContent = w; document.getElementById('ts-dv').textContent = d;
+  if (y.length < 3){ document.getElementById('ts-stats').innerHTML = statHTML([['Uyarı', 'En az 3 değer']]); document.getElementById('ts-svg').innerHTML = ''; return; }
+  const x = y.map((_, i) => i + 1), n = y.length, h = Math.floor(w / 2);
+  const ma = y.map((_, i) => { if (w % 2){ if (i - h < 0 || i + h >= n) return null; return mean(y.slice(i - h, i + h + 1)); } if (i - w + 1 < 0) return null; return mean(y.slice(i - w + 1, i + 1)); });
+  const P = d < n ? polyfit(x, y, d) : null, L1 = polyfit(x, y, 1);
+  const xe = n + 1, ext = P ? P(xe) : NaN;
+  const grid = Array.from({ length: 121 }, (_, i) => 1 + (xe - 1) * i / 120);
+  const pv = P ? grid.map(P) : [];
+  const all = [...y, ...(P ? pv : [])].filter(Number.isFinite), lo = Math.min(0, ...all), hi = Math.max(...all) * 1.1;
+  const W = 640, H = 250, Lm = 40, R = 16, T = 14, B = 34, sx = v => Lm + (v - 0.5) / (xe + 0.5 - 0.5) * (W - Lm - R), sy = v => H - B - (Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Zaman serisi">`;
+  for (let i = 0; i <= 4; i++){ const v = lo + (hi - lo) * i / 4; svg += `<line class="ax" x1="${Lm}" x2="${W - R}" y1="${sy(v)}" y2="${sy(v)}" opacity=".35"/><text class="tk" x="${Lm - 6}" y="${sy(v) + 4}" text-anchor="end">${fmt(v, 1)}</text>`; }
+  x.concat([xe]).forEach(t => svg += `<text class="tk" x="${sx(t)}" y="${H - B + 15}" text-anchor="middle"${t === xe ? ' font-weight="700"' : ''}>${t}</text>`);
+  svg += `<rect x="${sx(n + 0.5)}" y="${T}" width="${sx(xe + 0.5) - sx(n + 0.5)}" height="${H - T - B}" fill="var(--sunk)" opacity=".7"/><text class="tk" x="${sx(xe)}" y="${T + 12}" text-anchor="middle">tahmin</text>`;
+  svg += `<path d="${path(x.map((t, i) => [sx(t), sy(y[i])]))}" fill="none" stroke="var(--c1)" stroke-width="2"/>`;
+  x.forEach((t, i) => svg += `<circle cx="${sx(t)}" cy="${sy(y[i])}" r="4" fill="var(--c1)"/>`);
+  const mpts = ma.map((v, i) => v === null ? null : [sx(i + 1), sy(v)]).filter(Boolean); if (mpts.length > 1) svg += `<path d="${path(mpts)}" fill="none" stroke="var(--c3)" stroke-width="3"/>`;
+  if (L1) svg += `<line x1="${sx(1)}" y1="${sy(L1(1))}" x2="${sx(xe)}" y2="${sy(L1(xe))}" stroke="var(--c5)" stroke-width="2" stroke-dasharray="6 4"/>`;
+  if (P && d !== 1) svg += `<path d="${path(grid.map((t, i) => [sx(t), sy(pv[i])]))}" fill="none" stroke="var(--c4)" stroke-width="2" opacity=".85"/>`;
+  svg += `<text class="ttl" x="${Lm + 6}" y="${H - B - 8}">mavi: seri · yeşil: hareketli ortalama · kırmızı: doğrusal eğilim · mor: ${d}. derece polinom</text></svg>`;
+  document.getElementById('ts-svg').innerHTML = svg;
+  const sl = L1 ? L1(2) - L1(1) : NaN, ssr = P ? y.reduce((s, v, i) => s + (v - P(i + 1)) ** 2, 0) : NaN;
+  document.getElementById('ts-stats').innerHTML = statHTML([['Eğilim eğimi', fmt(sl, 3) + ' / dönem', true], [`Doğrusal tahmin (${xe}. dönem)`, fmt(L1(xe), 2)], [`${d}. derece tahmin (${xe}. dönem)`, P ? fmt(ext, 2) : '—', true], ['Polinom artık KT', P ? fmt(Math.abs(ssr) < 1e-9 ? 0 : ssr, 3) : '—'], ['Parametre / gözlem', `${d + 1} / ${n}`]]);
+}
+['ts-in', 'ts-w', 'ts-d'].forEach(id => document.getElementById(id).addEventListener('input', drawTS));
+drawTS();
+
+/* ---------- Monte Carlo ---------- */
+let mcSeed = 2026;
+function triang(r, a, m, b){ const u = r(), f = (m - a) / (b - a); return u < f ? a + Math.sqrt(u * (b - a) * (m - a)) : b - Math.sqrt((1 - u) * (b - a) * (b - m)); }
+function binomDraw(r, n, p){ if (n * p < 30){ let k = 0; for (let i = 0; i < n; i++) if (r() < p) k++; return k; } return Math.max(0, Math.round(n * p + Math.sqrt(n * p * (1 - p)) * gauss(r))); }
+function drawMC(){
+  const N = Math.round(numv('mc-n')), a = numv('mc-a'), m = numv('mc-m'), b = numv('mc-b'), c = numv('mc-c'), cv = numv('mc-cv'), runs = numv('mc-r');
+  const st = document.getElementById('mc-stats');
+  if (!(N > 0 && a >= 0 && a <= m && m <= b && b <= 1 && b > a && c > 0 && cv > 0)){ st.innerHTML = statHTML([['Uyarı', '0 ≤ en az ≤ en olası ≤ en çok ≤ 1; maliyet ve CV pozitif']]); document.getElementById('mc-svg').innerHTML = ''; return; }
+  const r = mulberry32(mcSeed), s2 = Math.log(1 + cv * cv), mu = Math.log(c) - s2 / 2, s = Math.sqrt(s2);
+  const out = new Float64Array(runs);
+  for (let i = 0; i < runs; i++){ const k = binomDraw(r, N, triang(r, a, m, b)); let tot = 0;
+    if (k <= 60) for (let j = 0; j < k; j++) tot += Math.exp(mu + s * gauss(r));
+    else { const sd = Math.sqrt(k * (Math.exp(s2) - 1)) * c; tot = k * c + sd * gauss(r); }
+    out[i] = tot / 1000; }
+  const sorted = Array.from(out).sort((x, y) => x - y), q = p => sorted[Math.min(runs - 1, Math.floor(p * runs))];
+  const lo = q(0.001), hi = q(0.999), bins = 50, w = (hi - lo) / bins, cnt = Array(bins).fill(0);
+  sorted.forEach(v => { const i = Math.floor((v - lo) / w); if (i >= 0 && i < bins) cnt[i]++; });
+  plotDist('mc-svg', cnt.map((_, i) => lo + (i + 0.5) * w), cnt, true, 'Yıllık işten ayrılma maliyeti (milyon TL) · simülasyon sayısı', [[q(0.5), 'P50'], [q(0.9), 'P90']]);
+  const avg = mean(sorted), naive = N * m * c / 1000, expRate = (a + m + b) / 3;
+  st.innerHTML = statHTML([['Beklenen ayrılma oranı', '%' + fmt(100 * expRate, 1)], ['Ortalama maliyet', fmt(avg, 2) + ' mn TL', true], ['P5 – P95', `${fmt(q(0.05), 2)} – ${fmt(q(0.95), 2)}`], ['P90 (bütçe önerisi)', fmt(q(0.9), 2) + ' mn TL', true], ['Basit tahmin (en olası oranla)', fmt(naive, 2) + ' mn TL'], ['Basit tahmini aşma olasılığı', '%' + fmt(100 * sorted.filter(v => v > naive).length / runs, 1)]]);
+}
+['mc-n', 'mc-a', 'mc-m', 'mc-b', 'mc-c', 'mc-cv', 'mc-r'].forEach(id => document.getElementById(id).addEventListener('input', drawMC));
+document.getElementById('mc-go').addEventListener('click', () => { mcSeed++; drawMC(); });
+drawMC();
+
+/* ---------- KDE ---------- */
+let kdInit = true;
+function drawKD(){
+  const x = parseNums(document.getElementById('kd-in').value), hEl = document.getElementById('kd-h');
+  if (x.length < 3){ document.getElementById('kd-stats').innerHTML = statHTML([['Uyarı', 'En az 3 değer']]); document.getElementById('kd-svg').innerHTML = ''; return; }
+  const n = x.length, m = mean(x), sd = Math.sqrt(x.reduce((s, v) => s + (v - m) ** 2, 0) / (n - 1));
+  const sorted = [...x].sort((a, b) => a - b), iqr = sorted[Math.floor(0.75 * (n - 1))] - sorted[Math.floor(0.25 * (n - 1))];
+  const silv = 0.9 * Math.min(sd, iqr / 1.34) * n ** -0.2;
+  if (kdInit){ hEl.value = Math.round(silv * 2) / 2; kdInit = false; }
+  const h = numv('kd-h'); document.getElementById('kd-hv').textContent = fmt(h, 1);
+  const lo = Math.min(...x) - 3 * h, hi = Math.max(...x) + 3 * h, xs = Array.from({ length: 301 }, (_, i) => lo + (hi - lo) * i / 300);
+  const kde = xs.map(t => x.reduce((s, v) => s + phi((t - v) / h), 0) / (n * h));
+  const lx = x.map(Math.log), lm = mean(lx), ls = Math.sqrt(lx.reduce((s, v) => s + (v - lm) ** 2, 0) / n);
+  const ln = xs.map(t => t > 0 ? Math.exp(-((Math.log(t) - lm) ** 2) / (2 * ls * ls)) / (t * ls * Math.sqrt(2 * Math.PI)) : 0);
+  const bins = Math.max(5, Math.round(Math.sqrt(n) * 1.5)), bw = (Math.max(...x) - Math.min(...x)) / bins || 1, cnt = Array(bins).fill(0);
+  x.forEach(v => cnt[Math.min(bins - 1, Math.floor((v - Math.min(...x)) / bw))]++);
+  const hd = cnt.map(c => c / (n * bw)), ymax = Math.max(...kde, ...ln, ...hd) * 1.08;
+  const W = 640, H = 240, L = 50, R = 16, T = 14, B = 34, sx = v => L + (v - lo) / (hi - lo) * (W - L - R), sy = v => H - B - v / ymax * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Histogram, çekirdek yoğunluk eğrisi ve lognormal uyum">`;
+  cnt.forEach((c, i) => { const x0 = Math.min(...x) + i * bw; svg += `<rect x="${sx(x0)}" y="${sy(hd[i])}" width="${sx(x0 + bw) - sx(x0) - 1}" height="${H - B - sy(hd[i])}" fill="color-mix(in srgb,var(--c5) 22%,transparent)"/>`; });
+  x.forEach(v => svg += `<line x1="${sx(v)}" x2="${sx(v)}" y1="${H - B}" y2="${H - B - 8}" stroke="var(--fg)" opacity=".5"/>`);
+  svg += `<path d="${path(xs.map((t, i) => [sx(t), sy(ln[i])]))}" fill="none" stroke="var(--fg)" stroke-width="1.5" stroke-dasharray="5 4"/>`;
+  svg += `<path class="crv" d="${path(xs.map((t, i) => [sx(t), sy(kde[i])]))}"/>`;
+  svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
+  const st = (hi - lo) > 120 ? 25 : 10; for (let t = Math.ceil(lo / st) * st; t <= hi; t += st) svg += `<text class="tk" x="${sx(t)}" y="${H - B + 15}" text-anchor="middle">${t}</text>`;
+  svg += `<text class="ttl" x="${L + 6}" y="${T + 10}">mavi: KDE (h = ${fmt(h, 1)}) · kesikli: lognormal (MLE) · çizgiler: gözlemler</text></svg>`;
+  document.getElementById('kd-svg').innerHTML = svg;
+  let peaks = 0; for (let i = 1; i < kde.length - 1; i++) if (kde[i] > kde[i - 1] && kde[i] >= kde[i + 1] && kde[i] > 0.15 * Math.max(...kde)) peaks++;
+  document.getElementById('kd-stats').innerHTML = statHTML([['n', n], ['Ortalama', fmt(m, 1)], ['Ortanca', fmt((sorted[Math.floor((n - 1) / 2)] + sorted[Math.ceil((n - 1) / 2)]) / 2, 1)], ['Silverman h', fmt(silv, 2)], ['KDE tepe sayısı', peaks, true], ['Lognormal ortanca e^μ', fmt(Math.exp(lm), 1)]]);
+}
+['kd-in', 'kd-h'].forEach(id => document.getElementById(id).addEventListener('input', drawKD));
+document.getElementById('kd-silv').addEventListener('click', () => { kdInit = true; drawKD(); });
+drawKD();
+
+/* ---------- Test seçme ağacı ---------- */
+const TREE = {
+  q: 'Sorunuz ya da hipoteziniz ne tür?', o: [
+    ['İlişki ya da birliktelik', { q: 'Kaç yordayıcı (bağımsız değişken) var?', o: [
+      ['Bir', { q: 'İlişkinin neyini öğrenmek istiyorsunuz?', o: [
+        ['Derecesini (gücü ve yönü)', { q: 'Veri türü?', o: [
+          ['Sürekli ve yaklaşık normal', { t: 'Pearson korelasyonu', e: 'Koçluk saati ile performans puanı arasındaki ilişki (sayfa 9).' }],
+          ['Sıralı ya da normal değil', { t: 'Spearman sıra korelasyonu', e: 'Kıdem ile performans notu (A–D) arasındaki ilişki.', x: true }],
+          ['İki kategorik değişken', { t: 'Ki-kare bağımsızlık testi', e: 'Departman ile uzaktan çalışma tercihi arasındaki ilişki (sayfa 7).', x: true }]] }],
+        ['Biçimini (tahmin denklemi)', { t: 'Basit regresyon', e: 'Koçluk saatinden performans puanını tahmin etmek. Sonuç iki kategorili ise lojistik regresyon.' }]] }],
+      ['Birden fazla', { t: 'Çoklu regresyon', e: 'Ücret, kıdem ve eğitim saatinin birlikte iş tatminini yordaması.' }]] }],
+    ['Karşılaştırma ya da fark', { q: 'Kaç grup karşılaştırılıyor?', o: [
+      ['İki', { q: 'Örneklemler bağımsız mı, bağımlı (aynı kişiler) mı?', o: [
+        ['Bağımsız', { q: 'Bağımlı değişken normal dağılıyor mu?', o: [
+          ['Evet', { t: 'İki örneklem (bağımsız) t testi', e: 'Yeni ve eski oryantasyon programındaki çalışanların bağlılık puanı (sayfa 8).' }],
+          ['Hayır ya da sıralı veri', { t: 'Mann-Whitney U testi', e: 'İki şubenin müşteri memnuniyeti notları (sayfa 7).' }]] }],
+        ['Bağımlı', { q: 'Farklar normal dağılıyor mu?', o: [
+          ['Evet', { t: 'Eşleştirilmiş t testi', e: 'Aynı 20 temsilcinin eğitim öncesi ve sonrası yetkinliği (sayfa 8).', x: true }],
+          ['Hayır ya da sıralı veri', { t: 'Wilcoxon işaretli sıralar testi', e: 'Aynı çalışanların uygulama öncesi ve sonrası stres puanı (sayfa 7).' }]] }]] }],
+      ['İkiden fazla', { q: 'Örneklemler bağımsız mı, bağımlı mı?', o: [
+        ['Bağımsız', { q: 'Kaç bağımsız değişken (faktör) var?', o: [
+          ['Bir', { q: 'Varsayımlar (normallik, eş varyans) karşılanıyor mu?', o: [
+            ['Evet', { t: 'Tek yönlü ANOVA', e: 'Dört farklı eğitim süresinin müşteri görüşmesi puanına etkisi (sayfa 8).' }],
+            ['Hayır', { t: 'Kruskal-Wallis testi', e: 'Üç lokasyondaki çalışanların tükenmişlik puanları (sayfa 7).' }]] }],
+          ['Birden fazla', { t: 'Faktöriyel ANOVA', e: 'Kıdem grubu × liderlik eğitimi süresi (sayfa 8).' }]] }],
+        ['Bağımlı', { q: 'Varsayımlar karşılanıyor mu?', o: [
+          ['Evet', { t: 'Tekrarlı ölçümler ANOVA', e: 'Esenlik programında aynı çalışanların başlangıç, 3. ve 6. ay stres puanı.' }],
+          ['Hayır ya da sıralı veri', { t: 'Friedman testi', e: 'Aynı değerlendiricilerin üç adayı sıralaması (sayfa 7).' }]] }]] }]] }]] };
+let taPath = [];
+function drawTA(){
+  let node = TREE; taPath.forEach(i => node = node.o[i][1]);
+  const crumbs = []; let n = TREE; taPath.forEach((i, k) => { crumbs.push(`<button class="ghost" data-back="${k}" style="font-size:.8rem;padding:4px 10px">${esc(n.o[i][0])}</button>`); n = n.o[i][1]; });
+  document.getElementById('ta-path').innerHTML = (taPath.length ? `<button class="ghost" data-back="-1" style="font-size:.8rem;padding:4px 10px">↺ Baştan</button>` : '') + crumbs.join('<span class="muted">›</span>');
+  if (node.t){
+    document.getElementById('ta-q').textContent = '';
+    document.getElementById('ta-opts').innerHTML = '';
+    document.getElementById('ta-leaf').innerHTML = `<div class="rec"><h4>${node.t}</h4><p><b>İK örneği:</b> ${node.e}</p>${node.x ? '<p class="muted">Bu yaprak kitabın ağacında yok ya da farklı bir dalda; araç tarafından eklendi.</p>' : ''}</div>`;
+  } else {
+    document.getElementById('ta-q').textContent = node.q;
+    document.getElementById('ta-opts').innerHTML = node.o.map(([l], i) => `<button data-opt="${i}">${esc(l)}</button>`).join('');
+    document.getElementById('ta-leaf').innerHTML = '';
+  }
+  document.querySelectorAll('#ta-opts [data-opt]').forEach(b => b.addEventListener('click', () => { taPath.push(Number(b.dataset.opt)); drawTA(); }));
+  document.querySelectorAll('#ta-path [data-back]').forEach(b => b.addEventListener('click', () => { taPath = taPath.slice(0, Number(b.dataset.back) + 1); if (b.dataset.back === '-1') taPath = []; drawTA(); }));
+}
+drawTA();
+
+/* ---------- Meta-analiz ---------- */
+function drawMA(){
+  const rows = document.getElementById('ma-in').value.split('\n').map(l => l.split(';').map(s => s.trim())).filter(r => r.length >= 4 && r.slice(1, 4).every(v => Number.isFinite(Number(v))))
+    .map(r => ({ ad: r[0], d: Number(r[1]), n1: Number(r[2]), n2: Number(r[3]) })).filter(r => r.n1 > 1 && r.n2 > 1);
+  const st = document.getElementById('ma-stats');
+  if (rows.length < 2){ st.innerHTML = statHTML([['Uyarı', 'En az 2 geçerli satır: ad; d; n1; n2']]); document.getElementById('ma-svg').innerHTML = ''; document.getElementById('ma-fun').innerHTML = ''; return; }
+  rows.forEach(r => { r.v = (r.n1 + r.n2) / (r.n1 * r.n2) + r.d * r.d / (2 * (r.n1 + r.n2)); r.w = 1 / r.v; });
+  const k = rows.length, sw = rows.reduce((s, r) => s + r.w, 0), fe = rows.reduce((s, r) => s + r.w * r.d, 0) / sw;
+  const Q = rows.reduce((s, r) => s + r.w * (r.d - fe) ** 2, 0), C = sw - rows.reduce((s, r) => s + r.w * r.w, 0) / sw;
+  const tau2 = Math.max(0, (Q - (k - 1)) / C), I2 = Q > 0 ? Math.max(0, (Q - (k - 1)) / Q) : 0;
+  const re = document.getElementById('ma-mod').value === 're';
+  rows.forEach(r => r.ws = 1 / (r.v + (re ? tau2 : 0)));
+  const sws = rows.reduce((s, r) => s + r.ws, 0), pooled = rows.reduce((s, r) => s + r.ws * r.d, 0) / sws, se = Math.sqrt(1 / sws);
+  const z = pooled / se, p = 2 * (1 - Phi(Math.abs(z)));
+  // Q p-değeri (ki-kare, Wilson-Hilferty yaklaşımı)
+  const df = k - 1, wh = (Math.cbrt(Q / df) - (1 - 2 / (9 * df))) / Math.sqrt(2 / (9 * df)), pQ = 1 - Phi(wh);
+  const lo = Math.min(...rows.map(r => r.d - 1.96 * Math.sqrt(r.v)), 0) - 0.1, hi = Math.max(...rows.map(r => r.d + 1.96 * Math.sqrt(r.v))) + 0.1;
+  const W = 660, rh = 26, T = 24, H = T + (k + 2) * rh + 34, L = 150, R = 150, sx = v => L + (v - lo) / (hi - lo) * (W - L - R);
+  const maxw = Math.max(...rows.map(r => r.ws));
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Orman grafiği">`;
+  svg += `<text class="lab" x="8" y="16">Çalışma</text><text class="lab" x="${W - 8}" y="16" text-anchor="end">d [%95 GA] · ağırlık</text>`;
+  svg += `<line x1="${sx(0)}" x2="${sx(0)}" y1="${T}" y2="${T + (k + 1) * rh}" stroke="var(--fg)" stroke-width="1"/>`;
+  rows.forEach((r, i) => { const y = T + (i + 0.5) * rh + 4, s = Math.sqrt(r.v), sz = 4 + 8 * Math.sqrt(r.ws / maxw);
+    svg += `<text class="ttl" x="8" y="${y + 4}">${esc(r.ad.slice(0, 20))}</text>`;
+    svg += `<line x1="${sx(r.d - 1.96 * s)}" x2="${sx(r.d + 1.96 * s)}" y1="${y}" y2="${y}" stroke="var(--muted)" stroke-width="1.5"/><rect x="${sx(r.d) - sz / 2}" y="${y - sz / 2}" width="${sz}" height="${sz}" fill="var(--c1)"/>`;
+    svg += `<text class="tk" x="${W - 8}" y="${y + 4}" text-anchor="end">${fmt(r.d, 2)} [${fmt(r.d - 1.96 * s, 2)}; ${fmt(r.d + 1.96 * s, 2)}] · %${fmt(100 * r.ws / sws, 1)}</text>`; });
+  const yp = T + (k + 0.9) * rh + 4;
+  svg += `<path d="M${sx(pooled - 1.96 * se)} ${yp}L${sx(pooled)} ${yp - 8}L${sx(pooled + 1.96 * se)} ${yp}L${sx(pooled)} ${yp + 8}Z" fill="var(--c5)"/>`;
+  svg += `<line x1="${sx(pooled)}" x2="${sx(pooled)}" y1="${T}" y2="${yp}" stroke="var(--c5)" stroke-dasharray="4 3"/>`;
+  svg += `<text class="ttl" x="8" y="${yp + 4}" style="font-weight:700">${re ? 'Rastgele etkiler' : 'Sabit etki'}</text><text class="tk" x="${W - 8}" y="${yp + 4}" text-anchor="end" font-weight="700">${fmt(pooled, 2)} [${fmt(pooled - 1.96 * se, 2)}; ${fmt(pooled + 1.96 * se, 2)}]</text>`;
+  const ya = T + (k + 1.5) * rh; svg += `<line class="ax" x1="${sx(lo)}" x2="${sx(hi)}" y1="${ya}" y2="${ya}"/>`;
+  for (let t = Math.ceil(lo * 4) / 4; t <= hi; t += 0.25) svg += `<line class="ax" x1="${sx(t)}" x2="${sx(t)}" y1="${ya}" y2="${ya + 4}"/><text class="tk" x="${sx(t)}" y="${ya + 16}" text-anchor="middle">${fmt(+t.toFixed(2) || 0, 2)}</text>`;
+  svg += `<text class="lab" x="${sx(0) - 4}" y="${H - 4}" text-anchor="end">← kontrol lehine</text><text class="lab" x="${sx(0) + 4}" y="${H - 4}">eğitim lehine →</text></svg>`;
+  document.getElementById('ma-svg').innerHTML = svg;
+  // huni
+  const Wf = 420, Hf = 240, Lf = 46, Rf = 12, Tf = 12, Bf = 34, semax = Math.max(...rows.map(r => Math.sqrt(r.v))) * 1.15;
+  const fl = Math.min(lo, fe - 1.96 * semax), fh = Math.max(hi, fe + 1.96 * semax);
+  const fx = v => Lf + (v - fl) / (fh - fl) * (Wf - Lf - Rf), fy = s => Tf + s / semax * (Hf - Tf - Bf);
+  let f = `<svg viewBox="0 0 ${Wf} ${Hf}" role="img" aria-label="Huni grafiği">`;
+  f += `<path d="M${fx(fe)} ${fy(0)}L${fx(fe - 1.96 * semax)} ${fy(semax)}L${fx(fe + 1.96 * semax)} ${fy(semax)}Z" fill="var(--sunk)" stroke="var(--line)"/>`;
+  f += `<line x1="${fx(fe)}" x2="${fx(fe)}" y1="${fy(0)}" y2="${fy(semax)}" stroke="var(--fg)"/>`;
+  rows.forEach(r => f += `<circle cx="${fx(r.d)}" cy="${fy(Math.sqrt(r.v))}" r="4.5" fill="var(--c1)"/>`);
+  for (let i = 0; i <= 3; i++){ const s = semax * i / 3; f += `<text class="tk" x="${Lf - 6}" y="${fy(s) + 4}" text-anchor="end">${fmt(s, 2)}</text>`; }
+  f += `<text class="lab" x="${Wf - Rf}" y="${Hf - 4}" text-anchor="end">Cohen's d · dikey: standart hata (aşağı = küçük örneklem)</text></svg>`;
+  document.getElementById('ma-fun').innerHTML = f;
+  st.innerHTML = statHTML([['k çalışma', k], ['Birleşik d', fmt(pooled, 3), true], ['%95 GA', `${fmt(pooled - 1.96 * se, 3)}; ${fmt(pooled + 1.96 * se, 3)}`], ['z / p', `${fmt(z, 2)} / ${p < 1e-4 ? '< 0,0001' : fmt(p, 4)}`], ['Q (sd)', `${fmt(Q, 2)} (${df})`], ['Q p ≈', fmt(pQ, 3)], ['τ²', fmt(tau2, 4)], ['I²', '%' + fmt(100 * I2, 1), true]]);
+}
+['ma-in', 'ma-mod'].forEach(id => document.getElementById(id).addEventListener('input', drawMA));
+drawMA();
+
+/* ---------- Teknikler tablosu ---------- */
+const TK = [
+  ['Pearson korelasyon katsayısı', 'down', 'Kullanımı hızla azalıyor', 'Sayfa 7, 9 · yerini çok değişkenli modellere bırakıyor'],
+  ['Mantel-Haenszel', 'down', 'Kullanımı azalıyor', 'Sayfa 9 · tabakalı ayrılma analizleri'],
+  ['ANOVA', 'down', 'Kullanımı azalıyor', 'Sayfa 8 · eğitim türlerinin karşılaştırılması'],
+  ['Basit doğrusal regresyon', 'flat', 'Neredeyse sabit', 'Sayfa 9 · koçluk ve performans'],
+  ['Fisher kesin testi', 'flat', 'Neredeyse sabit', 'Küçük örneklemde 2 × 2 tablolar'],
+  ['t testi', 'flat', 'Neredeyse sabit', 'Sayfa 8 · program karşılaştırmaları'],
+  ['Lojistik regresyon', 'flat', 'Neredeyse sabit', 'Sayfa 9 · ayrılma ve sınav başarısı tahmini'],
+  ['Ki-kare', 'flat', 'Neredeyse sabit', 'Sayfa 7 · kategorik ilişki'],
+  ['Betimleyici istatistikler', 'down', 'En yaygın ama kullanımı azalıyor', 'İK raporlarının temeli (ISO 30414 metrikleri)'],
+  ['Morbidite ve mortalite', 'flat', 'Neredeyse sabit', 'İş sağlığı ve güvenliği: kaza ve meslek hastalığı oranları'],
+  ['Düşük düzey istatistik ölçüler', 'flat', 'En yaygın, neredeyse sabit', 'Oran, yüzde, ortalama'],
+  ['Dönüşüm', 'flat', 'Neredeyse sabit', 'Ücretlerin log dönüşümü (sayfa 10)'],
+  ['Çoklu karşılaştırma', 'up', 'Yavaşça artıyor', 'ANOVA sonrası Tukey, Bonferroni (sayfa 8)'],
+  ['Epidemiyolojik istatistikler', 'up', 'Yavaşça artıyor', 'İş kazası insidans hızları'],
+  ['Poisson regresyonu', 'up', 'Artıyor', 'Devamsızlık ve kaza sayısının yordanması (sayfa 10)'],
+  ['p-eğilim (p-trend)', 'up', 'Artıyor', 'Eğitim dozu arttıkça sonucun düzenli değişip değişmediği'],
+  ['Log-rank testi', 'up', 'Hızla artıyor', 'İki işe alım kanalının elde tutma eğrilerinin karşılaştırılması'],
+  ['Wilcoxon sıra', 'up', 'Artıyor', 'Sayfa 7 · önce-sonra sıralı veri'],
+  ['Parametrik olmayan test', 'up', 'Artıyor', 'Sayfa 7 · Likert ve çarpık veri'],
+  ['Tedavi niyeti (intention to treat)', 'up', 'Artıyor', 'Programa atanan herkesin, bıraksa bile, analize dahil edilmesi'],
+  ['Kaplan-Meier', 'up', 'Artıyor', 'Sayfa 9 · çalışan elde tutma eğrisi'],
+  ['Güç analizi', 'up', 'Hızla artıyor', 'Pilot uygulama için gereken çalışan sayısı'],
+  ['Cox modelleri', 'up', 'Artıyor', 'Ayrılma riskinin ücret, yönetici, performansla ilişkisi'],
+  ['Çok düzeyli modelleme', 'up', 'Hızla artıyor', 'Ekiplere yuvalanmış çalışanlar; yönetici etkisi'],
+  ['Sağkalım analizi', 'up', 'Hızla artıyor', 'Sayfa 9 · elde tutma analitiği'],
+  ['Çoklu regresyon', 'up', 'Artıyor', 'Sayfa 9 · ücret eşitliği analizleri'],
+  ['Duyarlılık analizi', 'up', 'Artıyor', 'Monte Carlo ile bütçe varsayımlarının sınanması (sayfa 10)'],
+];
+function drawTK(){
+  const f = document.getElementById('tk-f').value, ic = { up: '▲', down: '▼', flat: '■' }, cls = { up: 'pos', down: 'neg', flat: '' };
+  document.getElementById('tk-tbl').innerHTML = `<thead><tr><th>Teknik</th><th>JAMA'da son 30 yıldaki eğilim</th><th>İK araştırmasındaki karşılığı</th></tr></thead><tbody>${TK.filter(r => f === 'all' || r[1] === f).map(r => `<tr><td><b>${r[0]}</b></td><td class="${cls[r[1]]}">${ic[r[1]]} ${r[2]}</td><td>${r[3]}</td></tr>`).join('')}</tbody>`;
+}
+document.getElementById('tk-f').addEventListener('input', drawTK);
+drawTK();
+</script>
+</body>
+</html>

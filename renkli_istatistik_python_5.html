@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Normal Dağılım ve Aralıklar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Düzen: solda yapışkan içindekiler, sağda okunur sütun; her kavram = açıklama + İK vakası + etkileşimli araç / Python hücresi */
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --sunk:#f1efe9; --line:#e2ddd2;
+  --fg:#1f2328; --muted:#5d6470;
+  --c1:#2f6fb5; --c2:#d9822b; --c3:#3f9a5c; --c4:#8a4fb0; --c5:#c2453d;
+  --code-bg:#f6f4ef; --code-fg:#24292f; --out-bg:#0f1720; --out-fg:#d6e2ee;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Literata",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:240px minmax(0,1fr);gap:48px}
+@media (max-width:880px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}}
+
+header.hero{grid-column:1/-1;padding-block:48px 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.stripe{display:flex;gap:6px;margin-bottom:18px}
+.stripe span{width:28px;height:8px;border-radius:4px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:62ch;margin:0}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-family:var(--f-mono);font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--c2);display:inline-block}
+.status.ready i{background:var(--c3)} .status.err i{background:var(--c5)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:28px;max-height:100vh;overflow:auto}
+nav.toc h2{font-family:var(--f-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--fg);font-family:var(--f-display);font-size:.95rem;padding:5px 8px;border-radius:6px}
+nav.toc a small{font-family:var(--f-mono);color:var(--muted);font-size:.72rem;min-width:22px}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sunk);outline:none}
+@media (max-width:880px){nav.toc{position:static;max-height:none;padding-top:20px}
+  nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
+
+main{min-width:0}
+section{padding-block:36px 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.kicker{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.04em}
+h2.sec{font-family:var(--f-display);font-weight:700;font-size:1.75rem;margin:4px 0 14px;text-wrap:balance;display:flex;align-items:center;gap:12px}
+h2.sec::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--dot,var(--c1));flex:none}
+h3{font-family:var(--f-display);font-weight:500;font-size:1.15rem;margin:26px 0 8px}
+p{max-width:68ch;margin:0 0 14px}
+ul.pl{max-width:68ch;margin:0 0 14px;padding-left:22px}
+ul.pl li{margin-bottom:4px}
+.muted{color:var(--muted)}
+code.i{font-family:var(--f-mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+
+.formula{font-family:var(--f-mono);font-size:.98rem;background:var(--sunk);border-radius:10px;padding:12px 18px;margin:12px 0;overflow-x:auto;white-space:nowrap}
+.formula b{color:var(--dot,var(--c1))}
+.note{border-left:4px solid var(--c2);background:var(--sunk);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.note strong{font-family:var(--f-display)}
+.warn{border-left-color:var(--c5)}
+.case{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dot,var(--c1));padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.case .tag{font-family:var(--f-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dot,var(--c1));display:block;margin-bottom:4px}
+
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.94rem;min-width:100%}
+th,td{padding:6px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-display);font-weight:500;color:var(--muted);font-size:.85rem}
+td.num,th.num{text-align:right;white-space:nowrap}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--kc,var(--c1));border-radius:10px;padding:12px 14px;min-width:0;font-size:.92rem}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 4px}
+.card p{margin:0 0 6px}
+.card .f{font-family:var(--f-mono);font-size:.84rem;background:var(--sunk);padding:4px 8px;border-radius:6px;display:inline-block}
+.card .hr{color:var(--muted);font-size:.86rem}
+
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin:18px 0}
+.tool .lbl{font-family:var(--f-display);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:grid;gap:4px;flex:1 1 150px;min-width:0}
+.field label{font-size:.82rem;color:var(--muted);font-family:var(--f-display)}
+input[type=text],input[type=number],select{font-family:var(--f-mono);font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;width:100%}
+input[type=range]{width:100%;accent-color:var(--c1)}
+button{font-family:var(--f-display);font-weight:500;font-size:.92rem;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--c1);color:#fff}
+button.ghost{background:var(--sunk);color:var(--fg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{background:var(--sunk);color:var(--fg);font-size:.85rem;padding:6px 10px}
+.chips button.active{background:var(--c2);color:#fff}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:12px}
+.stat{background:var(--sunk);border-radius:10px;padding:8px 12px}
+.stat span{display:block;font-size:.75rem;color:var(--muted);font-family:var(--f-display)}
+.stat b{font-family:var(--f-mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.stat.hl{background:color-mix(in srgb,var(--c2) 20%,var(--sunk))}
+
+.svgbox{overflow-x:auto;margin-top:12px}
+.svgbox svg{display:block;width:100%;height:auto;min-width:320px;font-family:var(--f-mono)}
+.svgbox .ax{stroke:var(--line);stroke-width:1}
+.svgbox .grid{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
+.svgbox .tk{fill:var(--muted);font-size:11px}
+.svgbox .lab{fill:var(--muted);font-size:12px;font-family:var(--f-display)}
+.svgbox .crv{fill:none;stroke:var(--c1);stroke-width:2.5}
+.svgbox .crv2{fill:none;stroke:var(--muted);stroke-width:1.5;stroke-dasharray:5 4}
+.svgbox .area{fill:color-mix(in srgb,var(--c1) 22%,transparent)}
+.svgbox .area2{fill:color-mix(in srgb,var(--c2) 30%,transparent)}
+.svgbox .mk{stroke:var(--fg);stroke-width:1.2;stroke-dasharray:3 3}
+.svgbox .mean{stroke:var(--c2);stroke-width:2}
+.svgbox .med{stroke:var(--c5);stroke-width:2}
+.svgbox .mode{stroke:var(--c3);stroke-width:2}
+.svgbox .me{stroke:var(--c5);stroke-width:2.5}
+.svgbox .ml{fill:var(--fg);font-size:11px}
+.svgbox .pct{fill:var(--fg);font-size:12px;font-family:var(--f-display);font-weight:500}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:3px;margin-right:5px;vertical-align:3px}
+
+.py{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:18px 0;background:var(--code-bg)}
+.py .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.py .bar span{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.py .bar .btns{display:flex;gap:6px}
+.py textarea{display:block;width:100%;border:0;resize:vertical;background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:.86rem;line-height:1.55;padding:14px 16px;tab-size:4;white-space:pre;overflow-x:auto}
+.py pre.out{margin:0;padding:12px 16px;background:var(--out-bg);color:var(--out-fg);font-family:var(--f-mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+.py pre.out:empty{display:none}
+.py pre.out .e{color:#ff9c8f}
+.py pre.out .w{color:#9fb3c8;font-style:italic}
+.py .figs{background:#ffffff;display:grid;gap:8px;padding:12px;justify-items:center}
+.py .figs:empty{display:none}
+.py .figs img{max-width:100%;height:auto}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="stripe" aria-hidden="true"><span style="background:var(--c1)"></span><span style="background:var(--c2)"></span><span style="background:var(--c3)"></span><span style="background:var(--c4)"></span><span style="background:var(--c5)"></span></div>
+  <h1>Normal Dağılım ve Aralıklar</h1>
+  <p class="lede">Usman Zafar Paracha'nın <em>Colorful Statistics and Python Programming Language</em> kitabının 103–131. sayfalarının Türkçe, etkileşimli ve insan kaynakları örnekleriyle uyarlanmış sürümü. Faktöriyelden olasılık fonksiyonlarına kadar her kavramın yanında tarayıcıda çalışan bir Python hücresi ya da etkileşimli bir araç var.</p>
+  <div class="status" id="status" role="status"><i></i><span>Python (Pyodide) yükleniyor…</span></div>
+</header>
+
+<nav class="toc" aria-label="İçindekiler">
+  <h2>İçindekiler</h2>
+  <ol>
+    <li><a href="#faktoriyel"><small>1</small>Faktöriyel</a></li>
+    <li><a href="#normal"><small>2</small>Dağılım ve standartlaştırma</a></li>
+    <li><a href="#tahmin"><small>3</small>Tahmin aralığı</a></li>
+    <li><a href="#tolerans"><small>4</small>Tolerans aralığı</a></li>
+    <li><a href="#parametre"><small>5</small>Dağılım parametreleri</a></li>
+    <li><a href="#carpiklik"><small>6</small>Çarpıklık ve basıklık</a></li>
+    <li><a href="#fonksiyon"><small>7</small>Olasılık fonksiyonları</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 FAKTÖRİYEL -->
+<section id="faktoriyel" style="--dot:var(--c2)">
+  <div class="kicker">s. 103–104</div>
+  <h2 class="sec">Faktöriyel</h2>
+  <p>Faktöriyel, belirli bir tam sayıya (n) eşit ve ondan küçük bütün pozitif tam sayıların çarpımıdır. Tanım gereği 0! = 1'dir.</p>
+  <div class="formula"><b>n! = 1 × 2 × 3 × … × n</b> &nbsp;·&nbsp; 4! = 4 × 3 × 2 × 1 = 24 &nbsp;·&nbsp; 0! = 1</div>
+  <div class="case"><span class="tag">İK vakası</span>Kısa listede 4 aday var ve aynı gün art arda mülakata alınacaklar. Mülakat sırası kaç farklı biçimde düzenlenebilir? 4! = <strong>24</strong>. Faktöriyel, permütasyon ve kombinasyonun temelidir: 10 başvurudan 3 kişilik kısa liste kaç farklı biçimde oluşturulabilir?</div>
+  <div class="py" data-cell><div class="bar"><span>Python · faktöriyel, permütasyon, kombinasyon</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="20">import math
+
+print("4! =", math.factorial(4))            # 24 farklı mülakat sırası
+print("0! =", math.factorial(0))            # tanım gereği 1
+
+# 10 başvurudan 3 kişilik kısa liste (sıra önemsiz) → kombinasyon
+# C(n, r) = n! / (r! (n − r)!)
+print("\nKısa liste (C(10, 3)):", math.comb(10, 3))
+
+# 10 başvurudan 1., 2. ve 3. sıradaki yedek adaylar (sıra önemli) → permütasyon
+# P(n, r) = n! / (n − r)!
+print("Sıralı yedek liste (P(10, 3)):", math.perm(10, 3))
+
+# 12 kişilik ekipten 4 kişilik bir proje grubu
+print("Proje grubu (C(12, 4)):", math.comb(12, 4))
+
+# Faktöriyel çok hızlı büyür
+for n in [5, 10, 15, 20]:
+    print(f"{n:>2}! = {math.factorial(n):,}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+</section>
+
+<!-- 2 NORMAL -->
+<section id="normal" style="--dot:var(--c1)">
+  <div class="kicker">s. 104–112</div>
+  <h2 class="sec">Dağılım ve standartlaştırma</h2>
+  <div class="case"><span class="tag">İK vakası</span>Kitaptaki örnek, “Virana” adlı bir yerdeki bakterilerin 1–9 arası “tehlike değeri”dir. İK karşılığı olarak 480 çalışanın yıllık <strong>performans değerlendirme puanlarını</strong> (1–9) kullanalım. Frekanslar kitaptakilerle aynı orandadır (her 10.000 bakteri = 1 çalışan).</div>
+  <div class="tbl"><table>
+    <thead><tr><th class="num">Performans puanı</th><td class="num">1</td><td class="num">2</td><td class="num">3</td><td class="num">4</td><td class="num">5</td><td class="num">6</td><td class="num">7</td><td class="num">8</td><td class="num">9</td></tr></thead>
+    <tbody><tr><th class="num">Çalışan sayısı</th><td class="num">20</td><td class="num">30</td><td class="num">50</td><td class="num">90</td><td class="num">100</td><td class="num">90</td><td class="num">50</td><td class="num">30</td><td class="num">20</td></tr></tbody>
+  </table></div>
+  <p>Bu frekans dağılımı grafiği bir çana benzediği için “çan eğrisi” adını alır. Teknik olarak bu dağılım türüne istatistikçi Gauss'tan dolayı <strong>normal</strong> ya da <strong>Gauss dağılımı</strong> denir. Normal dağılımın üç önemli özelliği vardır:</p>
+  <ul class="pl">
+    <li>Ortalama, ortanca ve tepe değer birbirine eşittir.</li>
+    <li>Dağılım merkez noktaya göre simetriktir.</li>
+    <li>Değerlerin yarısı (%50) ortalamanın altında, yarısı üstündedir.</li>
+  </ul>
+  <p>Bu örnekte 5 puanı hem ortalama hem ortanca, en çok çalışanın aldığı puan olduğu için de tepe değerdir. Değerlerdeki bozulmalar normal dağılımı da bozar ve uygun çan biçimi olmayan, normal olmayan bir dağılım ortaya çıkar. Normal dağılımda standart sapmalarla yakın bir ilişki vardır:</p>
+  <ul class="pl">
+    <li>Değerlerin yaklaşık <strong>%68,27'si</strong> ortalamanın iki yanında bir standart sapma içinde,</li>
+    <li>yaklaşık <strong>%95'i</strong> iki standart sapma içinde,</li>
+    <li>yaklaşık <strong>%99,7'si</strong> üç standart sapma içinde yer alır.</li>
+  </ul>
+  <p>Ortalamadan kaç standart sapma uzakta olunduğuna <strong>standart puan</strong>, <strong>z-puanı</strong> ya da “sigma” denir. Bir değeri z-puanına çevirmeye <strong>standartlaştırma</strong> denir.</p>
+  <div class="formula"><b>z = (x − μ) / σ</b></div>
+
+  <div class="tool">
+    <div class="lbl">z-puanı hesaplayıcı · yetenek testi (μ = 100, σ = 15)</div>
+    <div class="row">
+      <div class="field"><label for="z-x">Adayın puanı (x)</label><input id="z-x" type="number" value="118"></div>
+      <div class="field"><label for="z-mu">Ortalama (μ)</label><input id="z-mu" type="number" value="100"></div>
+      <div class="field"><label for="z-sd">Standart sapma (σ)</label><input id="z-sd" type="number" value="15" min="0.1" step="0.5"></div>
+      <div class="field"><label for="z-k">Gölgelenen alan: ±<b id="z-kv">1</b>σ</label><input id="z-k" type="range" min="0.5" max="3" step="0.5" value="1"></div>
+    </div>
+    <div class="svgbox" id="z-svg" aria-label="Normal eğri ve adayın konumu"></div>
+    <div class="stats" id="z-stats"></div>
+  </div>
+
+  <div class="py" data-cell><div class="bar"><span>Python · z-puanı ve standart normal dağılım</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="36">import numpy as np
+import matplotlib.pyplot as plt
+from scipy import stats
+
+puan = np.arange(1, 10)                                  # 1–9
+calisan = np.array([20, 30, 50, 90, 100, 90, 50, 30, 20])
+
+# Kitaptaki hesap: 1–9 değerlerinin her biri BİR kez sayılıyor
+z_kitap = stats.zscore(puan)
+print("Kitaptaki z-puanları :", z_kitap.round(4))       # σ = 2.58
+
+# Doğru hesap: frekanslar ağırlık olarak kullanılmalı
+mu = np.average(puan, weights=calisan)
+sigma = np.sqrt(np.average((puan - mu) ** 2, weights=calisan))
+z_dogru = (puan - mu) / sigma
+print(f"\nAğırlıklı ortalama = {mu:.2f}, σ = {sigma:.3f}")
+print("Doğru z-puanları     :", z_dogru.round(4))
+
+# ±1σ içindeki çalışanların oranı
+icinde = calisan[np.abs(z_dogru) <= 1].sum() / calisan.sum()
+print(f"±1σ içindeki çalışanlar: %{icinde * 100:.1f}")
+
+fig, ax = plt.subplots()
+ax.plot(z_dogru, calisan, marker="o")
+ax.set(xlabel="z-puanı", ylabel="Çalışan sayısı",
+       title="Performans puanlarının standartlaştırılmış dağılımı")
+plt.show()
+
+# Standartlaştırmanın asıl yararı: farklı ölçekleri karşılaştırmak
+satis = {"ort": 120, "ss": 20}     # aylık satış adedi
+memnun = {"ort": 4.1, "ss": 0.3}   # müşteri memnuniyeti (1–5)
+ayse_z = (150 - satis["ort"]) / satis["ss"]
+ayse_m = (4.4 - memnun["ort"]) / memnun["ss"]
+print(f"\nAyşe: satış z = {ayse_z:.2f}, memnuniyet z = {ayse_m:.2f}")
+print("→ Ayşe satışta, memnuniyete göre daha belirgin biçimde ortalamanın üstünde.")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki hesap hakkında uyarı.</strong> Kitap varyansı yalnızca 1'den 9'a kadar olan dokuz değerden (her biri bir kez) hesaplıyor ve σ = 2,58 buluyor. Oysa her değerin bir frekansı var: 5 puan alan 100 çalışan, 1 puan alan 20 çalışan. Frekanslar ağırlık olarak kullanıldığında σ ≈ 1,91 çıkar ve z-puanları büyür. Ayrıca kitaptaki çizim kodunda <code class="i">import matplotlib.pyplot as plt</code> satırı eksik.</div>
+</section>
+
+<!-- 3 TAHMİN ARALIĞI -->
+<section id="tahmin" style="--dot:var(--c3)">
+  <div class="kicker">s. 112–115</div>
+  <h2 class="sec">Tahmin aralığı</h2>
+  <p>Tahmin aralığı, gelecekteki <em>tek bir</em> değeri içermesi olası değer aralığını kapsayan, güven aralığının değiştirilmiş bir biçimidir. Var olan değerlere ve bir tür regresyon analizine dayanır.</p>
+  <div class="formula">Tahmin aralığı: <b>ŷₕ ± t(α/2, n−2) × √( MSE · (1 + 1/n + (xₕ − x̄)² / Σ(xᵢ − x̄)²) )</b></div>
+  <div class="formula">Güven aralığı: &nbsp;<b>ŷₕ ± t(α/2, n−2) × √( MSE · (1/n + (xₕ − x̄)² / Σ(xᵢ − x̄)²) )</b></div>
+  <p>İki formül arasındaki tek fark parantez içindeki “1 +” terimidir. Bu yüzden tahmin aralıkları güven aralıklarından her zaman daha geniştir. Güven aralığı belirli bir x değerindeki <em>ortalama</em> y'yi, tahmin aralığı ise <em>tek bir yeni gözlemi</em> hedefler.</p>
+  <div class="case"><span class="tag">İK vakası</span>Kitapta 8 kişinin boy ve kilosu kullanılıyor. İK karşılığı: aynı unvandaki 8 çalışanın <strong>sektör deneyimi</strong> (yıl) ve <strong>aylık brüt ücreti</strong> (bin TL). 7 yıllık deneyime sahip <em>bir aday</em> için makul teklif aralığı (tahmin aralığı) ile 7 yıllık deneyimli çalışanların <em>ortalama</em> ücreti için güven aralığı karşılaştırılacak.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · statsmodels ile tahmin ve güven aralığı</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="36">import numpy as np
+import pandas as pd
+import statsmodels.api as sm
+import matplotlib.pyplot as plt
+
+deneyim = np.array([1, 2, 3, 5, 6, 8, 10, 12])               # yıl
+ucret   = np.array([41, 46, 44, 53, 51, 60, 61, 70])         # bin TL
+
+X = sm.add_constant(deneyim)
+results = sm.OLS(ucret, X).fit()
+print(f"Ücret ≈ {results.params[0]:.2f} + {results.params[1]:.2f} × deneyim"
+      f"   (R² = {results.rsquared:.3f})\n")
+
+# Kitaptaki gibi: mevcut gözlemler için özet tablo
+pd.set_option('display.max_columns', None)
+pd.set_option('display.width', 120)
+print(results.get_prediction().summary_frame().round(2))
+
+# Yeni aday: 7 yıl deneyim
+yeni = sm.add_constant(np.array([7.0]), has_constant='add')
+s = results.get_prediction(yeni).summary_frame(alpha=0.05).iloc[0]
+print(f"\n7 yıllık deneyim için tahmini ücret: {s['mean']:.1f} bin TL")
+print(f"%95 güven aralığı (ortalama ücret) : {s.mean_ci_lower:.1f} – {s.mean_ci_upper:.1f}")
+print(f"%95 tahmin aralığı (tek aday)      : {s.obs_ci_lower:.1f} – {s.obs_ci_upper:.1f}")
+
+# Grafik: iki bant
+xs = np.linspace(0, 14, 100)
+sf = results.get_prediction(sm.add_constant(xs)).summary_frame()
+plt.fill_between(xs, sf.obs_ci_lower, sf.obs_ci_upper, alpha=.15, label="%95 tahmin aralığı")
+plt.fill_between(xs, sf.mean_ci_lower, sf.mean_ci_upper, alpha=.35, label="%95 güven aralığı")
+plt.plot(xs, sf["mean"], color="k", linewidth=1)
+plt.scatter(deneyim, ucret, color="#c2453d", zorder=3, label="Çalışanlar")
+plt.xlabel("Sektör deneyimi (yıl)"); plt.ylabel("Aylık brüt ücret (bin TL)")
+plt.title("Deneyim–ücret ilişkisi: güven ve tahmin aralıkları")
+plt.legend(); plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <p class="muted" style="font-size:.92rem">Kitaptaki yorum İK diline şöyle çevrilir: “7 yıllık deneyimli çalışanların <em>ortalama</em> ücreti %95 güvenle dar bant içindedir; ama tek bir adayın ücreti %95 olasılıkla çok daha geniş bant içinde olacaktır.” Teklif hazırlarken tahmin aralığı, ücret bandı politikası için güven aralığı kullanılır. Bantlar veri ortalamasından uzaklaştıkça genişler; 14 yıllık deneyim için tahmin, verinin dışına taşan bir dışkestirim olduğundan daha belirsizdir.</p>
+</section>
+
+<!-- 4 TOLERANS -->
+<section id="tolerans" style="--dot:var(--c4)">
+  <div class="kicker">s. 116–120</div>
+  <h2 class="sec">Tolerans aralığı</h2>
+  <p>Tolerans aralığı (kapsama aralığı), evrenin belirli bir oranını (yüzdesini) belirli bir güvenle kapsayan aralıktır. En büyük ve en küçük değer olarak da bilinen uç noktalarına <strong>tolerans sınırları</strong> denir. Bunlar güven sınırlarından farklıdır:</p>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c3)"><h4>Güven sınırı</h4><p>Ortalama gibi bir evren <em>parametresinin</em> belirtilen güvenle içinde bulunabileceği sınır.</p><p class="hr">“%95 olasılıkla ortalama burada.”</p></div>
+    <div class="card" style="--kc:var(--c4)"><h4>Tolerans sınırı</h4><p>Evrenin belirli bir <em>oranının</em> belirtilen güvenle içinde bulunabileceği sınır.</p><p class="hr">“%95 olasılıkla evrenin %95'i burada.”</p></div>
+  </div>
+  <p>Normal dağılan bir evren için Howe'un yaklaşımı:</p>
+  <div class="formula"><b>k = z((p+1)/2) × √( df (1 + 1/n) / χ²(1−α, df) )</b> &nbsp;&nbsp; sınırlar: x̄ ± k·s</div>
+  <p>z((p+1)/2): normal dağılımın (p+1)/2 birikimli olasılığa karşılık gelen kritik değeri; χ²: df serbestlik dereceli ki-kare dağılımının α olasılıkla aşılan kritik değeri.</p>
+  <div class="case"><span class="tag">İK vakası</span>Bir lojistik şirketinde son 12 yeni çalışanın <strong>oryantasyonu tamamlama süreleri</strong> (gün) kayıtlı. İK, yeni işe girenlerin <strong>%95'inin</strong> oryantasyonu hangi süre aralığında tamamlayacağını <strong>%95 güvenle</strong> söylemek istiyor. Bu, tolerans aralığı sorusudur.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · güven, tahmin ve tolerans aralıkları yan yana</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="38">from numpy import mean, sqrt
+from scipy.stats import chi2, norm, t
+from statistics import stdev
+from matplotlib import pyplot
+
+data = (14, 18, 11, 16, 13, 21, 15, 12, 17, 19, 14, 16)     # gün
+n = len(data)
+dof = n - 1
+prob = 0.95          # kapsanacak evren oranı (p)
+guven = 0.95         # güven düzeyi (1 − α)
+
+# Kitaptaki hesap (1.96 = z((0.95+1)/2))
+chi_critical = chi2.isf(q=guven, df=dof)          # = chi2.ppf(0.05, dof)
+z_p = norm.ppf((1 + prob) / 2)
+k = z_p * sqrt((dof * (1 + 1 / n)) / chi_critical)
+data_mean = mean(data)
+data_stdev = stdev(data)
+val = k * data_stdev
+lower, upper = data_mean - val, data_mean + val
+print(f"k (tolerans faktörü) = {k:.3f}")
+print(f"Ortalama = {data_mean:.2f} gün, s = {data_stdev:.2f}")
+print(f"%95/%95 tolerans aralığı : {lower:.1f} – {upper:.1f} gün")
+
+# Karşılaştırma
+tc = t.ppf(0.975, dof)
+ci = tc * data_stdev / sqrt(n)
+pi = tc * data_stdev * sqrt(1 + 1 / n)
+print(f"%95 güven aralığı (ortalama süre)   : {data_mean - ci:.1f} – {data_mean + ci:.1f}")
+print(f"%95 tahmin aralığı (bir sonraki kişi): {data_mean - pi:.1f} – {data_mean + pi:.1f}")
+
+etiket = ["Güven", "Tahmin", "Tolerans"]
+yari = [ci, pi, val]
+pyplot.errorbar(range(3), [data_mean] * 3, yerr=yari, fmt='o', capsize=8,
+                color='#8a4fb0')
+pyplot.xticks(range(3), etiket); pyplot.xlim(-0.6, 2.6)
+pyplot.ylabel("Oryantasyon süresi (gün)")
+pyplot.title("Aynı veriden üç farklı aralık")
+pyplot.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap çıktıdaki “Tolerance Interval: 3.736” değerini tolerans aralığı olarak sunuyor. Bu sayı aslında aralığın kendisi değil, standart sapmayla çarpılan <strong>k tolerans faktörüdür</strong>; aralık x̄ ± k·s'dir. Az gözlemle (n = 8 ya da 12) k büyük çıkar ve aralık çok genişler. Kitapta 8 kişinin kilosundan “kişilerin %95'i 33–118 kg arasındadır” sonucu çıkması bundandır.</div>
+</section>
+
+<!-- 5 PARAMETRELER -->
+<section id="parametre" style="--dot:var(--c2)">
+  <div class="kicker">s. 120–121</div>
+  <h2 class="sec">Bir dağılımın biçimini tanımlayan parametreler</h2>
+  <p>Bir dağılımın biçimini tanımlayan parametreler (1) konum, (2) ölçek ve (3) biçim parametreleridir.</p>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c2)"><h4>Konum parametresi (x₀)</h4><p>Dağılımın kaymasını ya da konumunu belirler.</p><span class="f">f(x − x₀)</span><p class="hr" style="margin-top:6px">Örnekler: ortalama, ortanca, tepe değer. <b>İK:</b> iki şubede ücret dağılımı aynı biçimde, biri 8 bin TL yukarıda.</p></div>
+    <div class="card" style="--kc:var(--c1)"><h4>Ölçek parametresi (s)</h4><p>Olasılık dağılımının genişliğini tanımlar. Büyük s daha yayık, küçük s daha toplu bir dağılım verir.</p><span class="f">f(x / s) / s</span><p class="hr" style="margin-top:6px"><b>İK:</b> geniş ücret bandı yüksek s, dar bant düşük s.</p></div>
+    <div class="card" style="--kc:var(--c4)"><h4>Biçim parametreleri</h4><p>Konum ve ölçek dışında kalan bütün özellikleri tanımlar.</p><p class="hr">Örnekler: çarpıklık, basıklık. <b>İK:</b> birkaç yüksek ücretin oluşturduğu uzun sağ kuyruk.</p></div>
+  </div>
+  <div class="tool">
+    <div class="lbl">Dağılım laboratuvarı · bir departmanın ücret dağılımı (bin TL)</div>
+    <div class="row">
+      <div class="field"><label for="d-loc">Konum: <b id="d-locv"></b></label><input id="d-loc" type="range" min="35" max="80" step="1" value="50"></div>
+      <div class="field"><label for="d-sc">Ölçek: <b id="d-scv"></b></label><input id="d-sc" type="range" min="3" max="20" step="0.5" value="10"></div>
+      <div class="field"><label for="d-sh">Biçim (çarpıklık): <b id="d-shv"></b></label><input id="d-sh" type="range" min="-8" max="8" step="0.5" value="0"></div>
+    </div>
+    <div class="svgbox" id="d-svg" aria-label="Çarpık normal dağılım eğrisi"></div>
+    <div class="legend"><span><i style="background:var(--c2)"></i>ortalama</span><span><i style="background:var(--c5)"></i>ortanca</span><span><i style="background:var(--c3)"></i>tepe değer</span><span><i style="background:var(--muted)"></i>başlangıç eğrisi (konum 50, ölçek 10, simetrik)</span></div>
+    <div class="stats" id="d-stats"></div>
+    <p class="muted" id="d-txt" style="margin:10px 0 0;font-size:.92rem"></p>
+  </div>
+</section>
+
+<!-- 6 ÇARPIKLIK -->
+<section id="carpiklik" style="--dot:var(--c5)">
+  <div class="kicker">s. 121–124</div>
+  <h2 class="sec">Çarpıklık ve basıklık</h2>
+  <p><strong>Çarpıklık</strong>, bir dağılımın ya da veri kümesinin simetrisini (ya da simetri eksikliğini) anlamaya yardım eder. Bir dağılım, merkez noktanın sağında ve solunda aynı görünüyorsa simetriktir. Çarpıklık en yaygın biçimde Karl Pearson'un yöntemleriyle ölçülür:</p>
+  <div class="formula">Yöntem 1: <b>S<sub>KP</sub> = (Ortalama − Tepe değer) / Standart sapma</b></div>
+  <div class="formula">Yöntem 2: <b>S<sub>KP</sub> = 3 (Ortalama − Ortanca) / Standart sapma</b></div>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c1)"><h4>Negatif çarpık</h4><p>Katsayı negatif. Ortalama &lt; ortanca &lt; tepe değer; uzun kuyruk solda.</p><p class="hr"><b>İK:</b> kolay bir sınavda çoğu aday yüksek puan alır, birkaç düşük puan kuyruğu oluşturur.</p></div>
+    <div class="card" style="--kc:var(--c3)"><h4>Simetrik</h4><p>Katsayı sıfır. Ortalama, ortanca ve tepe değer çakışır.</p><p class="hr"><b>İK:</b> standartlaştırılmış yetenek testi puanları.</p></div>
+    <div class="card" style="--kc:var(--c5)"><h4>Pozitif çarpık</h4><p>Katsayı pozitif. Tepe değer &lt; ortanca &lt; ortalama; uzun kuyruk sağda.</p><p class="hr"><b>İK:</b> ücretler, devamsızlık günleri, işe alım süreleri.</p></div>
+  </div>
+  <p><strong>Basıklık</strong>, bir frekans dağılımı eğrisinin ne kadar sivri ya da basık olduğunun ölçüsüdür.</p>
+  <div class="formula"><b>β₂ = ( Σ(x − μ)⁴ / N ) / σ⁴</b></div>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c5)"><h4>Sivri (leptokurtik)</h4><p>β₂ &gt; 3, pozitif basıklık. Normalden daha sivri.</p></div>
+    <div class="card" style="--kc:var(--c3)"><h4>Normal (mezokurtik)</h4><p>β₂ = 3. Normal eğri.</p></div>
+    <div class="card" style="--kc:var(--c1)"><h4>Basık (platikurtik)</h4><p>β₂ &lt; 3, negatif basıklık. Normalden daha basık.</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>Kitaptaki örnek zaten bir İK verisidir: 14 kişinin çalıştığı bir şirketteki aylık ücretler. Dolar yerine bin TL kullanalım (500 $ → 25 bin TL).</div>
+  <div class="tbl" style="max-width:420px"><table>
+    <thead><tr><th class="num">Aylık ücret (bin TL)</th><th class="num">Çalışan sayısı</th></tr></thead>
+    <tbody><tr><td class="num">25,0</td><td class="num">1</td></tr><tr><td class="num">37,5</td><td class="num">2</td></tr><tr><td class="num">50,0</td><td class="num">3</td></tr><tr><td class="num">62,5</td><td class="num">5</td></tr><tr><td class="num">75,0</td><td class="num">2</td></tr><tr><td class="num">87,5</td><td class="num">1</td></tr></tbody>
+  </table></div>
+  <div class="py" data-cell><div class="bar"><span>Python · çarpıklık ve basıklık</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="40">import numpy as np
+import statistics as st
+from scipy.stats import kurtosis, skew
+import matplotlib.pyplot as plt
+
+x = np.repeat([25, 37.5, 50, 62.5, 75, 87.5], [1, 2, 3, 5, 2, 1])   # 14 çalışan
+x1 = (25, 37.5, 50, 62.5, 75, 87.5)
+y = (1, 2, 3, 5, 2, 1)
+
+print("Çarpıklık (skew)          :", skew(x, bias=False))        # -0.177
+print("Fazla basıklık (kurtosis) :", kurtosis(x, bias=False))    # -0.091
+print("β₂ (Pearson basıklığı)    :", kurtosis(x, fisher=False))  # normal = 3
+
+# Pearson katsayıları
+ort, ortanca, tepe, ss = x.mean(), np.median(x), st.mode(x), x.std(ddof=1)
+print(f"\nPearson 1: (ort − tepe)/ss    = {(ort - tepe) / ss:.3f}")
+print(f"Pearson 2: 3(ort − ortanca)/ss = {3 * (ort - ortanca) / ss:.3f}")
+
+plt.plot(x1, y, marker="o")
+plt.xlabel("Aylık ücret (bin TL)"); plt.ylabel("Çalışan sayısı")
+plt.title("14 çalışanın ücret dağılımı (hafif negatif çarpık)")
+plt.show()
+
+# Gerçekçi büyük bir şirket: ücretler sağa çarpık
+rng = np.random.default_rng(8)
+ucret = rng.lognormal(np.log(55), 0.4, 3000)
+print(f"\n3.000 çalışan: ortalama {ucret.mean():.1f}, ortanca {np.median(ucret):.1f} bin TL")
+print(f"Çarpıklık = {skew(ucret):.2f}, fazla basıklık = {kurtosis(ucret):.2f}")
+plt.hist(ucret, bins=60, color="#c2453d", alpha=.7)
+plt.axvline(ucret.mean(), color="#d9822b", lw=2, label="Ortalama")
+plt.axvline(np.median(ucret), color="k", lw=2, ls="--", label="Ortanca")
+plt.xlabel("Aylık ücret (bin TL)"); plt.legend()
+plt.title("Pozitif çarpık ücret dağılımı")
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> <code class="i">scipy.stats.kurtosis</code> varsayılan olarak <em>fazla basıklığı</em> (β₂ − 3, Fisher tanımı) verir; normal dağılım için sonuç 0'dır. Kitaptaki şemadaki β₂ = 3 ölçütü için <code class="i">fisher=False</code> kullanılmalıdır. Kitaptaki <code class="i">import pylab</code> eski bir kullanımdır; yerine <code class="i">matplotlib.pyplot</code> kullanıldı. Sağa çarpık ücret verisinde ortalama ortancadan yüksektir; bu yüzden ücret raporlarında genellikle ortanca tercih edilir.</div>
+</section>
+
+<!-- 7 FONKSİYONLAR -->
+<section id="fonksiyon" style="--dot:var(--c3)">
+  <div class="kicker">s. 125–131</div>
+  <h2 class="sec">Dağılımların farklı fonksiyonları</h2>
+  <p>Olasılık dağılımlarının farklı fonksiyonları, o dağılımların farklı yönlerini gösterir. Kitaptaki örnek bir erkeğin yaşıdır; İK karşılığı olarak bir holdingdeki <strong>çalışanların yaşını</strong> (ortalama 38, standart sapma 9) kullanalım.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Fonksiyon</th><th>Ne verir?</th><th>İK sorusu</th><th>scipy</th></tr></thead>
+    <tbody>
+      <tr><td>Olasılık yoğunluk fonksiyonu (PDF)</td><td>Bir değerin belirli bir aralıkta olma olasılığı (eğri altındaki alan)</td><td>Bir çalışanın 40–45 yaş arasında olma olasılığı nedir?</td><td style="font-family:var(--f-mono)">cdf(b) − cdf(a)</td></tr>
+      <tr><td>Birikimli dağılım fonksiyonu (CDF)</td><td>Belirli bir değerden küçük olma olasılığı</td><td>45 yaşından küçük olma olasılığı nedir?</td><td style="font-family:var(--f-mono)">cdf(45)</td></tr>
+      <tr><td>Hayatta kalma fonksiyonu (SF)</td><td>1 − CDF: belirli bir değerden büyük olma olasılığı</td><td>45 yaşından büyük olma olasılığı nedir?</td><td style="font-family:var(--f-mono)">sf(45)</td></tr>
+      <tr><td>Yüzdelik nokta fonksiyonu (PPF)</td><td>CDF'nin tersi: olasılık verildiğinde değer</td><td>Çalışanların %95'inden genç olan kişinin yaşı nedir?</td><td style="font-family:var(--f-mono)">ppf(0.95)</td></tr>
+      <tr><td>Ters hayatta kalma fonksiyonu (ISF)</td><td>SF'nin tersi</td><td>Çalışanların %95'inden yaşlı olan kişinin yaşı nedir?</td><td style="font-family:var(--f-mono)">isf(0.95)</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="tool">
+    <div class="lbl">Fonksiyon gezgini · çalışan yaşları N(38, 9)</div>
+    <div class="chips" id="f-chips" role="group" aria-label="Fonksiyon"></div>
+    <div class="row" style="margin-top:10px">
+      <div class="field"><label for="f-a">a (yaş)</label><input id="f-a" type="number" value="40"></div>
+      <div class="field"><label for="f-b">b (yaş)</label><input id="f-b" type="number" value="45"></div>
+      <div class="field"><label for="f-p">Olasılık p (PPF / ISF için)</label><input id="f-p" type="number" min="0.01" max="0.99" step="0.01" value="0.95"></div>
+    </div>
+    <div class="svgbox" id="f-svg" aria-label="Seçilen fonksiyonun grafiği"></div>
+    <div class="stats" id="f-stats"></div>
+    <p class="muted" id="f-txt" style="margin:10px 0 0;font-size:.92rem"></p>
+  </div>
+
+  <h3>Olasılık yoğunluk fonksiyonu: tekdüze dağılım örneği</h3>
+  <p>PDF sürekli bir rastgele değişkenin olasılık dağılımını gösterir. x'in [a, b] aralığında olma olasılığı, eğrinin a ile b arasındaki alanıdır:</p>
+  <div class="formula"><b>P(a ≤ X ≤ b) = ∫ₐᵇ f(x) dx</b></div>
+  <p><strong>Birikimli dağılım fonksiyonu</strong> bir fonksiyona bağlı birikimli olasılığı gösterir. Kesikli değişkende azalmayan bir basamak fonksiyonudur, F(x) = Σ f(t); sürekli değişkende azalmayan sürekli bir fonksiyondur, F(x) = ∫ f(t) dt.</p>
+  <div class="case"><span class="tag">İK vakası</span>Kitaptaki örnekte bir çocuk 24 saatlik gün içinde oyun oynamak için rastgele bir saat seçiyor. İK karşılığı: 7/24 çalışan bir <strong>İK destek hattına</strong> gelen acil bir çağrının saati gün içinde eşit olasılıkla dağılıyor. Çağrının 16:00 ile 18:00 arasında gelme olasılığı: P(16 ≤ X ≤ 18) = (1/24) × 2 = <strong>0,083</strong>.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · uniform ve normal dağılımda PDF, CDF, SF, PPF, ISF</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="40">import numpy as np
+from scipy.stats import uniform, norm
+import matplotlib.pyplot as plt
+
+# İK destek hattı: çağrı saati 0–24 arasında tekdüze dağılır
+x = np.arange(0, 25)
+print("PDF:", uniform.pdf(x, loc=0, scale=24).round(4)[:6], "…")   # hepsi 1/24
+print("CDF:", uniform.cdf(x, loc=0, scale=24).round(4)[:6], "…")
+
+p_16_18 = uniform.cdf(18, 0, 24) - uniform.cdf(16, 0, 24)
+print(f"\nP(16:00–18:00) = {p_16_18:.4f}")          # 0.0833
+
+# Çalışan yaşları ~ N(38, 9)
+yas = norm(loc=38, scale=9)
+print(f"\nP(40 ≤ yaş ≤ 45) = {yas.cdf(45) - yas.cdf(40):.4f}")
+print(f"P(yaş < 45)       = {yas.cdf(45):.4f}   (CDF)")
+print(f"P(yaş > 45)       = {yas.sf(45):.4f}   (SF = 1 − CDF)")
+print(f"PPF(0.95)         = {yas.ppf(0.95):.1f} yaş  (çalışanların %95'i bundan genç)")
+print(f"ISF(0.95)         = {yas.isf(0.95):.1f} yaş  (çalışanların %95'i bundan yaşlı)")
+
+# Emeklilik planlaması: 55 yaş ve üstü oranı, 2.400 kişilik holdingde
+print(f"\n55+ yaş oranı: %{yas.sf(55) * 100:.1f} ≈ {yas.sf(55) * 2400:.0f} çalışan")
+
+fig, axs = plt.subplots(1, 3, figsize=(11, 3.3))
+t = np.linspace(10, 66, 300)
+axs[0].plot(t, yas.pdf(t)); axs[0].fill_between(t, yas.pdf(t), where=(t >= 40) & (t <= 45), alpha=.4)
+axs[0].set_title("PDF: P(40 ≤ yaş ≤ 45)")
+axs[1].plot(t, yas.cdf(t)); axs[1].axvline(45, ls="--", c="k"); axs[1].set_title("CDF: P(yaş < 45)")
+axs[2].plot(t, yas.sf(t));  axs[2].axvline(45, ls="--", c="k"); axs[2].set_title("SF: P(yaş > 45)")
+for a in axs: a.set_xlabel("Yaş")
+fig.tight_layout(); plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap “saat 4 ile 6 arası” için 4–6 aralığını kullanıyor; 24 saatlik düzende öğleden sonra 4–6 aslında 16–18'dir. Tekdüze dağılımda sonuç değişmez (2/24), ama normal gibi başka dağılımlarda değişir. Kitaptaki “2 saat için birikimli dağılım 0,0833'tür” ifadesi, P(X ≤ 2) değeridir; 16–18 arası olasılık ise <code class="i">cdf(18) − cdf(16)</code> ile bulunur. Sürekli bir dağılımda <code class="i">pdf(x)</code> tek başına olasılık değil, yoğunluktur; olasılık bir aralıktaki alandır.</div>
+</section>
+
+</main>
+
+<footer>
+  Kaynak: Usman Zafar Paracha, <em>Colorful Statistics and Python Programming Language</em>, s. 103–131. Kavram anlatımları kitaptan çevrilmiş; örnekler insan kaynakları bağlamına uyarlanmış, kodlar güncel numpy, scipy, statsmodels ve matplotlib sürümlerine göre düzeltilmiş, etkileşimli araçlar eklenmiştir. Örnek veriler eğitim amaçlı ve kurgusaldır. Python kodları tarayıcıda <a href="https://pyodide.org" style="color:var(--c1)">Pyodide</a> ile çalışır; ilk çalıştırmada paketlerin inmesi biraz zaman alabilir. Sayfa internet bağlantısı gerektirir.
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+/* ---------- Pyodide + matplotlib yakalama ---------- */
+const statusEl = document.getElementById('status');
+function setStatus(txt, cls){ statusEl.className = 'status' + (cls ? ' ' + cls : ''); statusEl.querySelector('span').textContent = txt; }
+let pyReady = null;
+function getPy(){
+  if (!pyReady){
+    pyReady = (async () => {
+      const py = await loadPyodide();
+      setStatus('Python hazır · paketler ilk kullanımda yüklenir', 'ready');
+      return py;
+    })().catch(e => { setStatus('Pyodide yüklenemedi: internet bağlantısını kontrol edin', 'err'); throw e; });
+  }
+  return pyReady;
+}
+getPy();
+const MPL_PRELUDE = `
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt, io as _io, base64 as _b64
+plt.rcParams.update({"figure.figsize": (7, 4.2), "axes.spines.top": False, "axes.spines.right": False})
+_imgs = []
+def _yakala(*a, **k):
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = _io.BytesIO()
+        f.savefig(b, format="png", dpi=110, bbox_inches="tight", facecolor="white")
+        _imgs.append(_b64.b64encode(b.getvalue()).decode())
+    plt.close("all")
+plt.show = _yakala
+`;
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.querySelectorAll('[data-cell]').forEach(cell => {
+  const ta = cell.querySelector('textarea'), out = cell.querySelector('pre.out'), figs = cell.querySelector('.figs');
+  const runBtn = cell.querySelector('[data-run]');
+  const original = ta.value;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab'){ e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runBtn.click(); }
+  });
+  cell.querySelector('[data-reset]').addEventListener('click', () => { ta.value = original; out.innerHTML = ''; figs.innerHTML = ''; });
+  runBtn.addEventListener('click', async () => {
+    runBtn.disabled = true; runBtn.textContent = 'Çalışıyor…';
+    out.innerHTML = '<span class="w">Hazırlanıyor…</span>'; figs.innerHTML = '';
+    let buf = '';
+    const usesPlot = /matplotlib|seaborn|pyplot/.test(ta.value);
+    try {
+      const py = await getPy();
+      await py.loadPackagesFromImports(usesPlot ? ta.value + '\nimport matplotlib' : ta.value, { messageCallback: m => { out.innerHTML = '<span class="w">' + esc(m) + '</span>'; } });
+      py.setStdout({ batched: s => { buf += s + '\n'; } });
+      py.setStderr({ batched: s => { if (!/Matplotlib is building the font cache/.test(s)) buf += s + '\n'; } });
+      if (usesPlot) await py.runPythonAsync(MPL_PRELUDE);
+      await py.runPythonAsync(ta.value);
+      if (usesPlot){
+        await py.runPythonAsync('_yakala()');
+        const imgs = py.globals.get('_imgs').toJs();
+        figs.innerHTML = imgs.map((b, i) => `<img alt="Grafik ${i + 1}" src="data:image/png;base64,${b}">`).join('');
+      }
+      out.innerHTML = esc(buf.trimEnd()) || (usesPlot ? '' : '<span class="w">(çıktı yok)</span>');
+    } catch (err) {
+      const msg = String(err.message || err).split('\n').filter(Boolean);
+      out.innerHTML = (buf ? esc(buf) : '') + '<span class="e">' + esc(msg.slice(-3).join('\n')) + '</span>';
+    } finally { runBtn.disabled = false; runBtn.textContent = 'Çalıştır ▸'; }
+  });
+});
+
+/* ---------- Matematik yardımcıları ---------- */
+const fmt = (v, d = 2) => Number(v).toLocaleString('tr-TR', { maximumFractionDigits: d });
+const phi = x => Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+function erf(x){ const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
+  const y = 1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x); return s * y; }
+const Phi = x => 0.5 * (1 + erf(x / Math.SQRT2));
+function PhiInv(p){ // Acklam
+  const a = [-39.69683028665376, 220.9460984245205, -275.9285104469687, 138.357751867269, -30.66479806614716, 2.506628277459239],
+        b = [-54.47609879822406, 161.5858368580409, -155.6989798598866, 66.80131188771972, -13.28068155288572],
+        c = [-0.007784894002430293, -0.3223964580411365, -2.400758277161838, -2.549732539343734, 4.374664141464968, 2.938163982698783],
+        d = [0.007784695709041462, 0.3224671290700398, 2.445134137142996, 3.754408661907416];
+  const pl = 0.02425, ph = 1 - pl; let q, r;
+  if (p < pl){ q = Math.sqrt(-2 * Math.log(p)); return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  if (p > ph){ q = Math.sqrt(-2 * Math.log(1 - p)); return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1); }
+  q = p - 0.5; r = q * q; return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q / (((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+}
+function niceTicks(lo, hi, n = 5){
+  const span = hi - lo || 1, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const t = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10)); return t;
+}
+const statHTML = arr => arr.map(([k, v, hl]) => `<div class="stat${hl ? ' hl' : ''}"><span>${k}</span><b>${v}</b></div>`).join('');
+const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
+
+/* ---------- z-puanı hesaplayıcı ---------- */
+function drawZ(){
+  const x = Number(document.getElementById('z-x').value), mu = Number(document.getElementById('z-mu').value);
+  const sd = Math.max(0.1, Number(document.getElementById('z-sd').value) || 1), k = Number(document.getElementById('z-k').value);
+  document.getElementById('z-kv').textContent = String(k).replace('.', ',');
+  const z = (x - mu) / sd;
+  const W = 640, H = 260, L = 20, R = 20, T = 28, B = 40;
+  const lo = mu - 4 * sd, hi = mu + 4 * sd;
+  const sx = v => L + (v - lo) / (hi - lo) * (W - L - R), sy = d => H - B - d / phi(0) * (H - T - B);
+  const pts = []; for (let i = 0; i <= 200; i++){ const v = lo + (hi - lo) * i / 200; pts.push([sx(v), sy(phi((v - mu) / sd))]); }
+  const area = []; for (let i = 0; i <= 100; i++){ const v = mu - k * sd + 2 * k * sd * i / 100; area.push([sx(v), sy(phi((v - mu) / sd))]); }
+  const share = Phi(k) - Phi(-k);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Normal eğri">`;
+  svg += `<path class="area" d="${path(area)}L${sx(mu + k * sd)} ${H - B}L${sx(mu - k * sd)} ${H - B}Z"/>`;
+  svg += `<path class="crv" d="${path(pts)}"/><line class="ax" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
+  for (let i = -3; i <= 3; i++){ const v = mu + i * sd; svg += `<line class="grid" x1="${sx(v)}" x2="${sx(v)}" y1="${T}" y2="${H - B}"/><text class="tk" x="${sx(v)}" y="${H - B + 14}" text-anchor="middle">${fmt(v, 1)}</text><text class="tk" x="${sx(v)}" y="${H - B + 28}" text-anchor="middle">z=${i}</text>`; }
+  svg += `<text class="pct" x="${sx(mu)}" y="${sy(phi(0)) + 40}" text-anchor="middle">%${fmt(share * 100, 2)}</text>`;
+  if (Number.isFinite(z) && x >= lo && x <= hi) svg += `<line class="me" x1="${sx(x)}" x2="${sx(x)}" y1="${T - 10}" y2="${H - B}"/><text class="ml" x="${sx(x)}" y="${T - 14}" text-anchor="middle">aday: z = ${fmt(z, 2)}</text>`;
+  svg += `</svg>`; document.getElementById('z-svg').innerHTML = svg;
+  document.getElementById('z-stats').innerHTML = statHTML([
+    ['z-puanı', Number.isFinite(z) ? fmt(z, 2) : '—', true],
+    ['Adaydan düşük puan alanlar', Number.isFinite(z) ? '%' + fmt(Phi(z) * 100, 1) : '—'],
+    ['Adaydan yüksek puan alanlar', Number.isFinite(z) ? '%' + fmt((1 - Phi(z)) * 100, 1) : '—'],
+    [`±${String(k).replace('.', ',')}σ içindeki pay`, '%' + fmt(share * 100, 2)]
+  ]);
+}
+['z-x', 'z-mu', 'z-sd', 'z-k'].forEach(id => document.getElementById(id).addEventListener('input', drawZ));
+drawZ();
+
+/* ---------- Dağılım laboratuvarı (çarpık normal) ---------- */
+function snPdf(x, loc, sc, a){ const t = (x - loc) / sc; return 2 / sc * phi(t) * Phi(a * t); }
+function drawDist(){
+  const loc = Number(document.getElementById('d-loc').value), sc = Number(document.getElementById('d-sc').value), a = Number(document.getElementById('d-sh').value);
+  document.getElementById('d-locv').textContent = fmt(loc, 1);
+  document.getElementById('d-scv').textContent = fmt(sc, 1);
+  document.getElementById('d-shv').textContent = fmt(a, 1);
+  const lo = 0, hi = 130, N = 650, dx = (hi - lo) / N;
+  const xs = Array.from({ length: N + 1 }, (_, i) => lo + i * dx), ys = xs.map(x => snPdf(x, loc, sc, a)), ref = xs.map(x => snPdf(x, 50, 10, 0));
+  const delta = a / Math.sqrt(1 + a * a), mean = loc + sc * delta * Math.sqrt(2 / Math.PI);
+  const sd = sc * Math.sqrt(1 - 2 * delta * delta / Math.PI);
+  let cum = 0, med = NaN; for (let i = 1; i <= N; i++){ cum += (ys[i] + ys[i - 1]) / 2 * dx; if (cum >= 0.5 && !Number.isFinite(med)){ med = xs[i]; } }
+  let mi = 0; ys.forEach((y, i) => { if (y > ys[mi]) mi = i; }); const mode = xs[mi];
+  const g1 = (4 - Math.PI) / 2 * (delta * Math.sqrt(2 / Math.PI)) ** 3 / (1 - 2 * delta * delta / Math.PI) ** 1.5;
+  const W = 640, H = 250, L = 20, R = 20, T = 14, B = 34, ymax = Math.max(...ys, ...ref) * 1.08;
+  const sx = v => L + (v - lo) / (hi - lo) * (W - L - R), sy = d => H - B - d / ymax * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Ücret dağılımı eğrisi">`;
+  niceTicks(lo, hi, 8).forEach(t => svg += `<line class="grid" x1="${sx(t)}" x2="${sx(t)}" y1="${T}" y2="${H - B}"/><text class="tk" x="${sx(t)}" y="${H - B + 16}" text-anchor="middle">${t}</text>`);
+  svg += `<path class="crv2" d="${path(xs.map((x, i) => [sx(x), sy(ref[i])]))}"/>`;
+  svg += `<path class="area" d="${path(xs.map((x, i) => [sx(x), sy(ys[i])]))}L${sx(hi)} ${H - B}L${sx(lo)} ${H - B}Z"/>`;
+  svg += `<path class="crv" d="${path(xs.map((x, i) => [sx(x), sy(ys[i])]))}"/>`;
+  svg += `<line class="mode" x1="${sx(mode)}" x2="${sx(mode)}" y1="${T}" y2="${H - B}"/><line class="med" x1="${sx(med)}" x2="${sx(med)}" y1="${T}" y2="${H - B}"/><line class="mean" x1="${sx(mean)}" x2="${sx(mean)}" y1="${T}" y2="${H - B}"/>`;
+  svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/><text class="lab" x="${W - R}" y="${H - 4}" text-anchor="end">Aylık ücret (bin TL)</text></svg>`;
+  document.getElementById('d-svg').innerHTML = svg;
+  document.getElementById('d-stats').innerHTML = statHTML([['Ortalama', fmt(mean, 1)], ['Ortanca', fmt(med, 1)], ['Tepe değer', fmt(mode, 1)], ['Std sapma', fmt(sd, 1)], ['Çarpıklık', fmt(g1, 2), true]]);
+  document.getElementById('d-txt').textContent = Math.abs(a) < 0.25
+    ? 'Biçim parametresi sıfırken dağılım simetrik: ortalama, ortanca ve tepe değer çakışıyor. Konumu kaydırın; eğri olduğu gibi sağa sola kayar. Ölçeği değiştirin; eğri genişler ya da daralır.'
+    : a > 0 ? 'Pozitif çarpık: sağda uzun bir kuyruk var (birkaç yüksek ücret). Sıralama tepe değer < ortanca < ortalama.'
+            : 'Negatif çarpık: solda uzun bir kuyruk var. Sıralama ortalama < ortanca < tepe değer.';
+}
+['d-loc', 'd-sc', 'd-sh'].forEach(id => document.getElementById(id).addEventListener('input', drawDist));
+drawDist();
+
+/* ---------- Fonksiyon gezgini ---------- */
+const FN = [['pdf', 'PDF · a–b arası'], ['cdf', 'CDF · b\'den küçük'], ['sf', 'SF · b\'den büyük'], ['ppf', 'PPF · p → yaş'], ['isf', 'ISF · p → yaş']];
+let fnSel = 'pdf';
+const fChips = document.getElementById('f-chips');
+FN.forEach(([id, ad]) => { const b = document.createElement('button'); b.textContent = ad; b.dataset.id = id; b.addEventListener('click', () => { fnSel = id; drawFn(); }); fChips.appendChild(b); });
+function drawFn(){
+  fChips.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.id === fnSel));
+  const MU = 38, SD = 9;
+  let a = Number(document.getElementById('f-a').value), b = Number(document.getElementById('f-b').value);
+  const p = Math.min(0.999, Math.max(0.001, Number(document.getElementById('f-p').value) || 0.95));
+  if (a > b) [a, b] = [b, a];
+  const cdf = v => Phi((v - MU) / SD), pdf = v => phi((v - MU) / SD) / SD;
+  const lo = 5, hi = 71, W = 640, H = 250, L = 46, R = 20, T = 14, B = 34;
+  const isCurveCdf = fnSel === 'cdf' || fnSel === 'ppf';
+  const f = fnSel === 'pdf' ? pdf : isCurveCdf ? cdf : v => 1 - cdf(v);
+  const ymax = fnSel === 'pdf' ? pdf(MU) * 1.1 : 1.05;
+  const sx = v => L + (v - lo) / (hi - lo) * (W - L - R), sy = y => H - B - y / ymax * (H - T - B);
+  const pts = []; for (let i = 0; i <= 200; i++){ const v = lo + (hi - lo) * i / 200; pts.push([sx(v), sy(f(v))]); }
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${fnSel.toUpperCase()} grafiği">`;
+  niceTicks(0, ymax, 4).forEach(t => svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}"/><text class="tk" x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${fmt(t, 3)}</text>`);
+  niceTicks(lo, hi, 8).forEach(t => svg += `<text class="tk" x="${sx(t)}" y="${H - B + 16}" text-anchor="middle">${t}</text>`);
+  let stats = [], txt = '';
+  if (fnSel === 'pdf'){
+    const ar = []; for (let i = 0; i <= 80; i++){ const v = a + (b - a) * i / 80; ar.push([sx(v), sy(pdf(v))]); }
+    svg += `<path class="area2" d="${path(ar)}L${sx(b)} ${H - B}L${sx(a)} ${H - B}Z"/>`;
+    const pr = cdf(b) - cdf(a);
+    stats = [['P(a ≤ yaş ≤ b)', fmt(pr, 4), true], ['Yüzde', '%' + fmt(pr * 100, 1)], ['2.400 çalışanda', '≈ ' + Math.round(pr * 2400) + ' kişi']];
+    txt = `Turuncu alan, bir çalışanın ${fmt(a, 1)}–${fmt(b, 1)} yaş arasında olma olasılığıdır. Eğrinin yüksekliği olasılık değil, yoğunluktur.`;
+  } else if (fnSel === 'cdf' || fnSel === 'sf'){
+    const y = f(b);
+    svg += `<line class="mk" x1="${sx(b)}" x2="${sx(b)}" y1="${sy(0)}" y2="${sy(y)}"/><line class="mk" x1="${L}" x2="${sx(b)}" y1="${sy(y)}" y2="${sy(y)}"/><circle cx="${sx(b)}" cy="${sy(y)}" r="5" style="fill:var(--c2)"/>`;
+    stats = [[fnSel === 'cdf' ? 'P(yaş < b)' : 'P(yaş > b)', fmt(y, 4), true], ['Yüzde', '%' + fmt(y * 100, 1)], ['2.400 çalışanda', '≈ ' + Math.round(y * 2400) + ' kişi']];
+    txt = fnSel === 'cdf' ? `CDF, ${fmt(b, 1)} yaşından küçük çalışanların payını verir. Eğri soldan sağa hep artar.` : `SF = 1 − CDF, ${fmt(b, 1)} yaşından büyük çalışanların payını verir. Emeklilik planlamasında sık kullanılır.`;
+  } else {
+    const v = fnSel === 'ppf' ? MU + SD * PhiInv(p) : MU + SD * PhiInv(1 - p);
+    svg += `<line class="mk" x1="${L}" x2="${sx(v)}" y1="${sy(p)}" y2="${sy(p)}"/><line class="mk" x1="${sx(v)}" x2="${sx(v)}" y1="${sy(p)}" y2="${sy(0)}"/><circle cx="${sx(v)}" cy="${sy(p)}" r="5" style="fill:var(--c2)"/>`;
+    stats = [[fnSel === 'ppf' ? 'PPF(p)' : 'ISF(p)', fmt(v, 1) + ' yaş', true], ['p', fmt(p, 3)]];
+    txt = fnSel === 'ppf' ? `PPF, CDF'nin tersidir: çalışanların %${fmt(p * 100, 1)}'i ${fmt(v, 1)} yaşından gençtir.` : `ISF, SF'nin tersidir: çalışanların %${fmt(p * 100, 1)}'i ${fmt(v, 1)} yaşından yaşlıdır.`;
+  }
+  svg += `<path class="crv" d="${path(pts)}"/><line class="ax" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/><text class="lab" x="${W - R}" y="${H - 4}" text-anchor="end">Yaş</text></svg>`;
+  document.getElementById('f-svg').innerHTML = svg;
+  document.getElementById('f-stats').innerHTML = statHTML(stats);
+  document.getElementById('f-txt').textContent = txt;
+}
+['f-a', 'f-b', 'f-p'].forEach(id => document.getElementById(id).addEventListener('input', drawFn));
+drawFn();
+</script>
+</body>
+</html>

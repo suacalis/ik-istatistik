@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dağılım, Olasılık ve Güvenirlik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Düzen: solda yapışkan içindekiler, sağda okunur sütun; her kavram = açıklama + İK vakası + etkileşimli araç / Python hücresi */
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --sunk:#f1efe9; --line:#e2ddd2;
+  --fg:#1f2328; --muted:#5d6470;
+  --c1:#2f6fb5; --c2:#d9822b; --c3:#3f9a5c; --c4:#8a4fb0; --c5:#c2453d;
+  --code-bg:#f6f4ef; --code-fg:#24292f; --out-bg:#0f1720; --out-fg:#d6e2ee;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Literata",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:240px minmax(0,1fr);gap:48px}
+@media (max-width:880px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}}
+
+header.hero{grid-column:1/-1;padding-block:48px 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.stripe{display:flex;gap:6px;margin-bottom:18px}
+.stripe span{width:28px;height:8px;border-radius:4px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:62ch;margin:0}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-family:var(--f-mono);font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--c2);display:inline-block}
+.status.ready i{background:var(--c3)} .status.err i{background:var(--c5)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:28px;max-height:100vh;overflow:auto}
+nav.toc h2{font-family:var(--f-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--fg);font-family:var(--f-display);font-size:.95rem;padding:5px 8px;border-radius:6px}
+nav.toc a small{font-family:var(--f-mono);color:var(--muted);font-size:.72rem;min-width:22px}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sunk);outline:none}
+@media (max-width:880px){nav.toc{position:static;max-height:none;padding-top:20px}
+  nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
+
+main{min-width:0}
+section{padding-block:36px 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.kicker{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.04em}
+h2.sec{font-family:var(--f-display);font-weight:700;font-size:1.75rem;margin:4px 0 14px;text-wrap:balance;display:flex;align-items:center;gap:12px}
+h2.sec::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--dot,var(--c1));flex:none}
+h3{font-family:var(--f-display);font-weight:500;font-size:1.15rem;margin:26px 0 8px}
+p{max-width:68ch;margin:0 0 14px}
+.muted{color:var(--muted)}
+code.i{font-family:var(--f-mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+
+.formula{font-family:var(--f-mono);font-size:.98rem;background:var(--sunk);border-radius:10px;padding:12px 18px;margin:12px 0;overflow-x:auto;white-space:nowrap}
+.formula b{color:var(--dot,var(--c1))}
+.note{border-left:4px solid var(--c2);background:var(--sunk);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.note strong{font-family:var(--f-display)}
+.warn{border-left-color:var(--c5)}
+.case{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dot,var(--c1));padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.case .tag{font-family:var(--f-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dot,var(--c1));display:block;margin-bottom:4px}
+
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.94rem;min-width:100%}
+th,td{padding:6px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-display);font-weight:500;color:var(--muted);font-size:.85rem}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+
+.rules{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px;margin:16px 0}
+.rule{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0;font-size:.92rem;display:grid;gap:6px;align-content:start}
+.rule .no{font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.rule h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0}
+.rule .f{font-family:var(--f-mono);font-size:.85rem;background:var(--sunk);padding:6px 8px;border-radius:6px;overflow-x:auto;white-space:nowrap}
+.rule .hr{color:var(--muted);font-size:.86rem}
+.rule .hr b{color:var(--fg);font-weight:600}
+
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin:18px 0}
+.tool .lbl{font-family:var(--f-display);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:grid;gap:4px;flex:1 1 160px;min-width:0}
+.field label{font-size:.82rem;color:var(--muted);font-family:var(--f-display)}
+input[type=text],input[type=number],select{font-family:var(--f-mono);font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;width:100%}
+input[type=range]{width:100%;accent-color:var(--c1)}
+button{font-family:var(--f-display);font-weight:500;font-size:.92rem;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--c1);color:#fff}
+button.ghost{background:var(--sunk);color:var(--fg)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px;margin-top:12px}
+.stat{background:var(--sunk);border-radius:10px;padding:8px 12px}
+.stat span{display:block;font-size:.75rem;color:var(--muted);font-family:var(--f-display)}
+.stat b{font-family:var(--f-mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.stat.hl{background:color-mix(in srgb,var(--c2) 20%,var(--sunk))}
+
+.svgbox{overflow-x:auto;margin-top:12px}
+.svgbox svg{display:block;width:100%;height:auto;min-width:320px;font-family:var(--f-mono)}
+.svgbox .ax{stroke:var(--line);stroke-width:1}
+.svgbox .grid{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
+.svgbox .tk{fill:var(--muted);font-size:11px}
+.svgbox .lab{fill:var(--muted);font-size:12px;font-family:var(--f-display)}
+.svgbox .pt{fill:var(--c1);fill-opacity:.75}
+.svgbox .pt.flag{fill:var(--c5);fill-opacity:1}
+.svgbox .band{fill:color-mix(in srgb,var(--c3) 16%,transparent)}
+.svgbox .band2{fill:color-mix(in srgb,var(--c1) 12%,transparent)}
+.svgbox .mk{stroke:var(--fg);stroke-width:1.5}
+.svgbox .me{stroke:var(--c2);stroke-width:3}
+.svgbox .ml{fill:var(--fg);font-size:11px}
+.svgbox .me-l{fill:var(--c2);font-size:12px;font-family:var(--f-display);font-weight:500}
+
+.grid100{display:grid;grid-template-columns:repeat(20,1fr);gap:3px;margin-top:12px;max-width:520px}
+.grid100 span{aspect-ratio:1;border-radius:3px;background:var(--sunk)}
+.grid100 .tp{background:var(--c3)} .grid100 .fn{background:color-mix(in srgb,var(--c3) 35%,var(--sunk))}
+.grid100 .fp{background:var(--c5)} .grid100 .tn{background:var(--line)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:11px;height:11px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+
+.ct{display:grid;grid-template-columns:auto repeat(2,minmax(70px,110px));gap:6px;align-items:center;max-width:360px;margin-top:8px;font-size:.88rem}
+.ct .h{font-family:var(--f-display);color:var(--muted);text-align:center;font-size:.8rem}
+
+.py{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:18px 0;background:var(--code-bg)}
+.py .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.py .bar span{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.py .bar .btns{display:flex;gap:6px}
+.py textarea{display:block;width:100%;border:0;resize:vertical;background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:.86rem;line-height:1.55;padding:14px 16px;tab-size:4;white-space:pre;overflow-x:auto}
+.py pre.out{margin:0;padding:12px 16px;background:var(--out-bg);color:var(--out-fg);font-family:var(--f-mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+.py pre.out:empty{display:none}
+.py pre.out .e{color:#ff9c8f}
+.py pre.out .w{color:#9fb3c8;font-style:italic}
+.py .figs{background:#ffffff;display:grid;gap:8px;padding:12px;justify-items:center}
+.py .figs:empty{display:none}
+.py .figs img{max-width:100%;height:auto}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="stripe" aria-hidden="true"><span style="background:var(--c1)"></span><span style="background:var(--c2)"></span><span style="background:var(--c3)"></span><span style="background:var(--c4)"></span><span style="background:var(--c5)"></span></div>
+  <h1>Dağılım, Olasılık ve Güvenirlik</h1>
+  <p class="lede">Usman Zafar Paracha'nın <em>Colorful Statistics and Python Programming Language</em> kitabının 72–102. sayfalarının Türkçe, etkileşimli ve insan kaynakları örnekleriyle uyarlanmış sürümü. Aykırı değerlerden Cronbach alfasına kadar her kavramın yanında tarayıcıda çalışan bir Python hücresi ya da etkileşimli bir araç var.</p>
+  <div class="status" id="status" role="status"><i></i><span>Python (Pyodide) yükleniyor…</span></div>
+</header>
+
+<nav class="toc" aria-label="İçindekiler">
+  <h2>İçindekiler</h2>
+  <ol>
+    <li><a href="#aykiri"><small>1</small>Aykırı değer</a></li>
+    <li><a href="#ceyrek"><small>2</small>Çeyrek, ondalık, yüzdelik</a></li>
+    <li><a href="#varyans"><small>3</small>Standart sapma ve varyans</a></li>
+    <li><a href="#aciklik"><small>4</small>Açıklık kuralı</a></li>
+    <li><a href="#olasilik"><small>5</small>Olasılık kuralları</a></li>
+    <li><a href="#bayes"><small>6</small>Bayes teoremi</a></li>
+    <li><a href="#kappa"><small>7</small>Güvenirlik ve kappa</a></li>
+    <li><a href="#alfa"><small>8</small>Cronbach alfa</a></li>
+    <li><a href="#cv"><small>9</small>Değişim katsayısı</a></li>
+    <li><a href="#cheb"><small>10</small>Chebyshev teoremi</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 AYKIRI DEĞER -->
+<section id="aykiri" style="--dot:var(--c5)">
+  <div class="kicker">s. 72–76</div>
+  <h2 class="sec">Aykırı değer</h2>
+  <p>Aykırı değer, diğer değerlerden olağan dışı bir uzaklıkta (onların dışında) kalan değerdir. Verideki bir sorunun işareti olabilir: incelenen modele uymayan bir durum ya da ölçüm sırasında yapılmış bir hata. Kitaptaki örnek, kişisel bilgisayarlarla dolu bir laboratuvardaki süper bilgisayardır. Kutu grafikleri aykırı değerleri bulmak ve göstermek için sık kullanılır.</p>
+  <div class="case"><span class="tag">İK vakası</span>Aynı unvandaki 10 uzmanın aylık brüt ücretleri (TL; kitaptaki değerlerin 100 katı): 34.296, 34.603, 34.592, 34.472, 34.305, 34.586, 34.472, <strong>39.555</strong>, 34.546, 34.570. Bir değer diğerlerinden belirgin biçimde yüksek. Bu bir veri giriş hatası mı, yoksa bu kişi aslında farklı bir kademede mi? İK analisti önce bunu doğrulamalıdır.</div>
+  <div class="tool">
+    <div class="lbl">Aykırı değer bulucu · z-puanı ve IQR yöntemi</div>
+    <div class="row">
+      <div class="field" style="flex:3 1 300px"><label for="o-in">Değerler</label><input id="o-in" type="text" value="34296, 34603, 34592, 34472, 34305, 34586, 34472, 39555, 34546, 34570"></div>
+      <div class="field" style="flex:1 1 120px"><label for="o-k">z eşiği</label><select id="o-k"><option value="2" selected>|z| &gt; 2</option><option value="2.5">|z| &gt; 2,5</option><option value="3">|z| &gt; 3</option></select></div>
+    </div>
+    <div class="svgbox" id="o-svg" aria-label="Değerlerin dağılımı"></div>
+    <div class="stats" id="o-stats"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · z-puanı ve kutu grafiği ile aykırı değer</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="34">import numpy as np
+import matplotlib.pyplot as plt
+
+ucret = [34296, 34603, 34592, 34472, 34305, 34586, 34472, 39555, 34546, 34570]
+
+# Kitaptaki yöntem: ortalamadan 2 standart sapmadan fazla uzak olanlar
+def outlier(x, stdev=2):
+    outliers = []
+    mean_1 = np.mean(x)
+    std_1 = np.std(x)
+    for y in x:
+        z_score = (y - mean_1) / std_1
+        if np.abs(z_score) > stdev:
+            outliers.append(y)
+    return outliers
+
+print("z-puanı yöntemi :", outlier(ucret))
+
+# IQR (Tukey) yöntemi: kutu grafiğinin kullandığı kural
+q1, q3 = np.percentile(ucret, [25, 75])
+iqr = q3 - q1
+alt, ust = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+print(f"IQR yöntemi    : sınırlar {alt:,.0f} – {ust:,.0f} TL")
+print("                ", [u for u in ucret if u < alt or u > ust])
+
+plt.boxplot(ucret)
+plt.xticks([1], ['Uzman ücretleri'])
+plt.ylabel('Aylık brüt ücret (TL)')
+plt.title('Kutu grafiğinde aykırı değer')
+plt.show()
+
+# Aykırı değeri çıkarınca ortalama ve standart sapma ne kadar değişiyor?
+temiz = [u for u in ucret if u <= ust]
+print(f"\nOrtalama: {np.mean(ucret):,.0f} → {np.mean(temiz):,.0f} TL")
+print(f"Std sapma: {np.std(ucret):,.0f} → {np.std(temiz):,.0f} TL")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> z-puanı yöntemi küçük örneklemlerde zayıftır. Aykırı değer, hesaplanan ortalamayı ve standart sapmayı kendine çeker ve kendini “gizleyebilir”. 10 gözlemde bir değerin z-puanı en fazla 2,85 olabilir, bu yüzden |z| &gt; 3 kuralı hiçbir şey bulamaz. Ortanca ve çeyreklere dayanan IQR yöntemi aykırı değerden çok daha az etkilenir. Aykırı değer bulmak onu silmek demek değildir: önce nedenini araştırın.</div>
+</section>
+
+<!-- 2 ÇEYREKLER -->
+<section id="ceyrek" style="--dot:var(--c4)">
+  <div class="kicker">s. 76–80</div>
+  <h2 class="sec">Çeyrek, ondalık ve yüzdelik dilimler</h2>
+  <p>Nicelik (quantile), bir örneklemi bitişik ve eşit büyüklükte alt gruplara bölerek ya da bir olasılık dağılımını eşit olasılıklı alanlara bölerek elde edilir.</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Tür</th><th>Böler</th><th>Gösterim</th><th>Gruplanmış veri formülü</th></tr></thead>
+    <tbody>
+      <tr><td>Çeyrek (quartile)</td><td>4 eşit parça</td><td>Q1, Q2, Q3</td><td style="font-family:var(--f-mono)">Qᵢ = l + (h/f)(iN/4 − c)</td></tr>
+      <tr><td>Ondalık (decile)</td><td>10 eşit parça</td><td>D1 … D9</td><td style="font-family:var(--f-mono)">Dᵢ = l + (h/f)(iN/10 − c)</td></tr>
+      <tr><td>Yüzdelik (percentile)</td><td>100 eşit parça</td><td>P1 … P99</td><td style="font-family:var(--f-mono)">Pᵢ = l + (h/f)(iN/100 − c)</td></tr>
+    </tbody>
+  </table></div>
+  <p>Formüldeki l: dilimin bulunduğu sınıfın alt sınırı; h: sınıf genişliği; f: o sınıfın frekansı; N: toplam gözlem sayısı; c: o sınıftan önceki birikimli frekans. Her dilim verinin belirli bir yüzdesini gösterir: verinin %75'i Q3'ün, %30'u D3'ün, %80'i P80'in altındadır.</p>
+  <div class="case"><span class="tag">İK vakası</span>Ücret yönetiminde yüzdelikler temel araçtır. Ücret araştırmaları piyasa ücretlerini P10, P25, P50 (medyan), P75 ve P90 olarak raporlar. Bir şirket “piyasanın P75'inden ödüyoruz” dediğinde, aynı pozisyondaki çalışanların %75'inden fazla ödediğini söyler.</div>
+
+  <div class="tool">
+    <div class="lbl">Ücretim piyasada kaçıncı yüzdelikte?</div>
+    <p style="margin:0 0 8px;font-size:.92rem">200 şirketin “İK uzmanı” pozisyonu için ödediği aylık brüt ücretler (kurgusal piyasa verisi, bin TL).</p>
+    <div class="row"><div class="field" style="max-width:260px"><label for="p-in">Teklif edilen / mevcut ücret (bin TL)</label><input id="p-in" type="number" step="1" value="58"></div></div>
+    <div class="svgbox" id="p-svg" aria-label="Piyasa ücret dağılımı ve yüzdelikler"></div>
+    <div class="stats" id="p-stats"></div>
+  </div>
+
+  <p>Kitaptaki örnek on sayıdır: 3, 2, 5, 6, 7, 8, 1, 10, 9, 4. İK karşılığı olarak bunları bir ekipteki 10 çalışanın kıdem yılı sayalım. Python'da farklı <em>ara değerleme</em> yöntemleri farklı sonuç verir.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · yüzdelik hesaplama yöntemleri</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="32">import numpy as np
+
+kidem = [3, 2, 5, 6, 7, 8, 1, 10, 9, 4]          # yıl
+p = [10, 25, 50, 75, 100]
+
+# Kitap interpolation= kullanıyor; numpy 1.22'den beri adı method=
+for yontem in ["linear", "midpoint", "higher", "lower", "nearest"]:
+    print(f"{yontem:9}", np.percentile(kidem, p, method=yontem))
+
+print("\nOndalıklar (D1–D9):", np.percentile(kidem, range(10, 100, 10)))
+
+# Gruplanmış veri: 120 çalışanın ücret sınıfları (bin TL)
+siniflar = [(30, 40, 12), (40, 50, 30), (50, 60, 41), (60, 70, 25), (70, 80, 12)]
+N = sum(f for _, _, f in siniflar)
+
+def gruplu_nicelik(oran):
+    hedef = oran * N                          # iN/4, iN/10 ya da iN/100
+    c = 0
+    for l, u, f in siniflar:
+        if c + f >= hedef:
+            return l + (u - l) / f * (hedef - c)   # l + h/f (iN/k − c)
+        c += f
+
+print(f"\nGruplanmış ücret verisi (N = {N}):")
+for ad, oran in [("Q1", .25), ("Q2 (ortanca)", .50), ("Q3", .75), ("D9", .90), ("P95", .95)]:
+    print(f"  {ad:13} = {gruplu_nicelik(oran):.2f} bin TL")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki <code class="i">np.percentile(x, ..., interpolation='linear')</code> numpy 1.22'de <code class="i">method='linear'</code> olarak yeniden adlandırıldı; eski ad uyarı verir. Küçük veride yöntemler arasındaki fark belirgindir. Ücret raporlarında hangi yöntemin kullanıldığı yazılmalıdır.</div>
+</section>
+
+<!-- 3 VARYANS -->
+<section id="varyans" style="--dot:var(--c1)">
+  <div class="kicker">s. 80–83</div>
+  <h2 class="sec">Standart sapma ve varyans</h2>
+  <p>Standart sapma, gözlemlerin ortalama etrafında ne kadar yayıldığını gösterir ve Yunan harfi sigma (σ) ile gösterilir. Düşük standart sapma, değerlerin ortalamaya, yani normal ya da istenen aralığa yakın olduğunu gösterir. σ, varyansın (σ²) kareköküdür; varyans ise ortalama etrafındaki kare sapmaların ortalamasıdır. Her ikisinin de evren ve örneklem için ayrı formülleri vardır.</p>
+  <div class="formula">Evren: <b>σ = √( Σ(x − μ)² / N )</b> &nbsp;·&nbsp; Örneklem: <b>s = √( Σ(x − x̄)² / (n − 1) )</b></div>
+  <div class="case"><span class="tag">İK vakası</span>Bir satış ekibindeki 7 temsilcinin geçen hafta yaptığı <strong>müşteri ziyareti</strong> sayıları (kitaptaki 7 dükkândan alınan yumurta sayılarıyla aynı): 5, 7, 6, 4, 7, 9, 11. Ortalama 7 ziyaret.</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Temsilci</th><th class="num">Ziyaret (x)</th><th class="num">x − x̄</th><th class="num">(x − x̄)²</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="num">5</td><td class="num">−2</td><td class="num">4</td></tr>
+      <tr><td>2</td><td class="num">7</td><td class="num">0</td><td class="num">0</td></tr>
+      <tr><td>3</td><td class="num">6</td><td class="num">−1</td><td class="num">1</td></tr>
+      <tr><td>4</td><td class="num">4</td><td class="num">−3</td><td class="num">9</td></tr>
+      <tr><td>5</td><td class="num">7</td><td class="num">0</td><td class="num">0</td></tr>
+      <tr><td>6</td><td class="num">9</td><td class="num">2</td><td class="num">4</td></tr>
+      <tr><td>7</td><td class="num">11</td><td class="num">4</td><td class="num">16</td></tr>
+      <tr class="tot"><td>Toplam</td><td class="num">49</td><td class="num">0</td><td class="num">Σ(x − x̄)² = 34</td></tr>
+    </tbody>
+  </table></div>
+  <p>Örneklem varyansı 34 / 6 = 5,667; evren varyansı 34 / 7 = 4,857. Bu 7 kişi şirketin bütün satış temsilcileriyse (evren) σ, daha büyük bir kadrodan seçilmiş bir gruplarsa (örneklem) s kullanılır.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · varyans ve standart sapma</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="22">import statistics as st
+import numpy as np
+
+ziyaret = [5, 7, 6, 4, 7, 9, 11]
+
+print("Örneklem varyansı  :", st.variance(ziyaret))    # 5.666...
+print("Evren varyansı     :", st.pvariance(ziyaret))   # 4.857...
+print("Örneklem std sapma :", st.stdev(ziyaret))       # 2.3804
+print("Evren std sapma    :", st.pstdev(ziyaret))      # 2.2039
+
+# numpy'da varsayılan evren formülüdür (ddof=0); örneklem için ddof=1
+print("\nnp.std(ddof=0):", np.std(ziyaret))
+print("np.std(ddof=1):", np.std(ziyaret, ddof=1))
+
+# İki ekibin ortalaması aynı, yayılımı farklı
+ekip_a = [6, 7, 7, 7, 7, 7, 8]
+ekip_b = [1, 3, 7, 7, 7, 11, 13]
+for ad, e in [("Ekip A", ekip_a), ("Ekip B", ekip_b)]:
+    print(f"{ad}: ortalama = {st.mean(e)}, s = {st.stdev(e):.2f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <p class="muted" style="font-size:.92rem">Son iki ekibin ortalaması aynıdır (7 ziyaret), ama B ekibindeki büyük yayılım performansın kişiden kişiye çok değiştiğini, koçluk ihtiyacının bazı kişilerde yoğunlaştığını gösterir. Ortalama tek başına bunu söylemez.</p>
+</section>
+
+<!-- 4 AÇIKLIK KURALI -->
+<section id="aciklik" style="--dot:var(--c3)">
+  <div class="kicker">s. 83–84</div>
+  <h2 class="sec">Açıklık kuralı (range rule of thumb)</h2>
+  <p>Açıklık kuralı, bilinen bir örneklem ya da evrenden elde edilen veriden standart sapmanın kabaca tahmin edilmesine yardım eder.</p>
+  <div class="formula"><b>s ≈ açıklık / 4</b> &nbsp;&nbsp; açıklık = en büyük değer − en küçük değer</div>
+  <div class="case"><span class="tag">İK vakası</span>Ekipteki 10 çalışanın kıdem yılları: 3, 2, 5, 6, 7, 8, 1, 10, 9, 4. Evren standart sapması 2,87, örneklem standart sapması 3,03. Açıklık kuralıyla kaba tahmin: (10 − 1) / 4 = <strong>2,25</strong>. Elinizde yalnızca bir ücret bandının alt ve üst sınırı varsa (ör. 40–80 bin TL), bant içindeki ücretlerin standart sapmasını kabaca 10 bin TL diye tahmin edebilirsiniz.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · açıklık kuralı</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="14">import numpy as np
+
+kidem = np.array([3, 2, 5, 6, 7, 8, 1, 10, 9, 4])
+
+aciklik = kidem.max() - kidem.min()
+print("Evren std sapma   :", round(kidem.std(ddof=0), 2))   # 2.87
+print("Örneklem std sapma:", round(kidem.std(ddof=1), 2))   # 3.03
+print("Açıklık kuralı    :", aciklik / 4)                   # 2.25
+
+# Ücret bandı örneği
+alt, ust = 40, 80        # bin TL
+print(f"\n{alt}-{ust} bin TL bandı için tahmini std sapma ≈ {(ust - alt) / 4} bin TL")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kural, normale yakın dağılımlarda ve orta büyüklükteki örneklemlerde (yaklaşık 30–70 gözlem) iyi çalışır. Az gözlemde standart sapmayı küçük, çok gözlemde büyük tahmin etme eğilimindedir.</div>
+</section>
+
+<!-- 5 OLASILIK -->
+<section id="olasilik" style="--dot:var(--c2)">
+  <div class="kicker">s. 84–86</div>
+  <h2 class="sec">Olasılık kuralları</h2>
+  <p>Olasılık, bir olayın gerçekleşme ihtimalinin ölçüsüdür. Kitaptaki sekiz temel kural, İK örnekleriyle:</p>
+  <div class="rules">
+    <div class="rule"><span class="no">Kural 1</span><h4>Olasılık 0 ile 1 arasındadır</h4><div class="f">0 ≤ P(A) ≤ 1, P(A) = m / n</div><span class="hr">m: istenen sonuç sayısı, n: toplam sonuç sayısı. <b>İK:</b> 200 başvurudan 30'u mülakata çağrıldı → P(mülakat) = 30/200 = 0,15.</span></div>
+    <div class="rule"><span class="no">Kural 2</span><h4>Tüm sonuçların toplamı 1'dir</h4><div class="f">P(S) = 1</div><span class="hr"><b>İK:</b> bir başvurunun sonucu işe alındı, reddedildi ya da aday çekildi. Bu üç olasılığın toplamı 1 eder.</span></div>
+    <div class="rule"><span class="no">Kural 3</span><h4>Tümleyen kuralı</h4><div class="f">P(A değil) = 1 − P(A)</div><span class="hr"><b>İK:</b> yıllık işgücü devir hızı %18 ise bir çalışanın yıl sonunda hâlâ şirkette olma olasılığı 1 − 0,18 = 0,82.</span></div>
+    <div class="rule"><span class="no">Kural 4</span><h4>Ayrık olaylar için toplama</h4><div class="f">P(A veya B) = P(A) + P(B)</div><span class="hr">A ve B aynı anda gerçekleşemez. <b>İK:</b> bir çalışan tek bir departmandadır: P(Satış veya BT) = 0,24 + 0,16 = 0,40.</span></div>
+    <div class="rule"><span class="no">Kural 5</span><h4>Genel toplama kuralı</h4><div class="f">P(A∪B) = P(A) + P(B) − P(A∩B)</div><span class="hr"><b>İK:</b> çalışanların %30'u uzaktan, %15'i yönetici, %5'i hem uzaktan çalışan hem yönetici → P(uzaktan veya yönetici) = 0,30 + 0,15 − 0,05 = 0,40.</span></div>
+    <div class="rule"><span class="no">Kural 6</span><h4>Bağımsız olaylar için çarpma</h4><div class="f">P(A ve B) = P(A) × P(B)</div><span class="hr"><b>İK:</b> iki farklı pozisyona teklif yapılan iki adayın kabul olasılıkları birbirinden bağımsız ve 0,7 ise ikisinin de kabul etmesi 0,7 × 0,7 = 0,49.</span></div>
+    <div class="rule"><span class="no">Kural 7</span><h4>Koşullu olasılık</h4><div class="f">P(B | A) = P(A ve B) / P(A)</div><span class="hr">“A gerçekleştiği bilindiğinde B'nin olasılığı.” <b>İK:</b> P(ayrılma | düşük bağlılık) = P(ayrılma ve düşük bağlılık) / P(düşük bağlılık).</span></div>
+    <div class="rule"><span class="no">Kural 8</span><h4>Genel çarpma kuralı</h4><div class="f">P(A∩B) = P(A) × P(B | A)</div><span class="hr"><b>İK:</b> adayların %15'i mülakata çağrılıyor, mülakata girenlerin %20'sine teklif yapılıyor → P(mülakat ve teklif) = 0,15 × 0,20 = 0,03.</span></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · çalışan verisinde olasılık kuralları</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="32">import numpy as np
+import pandas as pd
+
+rng = np.random.default_rng(1)
+n = 1000
+baglilik = rng.choice(["Düşük", "Orta", "Yüksek"], size=n, p=[0.25, 0.45, 0.30])
+# Düşük bağlılıkta ayrılma olasılığı daha yüksek
+p_ayr = pd.Series(baglilik).map({"Düşük": 0.35, "Orta": 0.15, "Yüksek": 0.06})
+ayrildi = rng.random(n) < p_ayr
+df = pd.DataFrame({"baglilik": baglilik, "ayrildi": ayrildi})
+
+tablo = pd.crosstab(df.baglilik, df.ayrildi, margins=True, margins_name="Toplam")
+print(tablo, "\n")
+
+P_A = (df.baglilik == "Düşük").mean()                     # Kural 1
+P_ayr = df.ayrildi.mean()
+P_A_ve_B = ((df.baglilik == "Düşük") & df.ayrildi).mean()
+
+print(f"Kural 1  P(ayrılma)                       = {P_ayr:.3f}")
+print(f"Kural 3  P(kalma) = 1 − P(ayrılma)         = {1 - P_ayr:.3f}")
+print(f"Kural 5  P(düşük bağlılık ∪ ayrılma)       = {P_A + P_ayr - P_A_ve_B:.3f}")
+print(f"Kural 7  P(ayrılma | düşük bağlılık)       = {P_A_ve_B / P_A:.3f}")
+print(f"Kural 8  P(düşük) × P(ayrılma | düşük)     = {P_A * (P_A_ve_B / P_A):.3f}"
+      f"  (= P(düşük ∩ ayrılma) = {P_A_ve_B:.3f})")
+
+# Bağımsız mı? Kural 6 tutuyorsa P(A∩B) ≈ P(A)·P(B) olurdu
+print(f"\nP(düşük)·P(ayrılma) = {P_A * P_ayr:.3f}  vs  P(düşük ∩ ayrılma) = {P_A_ve_B:.3f}")
+print("→ Bağlılık ve ayrılma bağımsız değil.")
+
+print("\nBağlılık düzeyine göre ayrılma oranı:")
+print(df.groupby("baglilik").ayrildi.mean().round(3))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+</section>
+
+<!-- 6 BAYES -->
+<section id="bayes" style="--dot:var(--c4)">
+  <div class="kicker">s. 86–92</div>
+  <h2 class="sec">Bayes teoremi</h2>
+  <p>Bayes istatistiği adını İngiliz rahip Thomas Bayes'ten (1702–1761) alır. Bayes, sonuçların gözlemlenmesine dayanarak bir hipotezin kurulabileceği bir teoreme ulaşmıştır.</p>
+  <div class="formula"><b>P(A₁ | B) = P(A₁) · P(B | A₁) / Σ P(Aᵢ) · P(B | Aᵢ)</b></div>
+  <div class="formula">Sonsal (posterior) = <b>Önsel (prior) × Olabilirlik (likelihood) / Marjinal</b></div>
+  <p><strong>Önsel:</strong> B'yi hesaba katmadan A₁'in olasılığı. <strong>Olabilirlik:</strong> A₁ doğruyken B'yi gözlemleme olasılığı. <strong>Marjinal:</strong> B'nin genel olasılığı; bütün modelleri aynı biçimde etkiler. <strong>Sonsal:</strong> B gözlendiğinde A₁'in olasılığı.</p>
+
+  <h3>Basit örnek</h3>
+  <div class="case"><span class="tag">İK vakası</span>Çalışanların <strong>%70'i</strong> hibrit çalışıyor: P(Hibrit) = 0,7. Hibrit çalışanların <strong>%40'ı</strong> esnek mesai saati kullanıyor: P(Esnek | Hibrit) = 0,4. Bütün çalışanlarda esnek mesai kullananların oranı <strong>%35</strong>: P(Esnek) = 0,35. Esnek mesai kullanan bir çalışanın hibrit çalışıyor olma olasılığı nedir?<br><br>P(Hibrit | Esnek) = 0,7 × 0,4 / 0,35 = <strong>0,80</strong></div>
+  <div class="note warn"><strong>Kitaptaki örnekler hakkında uyarı.</strong> Kitaptaki burger örneğinde P(Restoran) = 0,7, P(Burger | Restoran) = 0,4 ve P(Burger) = 0,8 veriliyor. Bu değerler birlikte mümkün değildir. Restoran <em>olmayan</em> yerlerdeki burger olasılığı 0,8 − 0,28 = 0,52 çıkar; bu, restoran olmayan yerlerin toplam payından (0,3) büyüktür. İkinci örnek (tohum ve bitki) %255 sonucunu veriyor. Kural 1'e göre hiçbir olasılık 1'i aşamaz, yani verilen değerler tutarsızdır. Bayes formülüne girmeden önce P(B) ≥ P(A)·P(B|A) koşulunu kontrol edin. Yukarıdaki İK örneği bu koşulu sağlayacak biçimde seçildi.</div>
+
+  <h3>Dört kutu örneği: işe alım kanalları</h3>
+  <div class="case"><span class="tag">İK vakası</span>Yeni çalışanlar eşit oranda dört kanaldan geliyor: P(Aᵢ) = 1/4. Kanallara göre deneme süresini başarıyla tamamlama oranları kitaptaki kutulardaki siyah top oranlarıyla aynı: A₁ Referans: 1 (hepsi), A₂ LinkedIn: 1/2, A₃ Kariyer fuarı: 1/2, A₄ Toplu ilan sitesi: 0. Deneme süresini başarıyla tamamlayan (B) bir çalışan rastgele seçiliyor. Bu kişinin referansla gelmiş olma olasılığı nedir?</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Kanal (Aᵢ)</th><th class="num">P(Aᵢ)</th><th class="num">P(B | Aᵢ)</th><th class="num">P(Aᵢ)·P(B | Aᵢ)</th><th class="num">P(Aᵢ | B)</th></tr></thead>
+    <tbody>
+      <tr><td>A₁ Referans</td><td class="num">1/4</td><td class="num">1</td><td class="num">1/4</td><td class="num"><b>1/2</b></td></tr>
+      <tr><td>A₂ LinkedIn</td><td class="num">1/4</td><td class="num">1/2</td><td class="num">1/8</td><td class="num">1/4</td></tr>
+      <tr><td>A₃ Kariyer fuarı</td><td class="num">1/4</td><td class="num">1/2</td><td class="num">1/8</td><td class="num">1/4</td></tr>
+      <tr><td>A₄ İlan sitesi</td><td class="num">1/4</td><td class="num">0</td><td class="num">0</td><td class="num">0</td></tr>
+      <tr class="tot"><td>Toplam</td><td class="num">1</td><td class="num"></td><td class="num">1/2</td><td class="num">1</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Seçme testlerinde Bayes: test geçen aday ne kadar başarılı olur?</h3>
+  <div class="tool">
+    <div class="lbl">Bayes hesaplayıcı · 100 aday</div>
+    <div class="row">
+      <div class="field"><label for="b-pr">İşte başarılı olacak adayların oranı (önsel): <b id="b-prv"></b></label><input id="b-pr" type="range" min="5" max="80" value="30"></div>
+      <div class="field"><label for="b-se">Başarılı olacakların testi geçme oranı (duyarlılık): <b id="b-sev"></b></label><input id="b-se" type="range" min="10" max="100" value="80"></div>
+      <div class="field"><label for="b-fp">Başarısız olacakların testi geçme oranı: <b id="b-fpv"></b></label><input id="b-fp" type="range" min="0" max="80" value="20"></div>
+    </div>
+    <div class="grid100" id="b-grid" aria-hidden="true"></div>
+    <div class="legend"><span><i style="background:var(--c3)"></i>başarılı olacak, testi geçti</span><span><i style="background:var(--c5)"></i>başarısız olacak, testi geçti</span><span><i style="background:color-mix(in srgb,var(--c3) 35%,var(--sunk))"></i>başarılı olacak, elendi</span><span><i style="background:var(--line)"></i>başarısız olacak, elendi</span></div>
+    <div class="stats" id="b-stats"></div>
+    <p class="muted" id="b-txt" style="margin:10px 0 0;font-size:.92rem"></p>
+  </div>
+
+  <div class="py" data-cell><div class="bar"><span>Python · Bayes hesapları</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="30">from fractions import Fraction as F
+
+# Basit örnek
+print("P(Hibrit | Esnek) =", (0.7 * 0.4) / 0.35)
+
+# Kitaptaki iki örnek ve tutarlılık kontrolü
+def bayes(p_a, p_b_a, p_b):
+    if p_b < p_a * p_b_a or p_b - p_a * p_b_a > 1 - p_a:
+        return "tutarsız girdiler!"
+    return p_a * p_b_a / p_b
+
+print("Kitap (burger):", bayes(0.7, 0.4, 0.8))
+print("Kitap (tohum) :", bayes(0.15, 0.85, 0.05))
+
+# Dört işe alım kanalı (kesirlerle, kitaptaki tablo gibi)
+kanal   = ["Referans", "LinkedIn", "Kariyer fuarı", "İlan sitesi"]
+onsel   = [F(1, 4)] * 4
+olabilirlik = [F(1), F(1, 2), F(1, 2), F(0)]
+ortak = [a * b for a, b in zip(onsel, olabilirlik)]
+marjinal = sum(ortak)
+print(f"\nP(B) = {marjinal}")
+for k, o in zip(kanal, ortak):
+    print(f"P({k} | deneme süresini geçti) = {o / marjinal}")
+
+# Seçme testi
+onsel_basari, duyarlilik, yanlis_pozitif = 0.30, 0.80, 0.20
+p_gecti = onsel_basari * duyarlilik + (1 - onsel_basari) * yanlis_pozitif
+print(f"\nP(başarılı | testi geçti) = {onsel_basari * duyarlilik / p_gecti:.3f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+</section>
+
+<!-- 7 KAPPA -->
+<section id="kappa" style="--dot:var(--c1)">
+  <div class="kicker">s. 92–97</div>
+  <h2 class="sec">Güvenirlik katsayısı, Cohen ve Fleiss kappa</h2>
+  <p>Güvenirlik, bir ölçümün tutarlılığı ya da ona duyulan güvendir. Güvenirlik katsayısı bir ölçme aracının ya da testin tutarlılık derecesini gösterir ve genellikle iki farklı ölçüm kümesinin korelasyonuyla belirlenir. Farklı türleri vardır:</p>
+  <div class="tbl"><table>
+    <thead><tr><th>Güvenirlik türü</th><th>Tipik ölçü</th><th>İK örneği</th></tr></thead>
+    <tbody>
+      <tr><td>Değerlendiriciler arası</td><td>Cohen kappa (2 kişi), Fleiss kappa (3+ kişi)</td><td>İki mülakatçının aynı adaylar hakkındaki kararları ne kadar uyuşuyor?</td></tr>
+      <tr><td>İç tutarlılık</td><td>Cronbach alfa</td><td>Bağlılık ölçeğinin maddeleri aynı şeyi mi ölçüyor?</td></tr>
+      <tr><td>Test-tekrar test</td><td>Pearson korelasyonu</td><td>Bir yetenek testini iki hafta arayla alan adayların puanları tutarlı mı?</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Cohen kappa</h3>
+  <p>Nitel ya da kategorik maddelerde değerlendiriciler (gözlemciler) arası uyumu belirlemek için kullanılır. Her örnek iki farklı değerlendirici tarafından bir kez ya da bir değerlendirici tarafından iki kez değerlendirildiğinde hesaplanır. Basit yüzde uyumdan daha sağlamdır, çünkü şans eseri uyumu da hesaba katar.</p>
+  <div class="formula"><b>κ = (pₒ − pₑ) / (1 − pₑ)</b> &nbsp; pₒ: gözlenen uyum oranı, pₑ: şansa bağlı beklenen uyum oranı</div>
+  <div class="case"><span class="tag">İK vakası</span>İki mülakatçı (A ve B), 100 adayı birbirinden bağımsız olarak “işe uygun / uygun değil” diye değerlendirdi (kitaptaki 100 çocukta davranış gözlemiyle aynı sayılar). İkisi 40 adayda “uygun”, 30 adayda “uygun değil” dedi. pₒ = 0,70. A adayların %50'sine, B %60'ına “uygun” dedi; pₑ = 0,5·0,6 + 0,5·0,4 = 0,5. κ = (0,7 − 0,5)/(1 − 0,5) = <strong>0,40</strong>.</div>
+  <div class="tool">
+    <div class="lbl">Cohen kappa hesaplayıcı · tablodaki sayıları değiştirin</div>
+    <div class="ct">
+      <span></span><span class="h">B: Uygun</span><span class="h">B: Uygun değil</span>
+      <span class="h" style="text-align:left">A: Uygun</span><input id="k-a" type="number" min="0" value="40" aria-label="A uygun, B uygun"><input id="k-b" type="number" min="0" value="10" aria-label="A uygun, B uygun değil">
+      <span class="h" style="text-align:left">A: Uygun değil</span><input id="k-c" type="number" min="0" value="20" aria-label="A uygun değil, B uygun"><input id="k-d" type="number" min="0" value="30" aria-label="A uygun değil, B uygun değil">
+    </div>
+    <div class="stats" id="k-stats"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · Cohen ve Fleiss kappa (statsmodels)</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="34">import numpy as np
+import statsmodels.stats.inter_rater as st
+
+# Cohen kappa: iki mülakatçı, 100 aday
+table = [[40, 10],
+         [20, 30]]
+sonuc = st.cohens_kappa(table)
+print(sonuc)
+
+# Fleiss kappa: 4 mülakatçı, 10 aday, 3 karar kategorisi
+# Satırlar adaylar, sütunlar mülakatçılar; 0 = Ret, 1 = Yedek, 2 = Kabul
+kararlar = np.array([
+    [2, 2, 2, 2],
+    [2, 2, 1, 2],
+    [0, 0, 0, 1],
+    [1, 1, 2, 1],
+    [0, 0, 0, 0],
+    [2, 1, 2, 2],
+    [1, 1, 1, 0],
+    [0, 1, 0, 0],
+    [2, 2, 2, 1],
+    [1, 0, 1, 1],
+])
+# aggregate_raters: her aday için her kategoriye kaç mülakatçının oy verdiği
+sayim, kategoriler = st.aggregate_raters(kararlar)
+print("Aday × kategori sayım tablosu:\n", sayim)
+print(f"\nFleiss kappa = {st.fleiss_kappa(sayim):.3f}")
+
+def yorum(k):          # Landis & Koch (1977)
+    for sinir, ad in [(0, "şanstan kötü"), (.20, "çok zayıf"), (.40, "zayıf"),
+                      (.60, "orta"), (.80, "önemli"), (1.01, "neredeyse mükemmel")]:
+        if k < sinir: return ad
+print("Yorum:", yorum(st.fleiss_kappa(sayim)))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap kappanın 0–1 aralığında olduğunu söylüyor. Aslında kappa, uyum şansın da altında kaldığında negatif çıkabilir. Fleiss kappa için kitapta “0,75 üzeri iyidir” deniyor. Yaygın kullanılan Landis ve Koch ölçütlerine göre 0,41–0,60 orta, 0,61–0,80 önemli, 0,81 ve üstü neredeyse mükemmel uyum sayılır; kabul edilebilir düzey araştırma alanına göre değişir. Mülakatçı uyumu düşükse yapılandırılmış mülakat formu ve ortak puanlama eğitimi ilk çözümdür.</div>
+</section>
+
+<!-- 8 CRONBACH -->
+<section id="alfa" style="--dot:var(--c3)">
+  <div class="kicker">s. 97–99</div>
+  <h2 class="sec">Cronbach alfa</h2>
+  <p>Cronbach alfa, iç tutarlılık güvenirliğini tahmin etmek için kullanılır: bir ölçeğin maddeleri aynı yapıyı ölçüyor mu?</p>
+  <div class="formula"><b>α = (N / (N − 1)) · (1 − Σ madde varyansları / toplam puan varyansı)</b></div>
+  <div class="formula">Eşdeğer biçim: <b>α = N·c̄ / (v̄ + (N − 1)·c̄)</b> &nbsp; N: madde sayısı, c̄: maddeler arası ortalama kovaryans, v̄: maddelerin ortalama varyansı</div>
+  <p>Kitaptaki yorum ölçütleri: α &lt; 0,5 kabul edilemez; α &gt; 0,7 yeterli; α ≥ 0,9 mükemmel.</p>
+  <div class="case"><span class="tag">İK vakası</span>18 çalışan, 7 maddelik bir <strong>iş tatmini ölçeğini</strong> 5'li Likert ile (1 = Kesinlikle katılmıyorum … 5 = Kesinlikle katılıyorum) yanıtladı (kitaptaki verinin aynısı). Ölçek iç tutarlılık açısından güvenilir mi?</div>
+  <div class="py" data-cell><div class="bar"><span>Python · Cronbach alfa</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="40">import numpy as np
+import pandas as pd
+
+# Satırlar maddeler (M1–M7), sütunlar 18 çalışan – kitaptaki veri
+data = [[5,1,4,4,2,5,2,3,2,4,4,5,5,2,2,4,3,2],
+        [1,5,2,4,3,1,1,2,1,4,3,1,4,4,4,5,4,4],
+        [3,4,1,3,3,1,1,2,5,1,4,1,3,4,3,2,4,3],
+        [2,3,3,5,5,2,3,5,3,4,3,3,2,2,2,3,1,5],
+        [1,5,5,3,2,4,1,2,1,2,4,3,5,4,2,4,4,1],
+        [4,5,3,4,5,5,5,5,3,5,4,5,3,4,3,2,2,3],
+        [2,4,4,5,4,1,2,4,4,4,5,3,4,5,2,3,4,5]]
+
+# Kitaptaki fonksiyonun sadeleştirilmiş hali
+def cronbach_alpha(maddeler):
+    m = np.asarray(maddeler, dtype=float)          # madde × kişi
+    k = m.shape[0]
+    madde_var = m.var(axis=1, ddof=1).sum()
+    toplam_var = m.sum(axis=0).var(ddof=1)
+    return k / (k - 1) * (1 - madde_var / toplam_var)
+
+print("İş tatmini ölçeği α =", round(cronbach_alpha(data), 4))   # 0.0914
+
+# Madde silinirse alfa: sorunlu maddeleri bulmak için
+df = pd.DataFrame(np.array(data).T, columns=[f"M{i}" for i in range(1, 8)])
+print("\nMadde silinirse α:")
+for c in df.columns:
+    print(f"  {c} çıkarılırsa: {cronbach_alpha(df.drop(columns=c).T.values):.3f}")
+
+print("\nMaddeler arası korelasyonlar:")
+print(df.corr().round(2))
+
+# Karşılaştırma: maddeleri ortak bir "gerçek tatmin" düzeyinden üretilen ölçek
+rng = np.random.default_rng(0)
+gercek = rng.normal(0, 1, 18)
+iyi = np.clip(np.round(3 + gercek + rng.normal(0, .6, (7, 18))), 1, 5)
+print(f"\nTutarlı bir ölçekte α = {cronbach_alpha(iyi):.3f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <p class="muted" style="font-size:.92rem">Kitaptaki veride α = 0,091 çıkıyor. Bu, kabul edilemez düzeyde düşük bir iç tutarlılıktır: maddeler arası korelasyonların çoğu sıfıra yakın ya da negatif. İK uygulamasında bu durumda ters kodlanması gereken madde olup olmadığı kontrol edilir ve “madde silinirse α” tablosu incelenir.</p>
+  <div class="note"><strong>Not.</strong> Kitaptaki kod <code class="i">data</code> listesinde her satırı bir madde olarak bekler. pandas tablolarında genellikle satırlar kişi, sütunlar maddedir; bu yüzden yukarıda <code class="i">.T</code> ile çevrildi. Yüksek α tek başına ölçeğin tek boyutlu olduğunu göstermez; madde sayısı arttıkça α da artar.</div>
+</section>
+
+<!-- 9 CV -->
+<section id="cv" style="--dot:var(--c2)">
+  <div class="kicker">s. 100–101</div>
+  <h2 class="sec">Değişim katsayısı</h2>
+  <p>Değişim katsayısı (CV), bir dağılım ya da göreli değişkenlik ölçüsüdür. Ortalamaları farklı olan grupların yayılımını karşılaştırmayı sağlar.</p>
+  <div class="formula"><b>CV = standart sapma / ortalama × 100</b></div>
+  <div class="case"><span class="tag">İK vakası</span>Aynı hedef kitleye aynı amaçla iki satış eğitimi programı uygulandı. X programına katılanların haftalık <strong>ek satış</strong> ortalaması 5 adet, standart sapması 3; Y programında ortalama 6, standart sapma 7. CV(X) = 3 × 100 / 5 = 60; CV(Y) = 7 × 100 / 6 = 116,67. Y'nin ortalaması biraz yüksek olsa da sonuçları çok daha değişken. X programı katılımcılar arasında daha tutarlı bir etki yaratıyor.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · değişim katsayısı</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="24">import numpy as np
+import scipy.stats as sp
+
+# Dokuz katılımcının haftalık ek satış adedi
+X = [1, 2, 1, 6, 7, 4, 8, 7, 9]
+Y = [1, 1, 1, 2, 8, 6, 2, 11, 22]
+
+print("CV(X) =", sp.variation(X) * 100)    # 58.12 – evren std sapması (ddof=0)
+print("CV(Y) =", sp.variation(Y) * 100)    # 109.99
+
+# Örneklem std sapmasıyla (ddof=1) – elle hesapla aynı mantık
+for ad, v in [("X", X), ("Y", Y)]:
+    print(f"CV({ad}, ddof=1) = {np.std(v, ddof=1) / np.mean(v) * 100:.2f}")
+
+# Farklı birimlerdeki değişkenleri karşılaştırmak
+ucret = np.array([42, 48, 51, 55, 58, 63, 70, 85])     # bin TL
+kidem = np.array([1, 2, 2, 4, 5, 7, 9, 15])            # yıl
+print(f"\nÜcretin CV'si: {sp.variation(ucret) * 100:.1f}")
+print(f"Kıdemin CV'si: {sp.variation(kidem) * 100:.1f}")
+print("→ Kıdem, ücrete göre göreli olarak çok daha değişken.")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap, Python sonuçlarının elle hesaplananlardan “biraz farklı” olduğunu söylüyor. Bunun iki nedeni var: tablodaki 5/3 ve 6/7 değerleri yalnızca örnek, ve <code class="i">scipy.stats.variation</code> varsayılan olarak evren standart sapmasını (ddof=0) kullanır. Örneklem standart sapmasıyla (ddof=1) Y programı için elle bulunan 116,67 aynen çıkar. CV yalnızca gerçek sıfır noktası olan, pozitif oranlı verilerde (ücret, kıdem, satış adedi) anlamlıdır; Likert puanları ya da sıcaklık için kullanılmamalıdır.</div>
+</section>
+
+<!-- 10 CHEBYSHEV -->
+<section id="cheb" style="--dot:var(--c5)">
+  <div class="kicker">s. 101–102</div>
+  <h2 class="sec">Chebyshev teoremi</h2>
+  <p>Bu teorem, herhangi bir gözlem kümesinde değerlerin en az 1 − 1/k² kadarının ortalamadan k standart sapma uzaklık içinde bulunduğunu söyler (k, 1'den büyük pozitif bir sayıdır). Teorem her türlü dağılım için geçerlidir.</p>
+  <div class="tbl" style="max-width:520px"><table>
+    <thead><tr><th>k</th><th>1 − 1/k²</th><th class="num">Kapsanan en az veri</th></tr></thead>
+    <tbody style="font-variant-numeric:tabular-nums">
+      <tr><td>1</td><td>1 − 1/1 = 0</td><td class="num">%0</td></tr>
+      <tr><td>2</td><td>1 − 1/4 = 0,75</td><td class="num">%75</td></tr>
+      <tr><td>3</td><td>1 − 1/9 = 0,8889</td><td class="num">%88,89</td></tr>
+      <tr><td>4</td><td>1 − 1/16 = 0,9375</td><td class="num">%93,75</td></tr>
+      <tr><td>5</td><td>1 − 1/25 = 0,96</td><td class="num">%96</td></tr>
+    </tbody>
+  </table></div>
+  <div class="case"><span class="tag">İK vakası</span>Ücret dağılımları neredeyse hiçbir zaman normal değildir; birkaç yüksek ücret sağa doğru uzun bir kuyruk oluşturur. Normal dağılıma dayanan “verinin %95'i ±2σ içindedir” kuralı burada güvenilmez. Chebyshev ise dağılımın şekli ne olursa olsun “çalışanların <strong>en az %75'inin</strong> ücreti ortalamadan ±2σ uzaklık içindedir” garantisini verir.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · çarpık ücret verisinde Chebyshev sınırı</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="28">import numpy as np
+import matplotlib.pyplot as plt
+
+print("k = 2 için:", 1 - (1 / 2**2))     # 0.75
+
+# 2.000 çalışanlı şirkette sağa çarpık ücret dağılımı (bin TL)
+rng = np.random.default_rng(4)
+ucret = rng.lognormal(mean=np.log(55), sigma=0.45, size=2000)
+mu, sigma = ucret.mean(), ucret.std()
+print(f"Ortalama = {mu:.1f}, σ = {sigma:.1f} bin TL\n")
+
+print("  k | Chebyshev alt sınırı | Gerçekleşen oran")
+for k in [1.5, 2, 3, 4]:
+    icinde = np.mean(np.abs(ucret - mu) <= k * sigma)
+    print(f"{k:>3} | {1 - 1 / k**2:>20.1%} | {icinde:>16.1%}")
+
+plt.hist(ucret, bins=50, color="#8a4fb0", alpha=.75)
+for k, ls in [(1, ":"), (2, "--"), (3, "-.")]:
+    for isaret in (-1, 1):
+        plt.axvline(mu + isaret * k * sigma, color="k", linestyle=ls, linewidth=1)
+plt.axvline(mu, color="#d9822b", linewidth=2)
+plt.xlim(left=0)
+plt.xlabel("Aylık brüt ücret (bin TL)"); plt.ylabel("Çalışan sayısı")
+plt.title("Çarpık ücret dağılımı ve ±1σ, ±2σ, ±3σ sınırları")
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <p class="muted" style="font-size:.92rem">Gerçekleşen oranlar Chebyshev'in alt sınırından her zaman yüksektir. Teorem karamsar ama her koşulda geçerli bir garanti verir. Dağılım normale yakın olduğunda daha dar 68–95–99,7 kuralı kullanılabilir.</p>
+</section>
+
+</main>
+
+<footer>
+  Kaynak: Usman Zafar Paracha, <em>Colorful Statistics and Python Programming Language</em>, s. 72–102. Kavram anlatımları kitaptan çevrilmiş; örnekler insan kaynakları bağlamına uyarlanmış, kodlar güncel numpy, scipy ve statsmodels sürümlerine göre düzeltilmiş, etkileşimli araçlar eklenmiştir. Örnek veriler eğitim amaçlı ve kurgusaldır. Python kodları tarayıcıda <a href="https://pyodide.org" style="color:var(--c1)">Pyodide</a> ile çalışır; ilk çalıştırmada paketlerin inmesi biraz zaman alabilir. Sayfa internet bağlantısı gerektirir.
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+/* ---------- Pyodide + matplotlib yakalama ---------- */
+const statusEl = document.getElementById('status');
+function setStatus(txt, cls){ statusEl.className = 'status' + (cls ? ' ' + cls : ''); statusEl.querySelector('span').textContent = txt; }
+let pyReady = null;
+function getPy(){
+  if (!pyReady){
+    pyReady = (async () => {
+      const py = await loadPyodide();
+      setStatus('Python hazır · paketler ilk kullanımda yüklenir', 'ready');
+      return py;
+    })().catch(e => { setStatus('Pyodide yüklenemedi: internet bağlantısını kontrol edin', 'err'); throw e; });
+  }
+  return pyReady;
+}
+getPy();
+const MPL_PRELUDE = `
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt, io as _io, base64 as _b64
+plt.rcParams.update({"figure.figsize": (7, 4.2), "axes.spines.top": False, "axes.spines.right": False})
+_imgs = []
+def _yakala(*a, **k):
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = _io.BytesIO()
+        f.savefig(b, format="png", dpi=110, bbox_inches="tight", facecolor="white")
+        _imgs.append(_b64.b64encode(b.getvalue()).decode())
+    plt.close("all")
+plt.show = _yakala
+`;
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.querySelectorAll('[data-cell]').forEach(cell => {
+  const ta = cell.querySelector('textarea'), out = cell.querySelector('pre.out'), figs = cell.querySelector('.figs');
+  const runBtn = cell.querySelector('[data-run]');
+  const original = ta.value;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab'){ e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runBtn.click(); }
+  });
+  cell.querySelector('[data-reset]').addEventListener('click', () => { ta.value = original; out.innerHTML = ''; figs.innerHTML = ''; });
+  runBtn.addEventListener('click', async () => {
+    runBtn.disabled = true; runBtn.textContent = 'Çalışıyor…';
+    out.innerHTML = '<span class="w">Hazırlanıyor…</span>'; figs.innerHTML = '';
+    let buf = '';
+    const usesPlot = /matplotlib|seaborn/.test(ta.value);
+    try {
+      const py = await getPy();
+      await py.loadPackagesFromImports(usesPlot ? ta.value + '\nimport matplotlib' : ta.value, { messageCallback: m => { out.innerHTML = '<span class="w">' + esc(m) + '</span>'; } });
+      py.setStdout({ batched: s => { buf += s + '\n'; } });
+      py.setStderr({ batched: s => { if (!/Matplotlib is building the font cache/.test(s)) buf += s + '\n'; } });
+      if (usesPlot) await py.runPythonAsync(MPL_PRELUDE);
+      await py.runPythonAsync(ta.value);
+      if (usesPlot){
+        await py.runPythonAsync('_yakala()');
+        const imgs = py.globals.get('_imgs').toJs();
+        figs.innerHTML = imgs.map((b, i) => `<img alt="Grafik ${i + 1}" src="data:image/png;base64,${b}">`).join('');
+      }
+      out.innerHTML = esc(buf.trimEnd()) || (usesPlot ? '' : '<span class="w">(çıktı yok)</span>');
+    } catch (err) {
+      const msg = String(err.message || err).split('\n').filter(Boolean);
+      out.innerHTML = (buf ? esc(buf) : '') + '<span class="e">' + esc(msg.slice(-3).join('\n')) + '</span>';
+    } finally { runBtn.disabled = false; runBtn.textContent = 'Çalıştır ▸'; }
+  });
+});
+
+/* ---------- Yardımcılar ---------- */
+const fmt = (v, d = 2) => Number(v).toLocaleString('tr-TR', { maximumFractionDigits: d });
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function quantile(sorted, p){ const pos = (sorted.length - 1) * p, lo = Math.floor(pos), hi = Math.ceil(pos); return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo); }
+function niceTicks(lo, hi, n = 5){
+  const span = hi - lo || 1, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const t = []; for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) t.push(+v.toFixed(10)); return t;
+}
+const statHTML = arr => arr.map(([k, v, hl]) => `<div class="stat${hl ? ' hl' : ''}"><span>${k}</span><b>${v}</b></div>`).join('');
+
+/* ---------- Aykırı değer bulucu ---------- */
+function drawOutlier(){
+  // Türkçe binlik noktalarını kabul et: "34.296" → 34296
+  const raw = document.getElementById('o-in').value;
+  const x = raw.split(/[\s,;]+/).filter(Boolean).map(t => Number(/^\d{1,3}(\.\d{3})+$/.test(t) ? t.replace(/\./g, '') : t)).filter(Number.isFinite);
+  const k = Number(document.getElementById('o-k').value);
+  const box = document.getElementById('o-svg'), st = document.getElementById('o-stats');
+  if (x.length < 3){ box.innerHTML = ''; st.innerHTML = statHTML([['Uyarı', 'En az 3 değer girin']]); return; }
+  const n = x.length, mean = x.reduce((a, b) => a + b) / n, sd = Math.sqrt(x.reduce((a, b) => a + (b - mean) ** 2, 0) / n);
+  const s = [...x].sort((a, b) => a - b), q1 = quantile(s, .25), q3 = quantile(s, .75), iqr = q3 - q1, lo = q1 - 1.5 * iqr, hi = q3 + 1.5 * iqr;
+  const zOut = x.filter(v => sd > 0 && Math.abs((v - mean) / sd) > k), iqrOut = x.filter(v => v < lo || v > hi);
+  const W = 640, H = 150, L = 20, R = 20, cy = 70;
+  const mn = Math.min(s[0], mean - k * sd, lo), mx = Math.max(s[n - 1], mean + k * sd, hi), pad = (mx - mn) * .04 || 1;
+  const a = mn - pad, b = mx + pad, sx = v => L + (v - a) / (b - a) * (W - L - R);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Değerler ve aykırı değer sınırları">`;
+  svg += `<rect class="band2" x="${sx(mean - k * sd)}" y="${cy - 34}" width="${sx(mean + k * sd) - sx(mean - k * sd)}" height="30"/>`;
+  svg += `<text class="tk" x="${sx(mean - k * sd) + 4}" y="${cy - 22}">ortalama ± ${String(k).replace('.', ',')}σ</text>`;
+  svg += `<rect class="band" x="${sx(lo)}" y="${cy + 4}" width="${sx(hi) - sx(lo)}" height="30"/>`;
+  svg += `<text class="tk" x="${sx(lo) + 4}" y="${cy + 26}">Q1 − 1,5·IQR … Q3 + 1,5·IQR</text>`;
+  svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${cy}" y2="${cy}"/>`;
+  x.forEach(v => svg += `<circle class="pt${zOut.includes(v) || iqrOut.includes(v) ? ' flag' : ''}" cx="${sx(v)}" cy="${cy}" r="6"><title>${fmt(v)}</title></circle>`);
+  niceTicks(a, b, 6).forEach(t => svg += `<text class="tk" x="${sx(t)}" y="${H - 8}" text-anchor="middle">${fmt(t, 1)}</text>`);
+  svg += `</svg>`; box.innerHTML = svg;
+  st.innerHTML = statHTML([['Ortalama', fmt(mean, 1)], ['σ (ddof=0)', fmt(sd, 1)], [`z yöntemi (|z| > ${String(k).replace('.', ',')})`, zOut.length ? zOut.map(v => fmt(v)).join(', ') : 'yok', zOut.length], ['IQR yöntemi', iqrOut.length ? iqrOut.map(v => fmt(v)).join(', ') : 'yok', iqrOut.length], ['n için en büyük |z|', fmt((n - 1) / Math.sqrt(n), 2)]]);
+}
+['o-in', 'o-k'].forEach(id => document.getElementById(id).addEventListener('input', drawOutlier));
+drawOutlier();
+
+/* ---------- Yüzdelik sıra ---------- */
+const pr = mulberry32(7);
+const MARKET = Array.from({ length: 200 }, () => Math.round(Math.exp(Math.log(52) + 0.22 * gauss(pr)) * 10) / 10).sort((a, b) => a - b);
+function drawPct(){
+  const v = Number(document.getElementById('p-in').value);
+  const P = [10, 25, 50, 75, 90].map(p => [p, quantile(MARKET, p / 100)]);
+  const below = MARKET.filter(m => m < v).length, eq = MARKET.filter(m => m === v).length;
+  const rank = Number.isFinite(v) ? (below + eq / 2) / MARKET.length * 100 : NaN;
+  const W = 640, H = 170, L = 20, R = 20, cy = 78;
+  const a = Math.min(MARKET[0], Number.isFinite(v) ? v : Infinity) - 2, b = Math.max(MARKET[MARKET.length - 1], Number.isFinite(v) ? v : -Infinity) + 2;
+  const sx = x => L + (x - a) / (b - a) * (W - L - R);
+  const rr = mulberry32(3);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Piyasa ücretleri ve yüzdelikler">`;
+  svg += `<rect class="band" x="${sx(P[1][1])}" y="${cy - 30}" width="${sx(P[3][1]) - sx(P[1][1])}" height="60"/>`;
+  MARKET.forEach(m => svg += `<circle class="pt" cx="${sx(m)}" cy="${cy - 22 + rr() * 44}" r="2.6" style="fill-opacity:.35"/>`);
+  P.forEach(([p, q]) => { svg += `<line class="mk" x1="${sx(q)}" x2="${sx(q)}" y1="${cy - 36}" y2="${cy + 36}"/><text class="ml" x="${sx(q)}" y="${cy - 42}" text-anchor="middle">P${p}</text><text class="tk" x="${sx(q)}" y="${cy + 50}" text-anchor="middle">${fmt(q, 1)}</text>`; });
+  if (Number.isFinite(v)) svg += `<line class="me" x1="${sx(v)}" x2="${sx(v)}" y1="${cy - 30}" y2="${cy + 30}"/><text class="me-l" x="${sx(v)}" y="${H - 6}" text-anchor="middle">Sizin değeriniz: ${fmt(v, 1)}</text>`;
+  svg += `</svg>`; document.getElementById('p-svg').innerHTML = svg;
+  const med = P[2][1];
+  document.getElementById('p-stats').innerHTML = statHTML([
+    ['Yüzdelik sıranız', Number.isFinite(rank) ? 'P' + Math.round(rank) : '—', true],
+    ['Piyasa ortancası (P50)', fmt(med, 1) + ' bin'],
+    ['Compa-ratio (ücret / P50)', Number.isFinite(v) ? fmt(v / med, 2) : '—'],
+    ['P25 – P75 aralığı', fmt(P[1][1], 1) + ' – ' + fmt(P[3][1], 1)]
+  ]);
+}
+document.getElementById('p-in').addEventListener('input', drawPct);
+drawPct();
+
+/* ---------- Bayes ızgarası ---------- */
+function drawBayes(){
+  const pr = Number(document.getElementById('b-pr').value) / 100, se = Number(document.getElementById('b-se').value) / 100, fp = Number(document.getElementById('b-fp').value) / 100;
+  document.getElementById('b-prv').textContent = '%' + Math.round(pr * 100);
+  document.getElementById('b-sev').textContent = '%' + Math.round(se * 100);
+  document.getElementById('b-fpv').textContent = '%' + Math.round(fp * 100);
+  const good = Math.round(pr * 100), tp = Math.round(good * se), fn = good - tp, bad = 100 - good, fpn = Math.round(bad * fp), tn = bad - fpn;
+  const cells = [...Array(tp).fill('tp'), ...Array(fn).fill('fn'), ...Array(fpn).fill('fp'), ...Array(tn).fill('tn')];
+  document.getElementById('b-grid').innerHTML = cells.map(c => `<span class="${c}"></span>`).join('');
+  const post = pr * se / (pr * se + (1 - pr) * fp);
+  document.getElementById('b-stats').innerHTML = statHTML([
+    ['Testi geçen aday', (tp + fpn) + ' / 100'],
+    ['Bunlardan başarılı olacak', tp],
+    ['P(başarılı | geçti)', Number.isFinite(post) ? '%' + fmt(post * 100, 1) : '—', true],
+    ['Elenen başarılı aday', fn]
+  ]);
+  document.getElementById('b-txt').textContent = Number.isFinite(post)
+    ? `Test geçen ${tp + fpn} adaydan ${tp} tanesi işte başarılı olacak. Başarılı olacakların oranı düşükse, iyi bir test bile çok sayıda yanlış pozitif üretir. Önseli %10'a indirip deneyin.`
+    : 'Hiç aday testi geçmiyor.';
+}
+['b-pr', 'b-se', 'b-fp'].forEach(id => document.getElementById(id).addEventListener('input', drawBayes));
+drawBayes();
+
+/* ---------- Cohen kappa ---------- */
+function drawKappa(){
+  const [a, b, c, d] = ['k-a', 'k-b', 'k-c', 'k-d'].map(id => Math.max(0, Number(document.getElementById(id).value) || 0));
+  const n = a + b + c + d;
+  if (!n){ document.getElementById('k-stats').innerHTML = statHTML([['Uyarı', 'Sayı girin']]); return; }
+  const po = (a + d) / n, pA = (a + b) / n, pB = (a + c) / n, pe = pA * pB + (1 - pA) * (1 - pB);
+  const k = pe === 1 ? NaN : (po - pe) / (1 - pe);
+  const lab = !Number.isFinite(k) ? '—' : k < 0 ? 'şanstan kötü' : k <= .2 ? 'çok zayıf' : k <= .4 ? 'zayıf' : k <= .6 ? 'orta' : k <= .8 ? 'önemli' : 'neredeyse mükemmel';
+  document.getElementById('k-stats').innerHTML = statHTML([['n', n], ['Gözlenen uyum pₒ', fmt(po, 3)], ['Şans uyumu pₑ', fmt(pe, 3)], ['Cohen κ', Number.isFinite(k) ? fmt(k, 3) : '—', true], ['Yorum (Landis-Koch)', lab]]);
+}
+['k-a', 'k-b', 'k-c', 'k-d'].forEach(id => document.getElementById(id).addEventListener('input', drawKappa));
+drawKappa();
+</script>
+</body>
+</html>

@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Parametrik Olmayan Testler</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Düzen: solda yapışkan içindekiler, sağda okunur sütun; temel kavramlar → test seçici → her test = adımlar + İK vakası + Python hücresi */
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --sunk:#f1efe9; --line:#e2ddd2;
+  --fg:#1f2328; --muted:#5d6470;
+  --c1:#2f6fb5; --c2:#d9822b; --c3:#3f9a5c; --c4:#8a4fb0; --c5:#c2453d;
+  --code-bg:#f6f4ef; --code-fg:#24292f; --out-bg:#0f1720; --out-fg:#d6e2ee;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Literata",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:240px minmax(0,1fr);gap:48px}
+@media (max-width:880px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}}
+
+header.hero{grid-column:1/-1;padding-block:48px 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.stripe{display:flex;gap:6px;margin-bottom:18px}
+.stripe span{width:28px;height:8px;border-radius:4px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:62ch;margin:0}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-family:var(--f-mono);font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--c2);display:inline-block}
+.status.ready i{background:var(--c3)} .status.err i{background:var(--c5)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:28px;max-height:100vh;overflow:auto}
+nav.toc h2{font-family:var(--f-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
+nav.toc h3{font-family:var(--f-display);font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:12px 0 4px 8px;font-weight:500}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:1px}
+nav.toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--fg);font-family:var(--f-display);font-size:.9rem;padding:3px 8px;border-radius:6px}
+nav.toc a small{font-family:var(--f-mono);color:var(--muted);font-size:.7rem;min-width:22px}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sunk);outline:none}
+@media (max-width:880px){nav.toc{position:static;max-height:none;padding-top:20px}
+  nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(170px,1fr))}}
+
+main{min-width:0}
+section{padding-block:32px 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.kicker{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.04em}
+.kicker .kind{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-family:var(--f-display);font-size:.7rem;background:var(--sunk)}
+h2.sec{font-family:var(--f-display);font-weight:700;font-size:1.65rem;margin:4px 0 12px;text-wrap:balance;display:flex;align-items:center;gap:12px}
+h2.sec::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--dot,var(--c1));flex:none}
+h3{font-family:var(--f-display);font-weight:500;font-size:1.12rem;margin:24px 0 8px}
+p{max-width:68ch;margin:0 0 14px}
+ul.pl{max-width:68ch;margin:0 0 14px;padding-left:22px}
+.muted{color:var(--muted)}
+code.i{font-family:var(--f-mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+
+.formula{font-family:var(--f-mono);font-size:.95rem;background:var(--sunk);border-radius:10px;padding:12px 18px;margin:12px 0;overflow-x:auto;white-space:nowrap}
+.formula b{color:var(--dot,var(--c1))}
+.note{border-left:4px solid var(--c2);background:var(--sunk);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.94rem}
+.note strong{font-family:var(--f-display)}
+.warn{border-left-color:var(--c5)}
+.case{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dot,var(--c1));padding:12px 16px;border-radius:0 10px 10px 0;margin:14px 0;max-width:72ch;font-size:.95rem}
+.case .tag{font-family:var(--f-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dot,var(--c1));display:block;margin-bottom:4px}
+.assume{border:1px dashed var(--line);border-radius:10px;padding:10px 14px;margin:12px 0;max-width:72ch;font-size:.92rem}
+.assume b{font-family:var(--f-display);display:block;margin-bottom:2px}
+.assume ul{margin:0;padding-left:20px}
+
+ol.steps{list-style:none;padding:0;margin:14px 0;display:grid;gap:8px;counter-reset:s;max-width:74ch}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:30px minmax(0,1fr);gap:10px;align-items:start;font-size:.94rem}
+ol.steps li::before{content:counter(s);width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;font-size:.82rem;color:#fff;background:var(--dot,var(--c1))}
+
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.93rem;min-width:100%}
+th,td{padding:6px 12px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-weight:500;color:var(--muted);font-size:.85rem}
+td.num,th.num{text-align:right;white-space:nowrap}
+tr.tot td{font-weight:600;border-top:2px solid var(--line)}
+td.pos{color:var(--c3);font-weight:600} td.neg{color:var(--c5);font-weight:600}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--kc,var(--c1));border-radius:10px;padding:12px 14px;min-width:0;font-size:.92rem}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 4px}
+.card p{margin:0 0 6px}
+
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin:18px 0}
+.tool .lbl{font-family:var(--f-display);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.field{display:grid;gap:4px;flex:1 1 150px;min-width:0}
+.field label{font-size:.82rem;color:var(--muted);font-family:var(--f-display)}
+input[type=text],input[type=number],select{font-family:var(--f-mono);font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;width:100%}
+input[type=range]{width:100%;accent-color:var(--c1)}
+button{font-family:var(--f-display);font-weight:500;font-size:.92rem;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--c1);color:#fff}
+button.ghost{background:var(--sunk);color:var(--fg)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:12px}
+.stat{background:var(--sunk);border-radius:10px;padding:8px 12px}
+.stat span{display:block;font-size:.75rem;color:var(--muted);font-family:var(--f-display)}
+.stat b{font-family:var(--f-mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.stat.hl{background:color-mix(in srgb,var(--c2) 20%,var(--sunk))}
+.verdict{margin-top:12px;padding:10px 14px;border-radius:10px;font-size:.94rem;background:var(--sunk)}
+.verdict b{font-family:var(--f-display)}
+.rec{margin-top:12px;padding:14px 16px;border-radius:12px;background:color-mix(in srgb,var(--c1) 10%,var(--surface));border:1px solid color-mix(in srgb,var(--c1) 35%,var(--line))}
+.rec h4{margin:0 0 4px;font-family:var(--f-display);font-size:1.15rem}
+.rec p{margin:0 0 6px;font-size:.93rem}
+.rec a{color:var(--c1);font-family:var(--f-display)}
+
+.svgbox{overflow-x:auto;margin-top:12px}
+.svgbox svg{display:block;width:100%;height:auto;min-width:320px;font-family:var(--f-mono)}
+.svgbox .ax{stroke:var(--line);stroke-width:1}
+.svgbox .tk{fill:var(--muted);font-size:11px}
+.svgbox .lab{fill:var(--muted);font-size:12px;font-family:var(--f-display)}
+.svgbox .crv{fill:none;stroke:var(--c1);stroke-width:2.5}
+.svgbox .crv2{fill:none;stroke:var(--c5);stroke-width:2}
+.svgbox .rej{fill:color-mix(in srgb,var(--c5) 40%,transparent)}
+.svgbox .pv{fill:color-mix(in srgb,var(--c2) 45%,transparent)}
+.svgbox .bar{fill:color-mix(in srgb,var(--c1) 55%,transparent)}
+.svgbox .bar2{fill:color-mix(in srgb,var(--c3) 60%,transparent)}
+.svgbox .me{stroke:var(--fg);stroke-width:2}
+.svgbox .ttl{fill:var(--fg);font-size:12px;font-family:var(--f-display);font-weight:500}
+
+.py{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:16px 0;background:var(--code-bg)}
+.py .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.py .bar span{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.py .bar .btns{display:flex;gap:6px}
+.py textarea{display:block;width:100%;border:0;resize:vertical;background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:.86rem;line-height:1.55;padding:14px 16px;tab-size:4;white-space:pre;overflow-x:auto}
+.py pre.out{margin:0;padding:12px 16px;background:var(--out-bg);color:var(--out-fg);font-family:var(--f-mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+.py pre.out:empty{display:none}
+.py pre.out .e{color:#ff9c8f}
+.py pre.out .w{color:#9fb3c8;font-style:italic}
+.py .figs{background:#ffffff;display:grid;gap:8px;padding:12px;justify-items:center}
+.py .figs:empty{display:none}
+.py .figs img{max-width:100%;height:auto}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="stripe" aria-hidden="true"><span style="background:var(--c1)"></span><span style="background:var(--c2)"></span><span style="background:var(--c3)"></span><span style="background:var(--c4)"></span><span style="background:var(--c5)"></span></div>
+  <h1>Parametrik Olmayan Testler</h1>
+  <p class="lede">Usman Zafar Paracha'nın <em>Colorful Statistics and Python Programming Language</em> kitabının 190–255. sayfalarının Türkçe, etkileşimli ve insan kaynakları örnekleriyle uyarlanmış sürümü. Merkezi limit teoreminden Friedman testine kadar; her test için adımlar, bir İK vakası ve tarayıcıda çalışan Python hücresi.</p>
+  <div class="status" id="status" role="status"><i></i><span>Python (Pyodide) yükleniyor…</span></div>
+</header>
+
+<nav class="toc" aria-label="İçindekiler">
+  <h2>İçindekiler</h2>
+  <h3>Temel kavramlar</h3>
+  <ol>
+    <li><a href="#korelasyon"><small>1</small>Korelasyon</a></li>
+    <li><a href="#mlt"><small>2</small>Merkezi limit teoremi</a></li>
+    <li><a href="#sh"><small>3</small>Ortalamanın standart hatası</a></li>
+    <li><a href="#anlamlilik"><small>4</small>Anlamlılık, tek ve çift kuyruk</a></li>
+    <li><a href="#sd"><small>5</small>Serbestlik derecesi</a></li>
+  </ol>
+  <h3>Testler</h3>
+  <ol>
+    <li><a href="#secici"><small>★</small>Test seçici</a></li>
+    <li><a href="#mood"><small>6</small>Mood ortanca testi</a></li>
+    <li><a href="#kikare"><small>7</small>Ki-kare ve uyum iyiliği</a></li>
+    <li><a href="#mcnemar"><small>8</small>McNemar testi</a></li>
+    <li><a href="#ks"><small>9</small>Kolmogorov-Smirnov</a></li>
+    <li><a href="#mwu"><small>10</small>Mann-Whitney U</a></li>
+    <li><a href="#isaret"><small>11</small>İşaret testi</a></li>
+    <li><a href="#wilcoxon"><small>12</small>Wilcoxon işaretli sıralar</a></li>
+    <li><a href="#kw"><small>13</small>Kruskal-Wallis</a></li>
+    <li><a href="#friedman"><small>14</small>Friedman testi</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 KORELASYON -->
+<section id="korelasyon" style="--dot:var(--c1)">
+  <div class="kicker">s. 190</div>
+  <h2 class="sec">Korelasyon</h2>
+  <p>Korelasyon, bir değişkenin miktarındaki sistematik değişikliklerin başka bir değişkenin miktarındaki sistematik değişikliklerle ilişkisidir. Korelasyon katsayısı r ile gösterilir ve −1 ile +1 arasında değişir. −1'de bir değişkenin etkisi diğerinde tamamen negatif, +1'de tamamen pozitiftir: biri artarken diğeri de artar. İki değişken x ve y eksenlerinde çizilip ilişkileri grafikteki çizgiyle incelenebilir.</p>
+  <div class="case"><span class="tag">İK vakası</span>10 çalışanın kıdemi (yıl) ile yıllık eğitim saati arasında ilişki var mı? Korelasyon nedensellik göstermez: kıdemli çalışanların daha az eğitim alması, eğitim almadıkları için kıdemli oldukları anlamına gelmez.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · Pearson ve Spearman korelasyonu</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="16">from scipy import stats
+import matplotlib.pyplot as plt
+
+kidem  = [1, 2, 3, 4, 5, 7, 8, 10, 12, 15]          # yıl
+egitim = [62, 55, 58, 44, 40, 38, 30, 26, 28, 18]   # yıllık eğitim saati
+
+r, p = stats.pearsonr(kidem, egitim)
+rho, p_s = stats.spearmanr(kidem, egitim)
+print(f"Pearson r = {r:.3f} (p = {p:.4f})")
+print(f"Spearman ρ = {rho:.3f} (p = {p_s:.4f})  ← sıralı/normal olmayan veri için")
+
+plt.scatter(kidem, egitim, color="#2f6fb5")
+plt.xlabel("Kıdem (yıl)"); plt.ylabel("Yıllık eğitim saati")
+plt.title(f"Kıdem ve eğitim saati, r = {r:.2f}")
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <p class="muted" style="font-size:.92rem">Bu sayfadaki testler normal dağılım varsayımı gerektirmez. Korelasyon için bunun karşılığı Spearman sıra korelasyonudur.</p>
+</section>
+
+<!-- 2 MLT -->
+<section id="mlt" style="--dot:var(--c4)">
+  <div class="kicker">s. 190–191</div>
+  <h2 class="sec">Merkezi limit teoremi</h2>
+  <p>Merkezi limit teoremine göre, evrendeki dağılım ne olursa olsun, örneklem büyüklüğü arttıkça (genellikle n ≥ 30) ortalamanın örnekleme dağılımı neredeyse normal hale gelir. Evren çarpık, tekdüze (dikdörtgen), iki tepeli ya da üstel olabilir.</p>
+  <div class="case"><span class="tag">İK vakası</span>Bir holdingin ücret dağılımı sağa çarpıktır. Yine de her biri n çalışandan oluşan çok sayıda rastgele örneklem alıp ortalamalarını çizersek, bu ortalamaların dağılımı n büyüdükçe çan eğrisine dönüşür. Ücret ortalamaları için güven aralığı kurabilmemizin nedeni budur.</div>
+  <div class="tool">
+    <div class="lbl">Merkezi limit teoremi simülatörü · 2.000 örneklem</div>
+    <div class="row">
+      <div class="field" style="flex:2 1 240px"><label for="clt-pop">Evren dağılımı</label>
+        <select id="clt-pop">
+          <option value="skew">Sağa çarpık · ücretler (bin TL)</option>
+          <option value="unif">Tekdüze · vardiya başlangıç saati</option>
+          <option value="bimod">İki tepeli · yaş (genç + deneyimli)</option>
+          <option value="exp">Üstel · istifalar arası gün</option>
+        </select></div>
+      <div class="field"><label for="clt-n">Örneklem büyüklüğü n: <b id="clt-nv">5</b></label><input id="clt-n" type="range" min="1" max="100" value="5"></div>
+      <div class="field" style="flex:0 0 auto"><button id="clt-go" class="ghost">Yeniden çek</button></div>
+    </div>
+    <div class="svgbox" id="clt-svg" aria-label="Evren ve örneklem ortalamaları dağılımı"></div>
+    <div class="stats" id="clt-stats"></div>
+  </div>
+</section>
+
+<!-- 3 STANDART HATA -->
+<section id="sh" style="--dot:var(--c3)">
+  <div class="kicker">s. 191–192</div>
+  <h2 class="sec">Ortalamanın standart hatası</h2>
+  <p>Ortalamanın standart hatası σ<sub>M</sub> ile gösterilir. Ne kadar küçükse örneklem evreni o kadar iyi temsil eder. Büyük örneklem küçük standart hata verir ve örneklem ortalaması evren ortalamasına iyi yaklaşır; küçük örneklemde tersi olur. Standart hata, güven aralıkları için de temel taştır.</p>
+  <div class="formula"><b>SE = σ / √n</b></div>
+  <div class="case"><span class="tag">İK vakası</span>Son 5 pozisyonun doldurulma süresi (gün): 14, 36, 45, 70, 105. Ortalama 54 gün, s = 34,86, SE = 34,86 / √5 = <strong>15,59 gün</strong>. Bu kadar büyük bir standart hata, 5 pozisyonluk ortalamanın şirketin gerçek ortalamasını iyi yansıtmayabileceğini gösterir.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · standart hata</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="14">import numpy as np
+from scipy import stats
+
+x = [14, 36, 45, 70, 105]          # doldurulma süresi (gün)
+print("Ortalama  :", np.mean(x))
+print("s         :", round(np.std(x, ddof=1), 2))
+print("SE (scipy):", stats.sem(x))
+
+# Örneklem büyüdükçe SE küçülür (s sabit kalsaydı)
+s = np.std(x, ddof=1)
+for n in [5, 20, 50, 200]:
+    print(f"n = {n:>3} → SE ≈ {s / np.sqrt(n):.2f} gün")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap elle hesapta √5'i 2,23 alıp 15,63 buluyor; scipy 15,59 veriyor. Fark yuvarlamadandır (√5 = 2,236).</div>
+</section>
+
+<!-- 4 ANLAMLILIK -->
+<section id="anlamlilik" style="--dot:var(--c5)">
+  <div class="kicker">s. 193–194</div>
+  <h2 class="sec">İstatistiksel anlamlılık, tek ve çift kuyruklu testler</h2>
+  <p>Sıfır hipotezi doğruyken en olası gözlemler dağılımın ortasındadır; kuyruklardaki gözlemler çok olası değildir. Gözlenen sonuç kuyruklara, anlamlılık düzeyinin (ör. p = 0,05) ötesine düşüyorsa istatistiksel olarak anlamlı sayılır.</p>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c5)"><h4>Tek kuyruklu test</h4><p>Yeni süreç ya da uygulamanın kontrolden <em>belirli bir yönde</em> farklı olduğu öne sürüldüğünde yapılır. Reddetme bölgesi tek kuyruktadır.</p></div>
+    <div class="card" style="--kc:var(--c1)"><h4>Çift kuyruklu test</h4><p>Yeni uygulamanın kontrolden daha iyi mi kötü mü olduğu bilinmediğinde yapılır. Çalışmalarda daha yaygındır. Reddetme bölgesi iki kuyruğa bölünür.</p></div>
+  </div>
+  <div class="tool">
+    <div class="lbl">Reddetme bölgesi ve p-değeri</div>
+    <div class="row">
+      <div class="field"><label for="tl-z">Gözlenen z istatistiği</label><input id="tl-z" type="number" step="0.05" value="1.80"></div>
+      <div class="field"><label for="tl-t">Test türü</label><select id="tl-t"><option value="two">Çift kuyruklu (H₁: μ₁ ≠ μ₂)</option><option value="right">Sağ kuyruklu (H₁: μ₁ &gt; μ₂)</option><option value="left">Sol kuyruklu (H₁: μ₁ &lt; μ₂)</option></select></div>
+      <div class="field"><label for="tl-a">α</label><select id="tl-a"><option value="0.10">0,10</option><option value="0.05" selected>0,05</option><option value="0.01">0,01</option></select></div>
+    </div>
+    <div class="svgbox" id="tl-svg" aria-label="Normal eğri, reddetme bölgesi ve p-değeri"></div>
+    <div class="verdict" id="tl-v"></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>Yeni oryantasyon programının 6 aylık işten ayrılma oranını <em>düşürdüğü</em> öne sürülüyor ve bu iddia veri toplanmadan önce kayda geçirilmiş. Tek kuyruklu test savunulabilir. “Programın ayrılma oranına etkisi var mı?” sorusu ise çift kuyruklu test gerektirir. Deneyin: z = 1,80 tek kuyrukta anlamlı, çift kuyrukta anlamlı değil.</div>
+  <div class="note warn"><strong>Kitaptaki şema hakkında.</strong> Kitap tek kuyruklu testin “yeni sürecin daha iyi olduğundan emin olduğumuzda” yapılacağını söylüyor. Yön, veri görülmeden önce, kuramsal gerekçeyle belirlenmelidir; sonuca bakıp tek kuyruğa geçmek Tip I hata oranını ikiye katlar. Şemadaki çift kuyruklu çizimde her kuyrukta 0,05 gösteriliyor; α = 0,05 için her kuyrukta 0,025 olmalıdır. Sol kuyruklu testte sıfır hipotezi μ₁ ≥ μ₂, alternatif hipotez μ₁ &lt; μ₂'dir; şemada bunlar karıştırılmış.</div>
+  <p><strong>Normal dağılmayan veri için testler.</strong> Parametrik olmayan testler sıralı ya da sürekli sonuç değişkenlerine ve normal dağılım izlemeyen veriye uygulanabilir. Kitaptaki örnek 1–12 ölçeğinde ağrı şiddetidir. İK'daki karşılıkları performans notu (A–D), Likert yanıtları, stres ya da tükenmişlik puanları ve çarpık süre verileridir.</p>
+</section>
+
+<!-- 5 SD -->
+<section id="sd" style="--dot:var(--c2)">
+  <div class="kicker">s. 246–247</div>
+  <h2 class="sec">Serbestlik derecesi</h2>
+  <p>Serbestlik derecesi, son hesaplama göz önüne alındığında bir veri kümesinde serbestçe değişebilen değer ya da puan sayısıdır.</p>
+  <div class="tbl" style="max-width:520px"><table>
+    <thead><tr><th>Durum</th><th>sd</th></tr></thead>
+    <tbody><tr><td>Tek grup testleri</td><td style="font-family:var(--f-mono)">N − 1</td></tr><tr><td>İki grup testleri</td><td style="font-family:var(--f-mono)">N₁ + N₂ − 2</td></tr><tr><td>Hata serbestlik derecesi (ANOVA)</td><td style="font-family:var(--f-mono)">N − M (M: grup sayısı)</td></tr></tbody>
+  </table></div>
+  <div class="case"><span class="tag">İK vakası</span>Üç kişilik bir ekibin haftalık ortalama fazla mesaisi 3 saat (toplam 9 saat). İlk iki kişinin değerini bilirsek üçüncüsü belirlenir: 1 ve 2 saatse üçüncü 6 saat; 3 ve 5 saatse üçüncü 1 saat olmak zorundadır. Yalnızca 2 değer serbesttir: sd = 3 − 1 = 2.</div>
+  <div class="note"><strong>Not.</strong> Kitaptaki kutuda “altı sayılık bir veri kümesi: 3 + 2 + 4 = 9” yazıyor; veri kümesi üç sayıdan oluşuyor.</div>
+</section>
+
+<!-- SEÇİCİ -->
+<section id="secici" style="--dot:var(--c1)">
+  <div class="kicker">s. 195–255 · rehber</div>
+  <h2 class="sec">Hangi testi kullanmalıyım?</h2>
+  <p>Kitaptaki testler veri türüne, grup sayısına ve grupların bağımsız ya da eşleştirilmiş olmasına göre ayrılır. Üç soruyu yanıtlayın:</p>
+  <div class="tool">
+    <div class="row">
+      <div class="field"><label for="s-amac">Amaç</label><select id="s-amac">
+        <option value="karsi">Grupları karşılaştırmak</option>
+        <option value="uyum">Verinin bir dağılıma uyup uymadığını sınamak</option>
+        <option value="iliski">İki kategorik değişkenin ilişkisini sınamak</option></select></div>
+      <div class="field"><label for="s-veri">Bağımlı değişken</label><select id="s-veri">
+        <option value="sira">Sıralı ya da normal olmayan sürekli</option>
+        <option value="kat">İki kategorili (evet/hayır)</option></select></div>
+      <div class="field"><label for="s-grup">Grup sayısı</label><select id="s-grup"><option value="2">2</option><option value="3">3 veya daha fazla</option></select></div>
+      <div class="field"><label for="s-bag">Gruplar</label><select id="s-bag"><option value="bag">Bağımsız (farklı kişiler)</option><option value="esl">Eşleştirilmiş (aynı kişiler)</option></select></div>
+    </div>
+    <div class="rec" id="s-rec" aria-live="polite"></div>
+  </div>
+  <div class="tbl"><table>
+    <thead><tr><th>Test</th><th>Veri</th><th>Gruplar</th><th>Parametrik karşılığı</th><th>İK örneği</th></tr></thead>
+    <tbody>
+      <tr><td><a href="#mood">Mood ortanca</a></td><td>Sıralı/sürekli</td><td>2+ bağımsız</td><td>t-testi / ANOVA</td><td>İki eğitim programının memnuniyet ortancası</td></tr>
+      <tr><td><a href="#kikare">Ki-kare</a></td><td>Kategorik</td><td>Bağımsız</td><td>—</td><td>Departman × iş tatmini</td></tr>
+      <tr><td><a href="#mcnemar">McNemar</a></td><td>İki kategorili</td><td>Eşleştirilmiş</td><td>—</td><td>Mentorluk öncesi ve sonrası ayrılma niyeti</td></tr>
+      <tr><td><a href="#ks">Kolmogorov-Smirnov</a></td><td>Sürekli</td><td>Uyum iyiliği</td><td>—</td><td>Fazla mesai saatleri normal mi?</td></tr>
+      <tr><td><a href="#mwu">Mann-Whitney U</a></td><td>Sıralı/sürekli</td><td>2 bağımsız</td><td>Bağımsız t-testi</td><td>Stres programı ve kontrol grubu</td></tr>
+      <tr><td><a href="#isaret">İşaret</a> / <a href="#wilcoxon">Wilcoxon</a></td><td>Sıralı/sürekli</td><td>2 eşleştirilmiş</td><td>Eşleştirilmiş t-testi</td><td>Esnek çalışma öncesi ve sonrası tükenmişlik</td></tr>
+      <tr><td><a href="#kw">Kruskal-Wallis</a></td><td>Sıralı/sürekli</td><td>3+ bağımsız</td><td>Tek yönlü ANOVA</td><td>Üç hibrit çalışma modelinde iş yükü stresi</td></tr>
+      <tr><td><a href="#friedman">Friedman</a></td><td>Sıralı/sürekli</td><td>3+ eşleştirilmiş</td><td>Tekrarlı ölçümler ANOVA</td><td>Altı değerlendiricinin dört adaya verdiği puanlar</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<!-- 6 MOOD -->
+<section id="mood" style="--dot:var(--c2)">
+  <div class="kicker">s. 195–201 <span class="kind">2+ bağımsız grup</span></div>
+  <h2 class="sec">Mood ortanca testi</h2>
+  <p>İki ya da daha fazla örneklemin, evrenin ya da grubun ortancalarının eşit olup olmadığını belirleyen parametrik olmayan bir testtir.</p>
+  <ol class="steps">
+    <li><div><strong>Hipotezleri belirle.</strong> H₀: tüm grupların ortancası aynıdır. H₁: en az bir grubun ortancası farklıdır.</div></li>
+    <li><div><strong>Verinin genel ortancasını hesapla.</strong></div></li>
+    <li><div><strong>Her grupta</strong> genel ortancaya eşit ya da küçük (≤) ve büyük (&gt;) gözlemleri say.</div></li>
+    <li><div><strong>Sayıları 2 × k olumsallık tablosuna yerleştir.</strong></div></li>
+    <li><div><strong>Ki-kare istatistiğini hesapla:</strong> χ² = Σ (Oᵢⱼ − Eᵢⱼ)² / Eᵢⱼ.</div></li>
+    <li><div><strong>Serbestlik derecesini belirle:</strong> sd = k − 1.</div></li>
+    <li><div><strong>Hesaplanan χ² değerini tablo değeriyle karşılaştır.</strong></div></li>
+    <li><div><strong>Yorumla:</strong> hesaplanan değer tablo değerinden büyükse H₀ reddedilir.</div></li>
+  </ol>
+  <div class="case"><span class="tag">İK vakası</span>Kitapta A ve B ilaçlarını alan hastaların yaşam kalitesi ve ağrıdan oluşan 10 üzerinden puanları karşılaştırılıyor. İK karşılığı: iki farklı <strong>liderlik eğitimi programına</strong> (A: sınıf içi, B: koçluk destekli) katılan yöneticilerin 6 ay sonraki 360° gelişim puanları (10 üzerinden). A: 7, 2, 5, 4; B: 6, 8, 6, 9. Genel ortanca 6.</div>
+  <div class="tbl" style="max-width:520px"><table>
+    <thead><tr><th></th><th class="num">Program A</th><th class="num">Program B</th></tr></thead>
+    <tbody><tr><td>&gt; ortanca (6)</td><td class="num">1</td><td class="num">2</td></tr><tr><td>≤ ortanca (6)</td><td class="num">3</td><td class="num">2</td></tr></tbody>
+  </table></div>
+  <p>Beklenen değerler: &gt; ortanca satırında 1,5 ve 1,5; ≤ ortanca satırında 2,5 ve 2,5. χ² = 0,167 + 0,1 + 0,167 + 0,1 = <strong>0,533</strong>. sd = 1 için tablo değeri 3,841 olduğundan H₀ reddedilemez: iki programın ortanca puanları arasında anlamlı fark yoktur.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · Mood ortanca testi</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="12">from scipy.stats import median_test
+
+programA = (7, 2, 5, 4)     # sınıf içi eğitim
+programB = (6, 8, 6, 9)     # koçluk destekli
+stat, p, med, tbl = median_test(programA, programB, correction=False)
+print('Genel ortanca: %f' % med)
+print('Ki-kare istatistiği: %f' % stat)
+print('p-değeri: %f' % p)
+print(tbl)          # satırlar: > ortanca, ≤ ortanca
+
+# Aynı test üç grupla da çalışır
+print("\nÜç program:", median_test(programA, programB, (8, 9, 7, 9), correction=False)[:2])</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki beklenen değerler tablosunun sütun başlıkları “tedavi grubu” ve “plasebo grubu” diye yazılmış, oysa gruplar A ve B'dir. Kitapta grup başına 4 gözlem var. Bu kadar küçük örneklemde beklenen değerlerin 5'in altında kalması ki-kare yaklaşımını zayıflatır; sonuç yalnızca yöntemi göstermek içindir.</div>
+</section>
+
+<!-- 7 KİKARE -->
+<section id="kikare" style="--dot:var(--c3)">
+  <div class="kicker">s. 201–206 <span class="kind">kategorik</span></div>
+  <h2 class="sec">Uyum iyiliği ve ki-kare testi</h2>
+  <p><strong>Uyum iyiliği testi</strong>, gözlenen bir frekans dağılımının iddia edilen bir evren dağılımına ne kadar uyduğunu sınar ve en sık kullanılan parametrik olmayan testlerdendir. Ki-kare testi uyum iyiliği için yaygın olarak kullanılır; kesikli dağılımlarda, örneğin binom ya da Poisson dağılımında uygulanır.</p>
+  <div class="assume"><b>Varsayımlar</b><ul><li>İki değişken kategori olarak, genellikle sınıflama ya da sıralı düzeyde ölçülmelidir.</li><li>Çalışma grupları birbirinden bağımsız olmalıdır.</li></ul></div>
+  <ol class="steps">
+    <li><div><strong>Hipotezleri belirle.</strong> H₀: gözlenen değer = beklenen değer. H₁: gözlenen değer ≠ beklenen değer.</div></li>
+    <li><div><strong>χ² test istatistiğini hesapla:</strong> χ² = Σ (Oᵢ − Eᵢ)² / Eᵢ.</div></li>
+    <li><div><strong>Serbestlik derecesini belirle:</strong> uyum iyiliğinde sd = k − 1; olumsallık tablosunda sd = (satır − 1) × (sütun − 1).</div></li>
+    <li><div><strong>Değerleri karşılaştır ya da p-değerini bul.</strong> Kitaptaki ki-kare tablosunda sd = 1 ve α = 0,05 için kritik değer 3,841'dir.</div></li>
+    <li><div><strong>Yorumla.</strong> χ² tablo değerinden büyükse ya da p &lt; 0,05 ise H₀ reddedilir; uyum iyiliği testinde bu, verinin iddia edilen dağılıma iyi uymadığı anlamına gelir.</div></li>
+  </ol>
+  <div class="case"><span class="tag">İK vakası</span>Kitapta 100 öğrenciye matematiği sevip sevmedikleri soruluyor. İK karşılığı: iki departmandan rastgele seçilen 100 çalışana yeni <strong>performans değerlendirme sistemini adil bulup bulmadıkları</strong> soruldu.</div>
+  <div class="tbl" style="max-width:580px"><table>
+    <thead><tr><th>Gözlenen</th><th class="num">Adil buluyor</th><th class="num">Adil bulmuyor</th><th class="num">Toplam</th></tr></thead>
+    <tbody><tr><td>Satış</td><td class="num">40</td><td class="num">10</td><td class="num">50</td></tr><tr><td>Üretim</td><td class="num">20</td><td class="num">30</td><td class="num">50</td></tr><tr class="tot"><td>Toplam</td><td class="num">60</td><td class="num">40</td><td class="num">100</td></tr></tbody>
+  </table></div>
+  <p>İlişki olmasaydı beklenen değerler: Satış'ta 50 × 60 / 100 = 30 ve 20, Üretim'de 30 ve 20. χ² = 100/30 + 100/30 + 100/20 + 100/20 = <strong>16,67</strong>, sd = 1. 16,67 &gt; 3,841 olduğundan H₀ reddedilir: performans sistemine bakış departmana göre değişiyor.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · bağımsızlık ve uyum iyiliği</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="28">from scipy.stats import chisquare, chi2_contingency, chi2
+
+# Kitaptaki çağrı: 4 hücreyi tek boyutlu uyum testi gibi veriyor (sd = 3)
+print(chisquare([40, 10, 20, 30], f_exp=[30, 20, 30, 20]))
+
+# 2×2 bağımsızlık testinin doğru yolu (sd = 1)
+tablo = [[40, 10],
+         [20, 30]]
+ist, p, sd, beklenen = chi2_contingency(tablo, correction=False)
+print(f"\nχ² = {ist:.2f}, sd = {sd}, p = {p:.6f}")
+print("Beklenen:", beklenen.tolist())
+print("Kritik değer (α = 0.05, sd = 1):", round(chi2.ppf(0.95, 1), 3))
+print("Yates düzeltmesiyle:", round(chi2_contingency(tablo)[0], 2))
+
+# Uyum iyiliği: işe alım kanallarının dağılımı hedefle uyumlu mu?
+# Hedef: %40 referans, %35 LinkedIn, %25 kariyer fuarı; 200 işe alımda gözlenen:
+gozlenen = [62, 84, 54]
+beklenen = [0.40 * 200, 0.35 * 200, 0.25 * 200]
+print("\nUyum iyiliği:", chisquare(gozlenen, f_exp=beklenen))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki kod hakkında uyarı.</strong> Kitap 2 × 2 tabloyu <code class="i">chisquare([40,10,20,30], f_exp=[30,20,30,20])</code> ile sınıyor. İstatistik doğru çıkar (16,67), ama fonksiyon bunu 4 kategorili bir uyum iyiliği testi sayar ve sd = 3 kullanır; p = 0,0008 yanlıştır. Doğru yol <code class="i">chi2_contingency</code>'dir: sd = 1, p ≈ 0,00004. Sonuç değişmez ama p-değeri raporlanırken bu fark önemlidir. Bu bağımsızlık testi gibi uyum iyiliği testleri de ki-kare dağılımıyla değerlendirilir.</div>
+</section>
+
+<!-- 8 MCNEMAR -->
+<section id="mcnemar" style="--dot:var(--c4)">
+  <div class="kicker">s. 206–209 <span class="kind">2 eşleştirilmiş · kategorik</span></div>
+  <h2 class="sec">McNemar testi</h2>
+  <p>Eşleştirilmiş sınıflama verisi için kullanılan parametrik olmayan bir testtir.</p>
+  <div class="assume"><b>Varsayımlar</b><ul><li>Katılımcılar seçilen evrenden rastgele alınmış bir örneklem olmalıdır.</li><li>Biri bağımlı, biri bağımsız iki değişken; her birinin iki kategorisi ya da grubu vardır (2 × 2 olumsallık tablosu).</li><li>Bağımlı değişkenin iki grubu birbirini dışlamalıdır.</li></ul></div>
+  <ol class="steps">
+    <li><div><strong>Veriyi 2 × 2 tabloya yerleştir:</strong> satırlar “önce”, sütunlar “sonra”; hücreler a, b, c, d.</div></li>
+    <li><div><strong>χ² istatistiğini hesapla:</strong> χ² = (b − c)² / (b + c). Yalnızca fikir değiştirenler (b ve c) kullanılır.</div></li>
+    <li><div><strong>Serbestlik derecesi:</strong> sd = 1.</div></li>
+    <li><div><strong>Değerleri karşılaştır ve yorumla.</strong></div></li>
+  </ol>
+  <div class="case"><span class="tag">İK vakası</span>Kitapta 100 kişide bir ilacın sigarayı bırakmaya etkisi inceleniyor. İK karşılığı: 100 genç çalışana 6 aylık bir <strong>mentorluk programı</strong> uygulandı. Program öncesinde ve sonrasında “önümüzdeki yıl şirketten ayrılmayı düşünüyor musunuz?” diye soruldu.</div>
+  <div class="tbl" style="max-width:600px"><table>
+    <thead><tr><th>Program öncesi \ sonrası</th><th class="num">Ayrılmayı düşünmüyor</th><th class="num">Ayrılmayı düşünüyor</th><th class="num">Toplam</th></tr></thead>
+    <tbody><tr><td>Ayrılmayı düşünmüyor</td><td class="num">45 (a)</td><td class="num">5 (b)</td><td class="num">50</td></tr><tr><td>Ayrılmayı düşünüyor</td><td class="num">25 (c)</td><td class="num">25 (d)</td><td class="num">50</td></tr><tr class="tot"><td>Toplam</td><td class="num">70</td><td class="num">30</td><td class="num">100</td></tr></tbody>
+  </table></div>
+  <p>Fikrini değiştiren 30 kişiden 25'i ayrılma niyetinden vazgeçti, yalnızca 5'i yeni ayrılma niyeti geliştirdi. χ² = (5 − 25)² / 30 = <strong>13,33</strong>.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · McNemar testi</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="14">import statsmodels.stats.contingency_tables as sc
+
+x = [[45, 5],
+     [25, 25]]
+print(sc.mcnemar(x))                       # varsayılan: exact=True (binom)
+
+ki = sc.mcnemar(x, exact=False, correction=False)
+print(f"\nχ² = {ki.statistic:.2f}, p = {ki.pvalue:.6f}")
+
+b, c = 5, 25
+print("Elle: (b − c)² / (b + c) =", (b - c) ** 2 / (b + c))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap çıktıdaki “statistic 5.0” değerini ki-kare istatistiği olarak yorumluyor. statsmodels varsayılan olarak <em>kesin binom testi</em> yapar ve istatistik olarak min(b, c) = 5'i döndürür. Ki-kare istatistiği için <code class="i">exact=False</code> gerekir; sonuç 13,33'tür. Her iki yoldan da p &lt; 0,001.</div>
+</section>
+
+<!-- 9 KS -->
+<section id="ks" style="--dot:var(--c1)">
+  <div class="kicker">s. 209–212 <span class="kind">uyum iyiliği · sürekli</span></div>
+  <h2 class="sec">Kolmogorov-Smirnov testi (KS testi)</h2>
+  <p>Gözlenen bir örneklem dağılımı ile kuramsal bir dağılımın (ya da iki örneklemin) anlamlı biçimde farklı olup olmadığını sınar. Sürekli dağılımlar için uyum iyiliği testi olarak kullanılır.</p>
+  <ol class="steps">
+    <li><div><strong>Hipotezleri belirle.</strong> H₀: gözlenen dağılım = kuramsal (ya da ikinci) dağılım. H₁: farklıdır.</div></li>
+    <li><div><strong>D istatistiğini hesapla.</strong> Tek örneklem: D = max |F₀(X) − Fᵣ(X)|, F₀(X) = k/n gözlenen birikimli frekans. İki örneklem: D = max |Fₙ₁(X) − Fₙ₂(X)|.</div></li>
+    <li><div><strong>D'nin kritik değerini</strong> KS tablosundan bul.</div></li>
+    <li><div><strong>Karşılaştır ve yorumla.</strong> D kritik değerden büyükse ya da p &lt; 0,05 ise H₀ reddedilir: veri iyi uymaz.</div></li>
+  </ol>
+  <div class="case"><span class="tag">İK vakası</span>10 çalışanın aylık fazla mesai saati (kitaptaki değerler): 17,6 · 18,6 · 11,3 · 16,8 · 14,3 · 14,1 · 15,4 · 17,7 · 16,1 · 11,5. Ücret bütçesi planlamasında normal dağılım varsayılacak. Bu varsayım makul mü?</div>
+  <div class="py" data-cell><div class="bar"><span>Python · KS ve Lilliefors testi</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="26">import numpy as np
+from scipy import stats
+import statsmodels.api as sm
+
+a = np.array([17.5842, 18.5895, 11.3488, 16.8442, 14.3193,
+              14.1262, 15.4291, 17.7469, 16.0861, 11.4999])
+
+# Kitaptaki çağrı: STANDART normal N(0, 1) ile karşılaştırır
+print("N(0,1) ile:", stats.kstest(a, 'norm'))
+
+# Ortalama ve std sapma veriden kestirilip yerine konursa D doğru çıkar,
+# ama p-değeri iyimser olur → Lilliefors düzeltmesi gerekir
+m, s = a.mean(), a.std(ddof=1)
+print(f"N({m:.2f}, {s:.2f}) ile:", stats.kstest(a, stats.norm(m, s).cdf))
+
+D, p = sm.stats.lilliefors(a)
+print(f"Lilliefors: D = {D:.4f}, p = {p:.3f}")
+
+# Karşılaştırma: Shapiro-Wilk küçük örneklemde daha güçlüdür
+print("Shapiro-Wilk:", stats.shapiro(a))
+
+# İki örneklem KS: iki şubenin fazla mesai dağılımları aynı mı?
+sube2 = np.array([22.1, 19.4, 25.8, 20.3, 18.9, 27.5, 21.0, 23.6, 19.8, 24.2])
+print("İki örneklem KS:", stats.ks_2samp(a, sube2))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki <code class="i">kstest(a, 'norm')</code> veriyi ortalaması 0, standart sapması 1 olan normal dağılımla karşılaştırır. Değerler 11 ile 19 arasında olduğu için D = 1 çıkar. Bunun nedeni verinin normal olmaması değil, yanlış dağılımla karşılaştırılmasıdır. Lilliefors düzeltmesi, parametreleri veriden kestirilen normal dağılım için doğru yoldur. Kitap Lilliefors için p = 0,2 veriyor; eski statsmodels sürümleri p-değerini tablo sınırında 0,2'de kesiyordu, güncel sürüm yaklaşık 0,85 verir. Ayrıca p &gt; 0,05 “veri normal dağılıyor” değil, “normallikten sapma olduğuna dair yeterli kanıt yok” demektir; 10 gözlemle bu testlerin gücü çok düşüktür.</div>
+</section>
+
+<!-- 10 MWU -->
+<section id="mwu" style="--dot:var(--c5)">
+  <div class="kicker">s. 213–223 <span class="kind">2 bağımsız grup</span></div>
+  <h2 class="sec">Wilcoxon sıra toplamı testi / Mann-Whitney U testi</h2>
+  <p>İki bağımsız grubun karşılaştırılmasında kullanılan parametrik olmayan bir testtir. Örneklem küçük olduğunda ve veri normal dağılmadığında tercih edilir.</p>
+  <ol class="steps">
+    <li><div><strong>Hipotezleri belirle.</strong> H₀: R₁ = R₂ (iki grup eşit). H₁: R₁ ≠ R₂.</div></li>
+    <li><div><strong>Tüm gözlemleri (n = n₁ + n₂) küçükten büyüğe sırala.</strong> Eşit değerlere ortalama sıra verilir.</div></li>
+    <li><div><strong>Grupların sıra toplamlarını hesapla</strong> (R₁ ve R₂). Kontrol: R₁ + R₂ = n(n + 1)/2.</div></li>
+    <li><div><strong>U değerlerini hesapla:</strong> U₁ = n₁n₂ + n₁(n₁ + 1)/2 − R₁, &nbsp; U₂ = n₁n₂ + n₂(n₂ + 1)/2 − R₂. U, ikisinden küçük olanıdır.</div></li>
+    <li><div><strong>U'yu Mann-Whitney kritik değer tablosuyla karşılaştır.</strong></div></li>
+    <li><div><strong>Yorumla:</strong> U ≤ kritik değer ise H₀ reddedilir.</div></li>
+  </ol>
+  <div class="case"><span class="tag">İK vakası</span>Kitapta 12 katılımcı rastgele iki gruba ayrılıyor: yeni ilaç ve plasebo. İK karşılığı: 12 çağrı merkezi çalışanı rastgele iki gruba ayrıldı. Bir gruba 4 haftalık <strong>stres yönetimi programı</strong> uygulandı, diğeri kontrol grubu olarak bekleme listesinde kaldı. Program sonunda çalışanlar algıladıkları stresi 1–12 arasında puanladı (1 = en düşük).</div>
+  <div class="tbl" style="max-width:600px"><table>
+    <thead><tr><th></th><th class="num" colspan="6">Stres puanı</th></tr></thead>
+    <tbody><tr><td>Kontrol</td><td class="num">8</td><td class="num">6</td><td class="num">7</td><td class="num">5</td><td class="num">10</td><td class="num">9</td></tr><tr><td>Program</td><td class="num">4</td><td class="num">5</td><td class="num">4</td><td class="num">3</td><td class="num">1</td><td class="num">6</td></tr></tbody>
+  </table></div>
+  <div class="tool">
+    <div class="lbl">Sıra tablosu oluşturucu · değerleri değiştirin</div>
+    <div class="row">
+      <div class="field"><label for="mw-1">Grup 1 (kontrol)</label><input id="mw-1" type="text" value="8, 6, 7, 5, 10, 9"></div>
+      <div class="field"><label for="mw-2">Grup 2 (program)</label><input id="mw-2" type="text" value="4, 5, 4, 3, 1, 6"></div>
+    </div>
+    <div class="tbl"><table id="mw-tbl"></table></div>
+    <div class="stats" id="mw-stats"></div>
+    <div class="verdict" id="mw-v"></div>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · Mann-Whitney U</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="18">from scipy.stats import mannwhitneyu, rankdata
+
+kontrol = [8, 6, 7, 5, 10, 9]
+program = [4, 5, 4, 3, 1, 6]
+
+sira = rankdata(kontrol + program)
+R1, R2 = sira[:6].sum(), sira[6:].sum()
+n1, n2 = len(kontrol), len(program)
+U1 = n1 * n2 + n1 * (n1 + 1) / 2 - R1
+U2 = n1 * n2 + n2 * (n2 + 1) / 2 - R2
+print(f"R1 = {R1}, R2 = {R2}, U1 = {U1}, U2 = {U2}, U = {min(U1, U2)}")
+
+print(mannwhitneyu(kontrol, program))                          # çift kuyruklu
+print(mannwhitneyu(kontrol, program, alternative='greater'))   # tek kuyruklu
+
+# Etki büyüklüğü: sıra-çiftli (rank-biserial) korelasyon
+print("Etki büyüklüğü r =", round(1 - 2 * min(U1, U2) / (n1 * n2), 3))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki iki hata.</strong> (1) Kitabın şemasında testin “histogram normal dağılım gösterdiğinde” kullanıldığı yazıyor; tam tersi doğrudur: veri normal <em>dağılmadığında</em> kullanılır. Metnin kendisi de böyle diyor. (2) Kitap çıktıdaki p = 0,0063'ü “tek kuyruklu” diye yorumluyor ve U = 2 gösteriyor. scipy 1.7'den beri <code class="i">mannwhitneyu</code> varsayılan olarak <em>çift kuyruklu</em> test yapar (p ≈ 0,0126) ve istatistik olarak ilk grubun U değerini (U₁ = 34) döndürür. Elle yapılan çift kuyruklu tablo karşılaştırmasıyla (U = 2 ≤ 5) tutarlı olan p-değeri çift kuyruklu olanıdır.</div>
+</section>
+
+<!-- 11 İŞARET -->
+<section id="isaret" style="--dot:var(--c3)">
+  <div class="kicker">s. 223–231 <span class="kind">2 eşleştirilmiş grup</span></div>
+  <h2 class="sec">İşaret testi</h2>
+  <p>Parametrik olmayan bir testtir. Biri sıralı ya da sürekli düzeyde ölçülen bağımlı değişken, diğeri iki grup ya da çift (önce/sonra) içeren bağımsız değişken olmak üzere iki değişken gerekir. Her katılımcının gözlem çifti diğer katılımcılardan etkilenmemelidir.</p>
+  <ol class="steps">
+    <li><div><strong>Fark puanlarını hesapla:</strong> önce − sonra.</div></li>
+    <li><div><strong>Hipotezleri belirle.</strong> H₀: fark ortancası sıfırdır. H₁: fark ortancası sıfır değildir.</div></li>
+    <li><div><strong>Pozitif ve negatif farkları say.</strong></div></li>
+    <li><div><strong>Küçük olan sayıyı al.</strong></div></li>
+    <li><div><strong>İşaret testi kritik değer tablosuyla karşılaştır.</strong></div></li>
+    <li><div><strong>Yorumla:</strong> küçük sayı ≤ kritik değer ise H₀ reddedilir.</div></li>
+  </ol>
+  <div class="case"><span class="tag">İK vakası</span>Kitapta 8 hastanın tedavi öncesi ve bir hafta sonrası ağrı puanları karşılaştırılıyor. İK karşılığı: 8 çalışanın <strong>esnek çalışma uygulamasından önce ve bir ay sonra</strong> tükenmişlik puanları (1–12; 12 = en yüksek). Pozitif fark iyileşmedir.</div>
+  <div class="tool">
+    <div class="lbl">İşaret ve Wilcoxon hesaplayıcı · önce/sonra puanlarını değiştirin</div>
+    <div class="row">
+      <div class="field"><label for="pr-b">Önce</label><input id="pr-b" type="text" value="9, 7, 4, 7, 8, 8, 6, 3"></div>
+      <div class="field"><label for="pr-a">Sonra</label><input id="pr-a" type="text" value="8, 5, 5, 4, 2, 7, 4, 5"></div>
+    </div>
+    <div class="tbl"><table id="pr-tbl"></table></div>
+    <div class="stats" id="pr-stats"></div>
+    <div class="verdict" id="pr-v"></div>
+  </div>
+  <p>Elde 6 pozitif, 2 negatif işaret var. n = 8 ve çift kuyruklu α = 0,05 için kritik değer 0'dır. Küçük olan sayı (2) kritik değerden büyük olduğundan H₀ reddedilemez.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · işaret testi</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="14">import numpy as np
+from scipy.stats import binomtest     # kitaptaki binom_test scipy 1.12'de kaldırıldı
+
+once  = np.array([9, 7, 4, 7, 8, 8, 6, 3])
+sonra = np.array([8, 5, 5, 4, 2, 7, 4, 5])
+z = once - sonra
+print("Farklar:", z.tolist())
+
+poz, neg = int((z > 0).sum()), int((z < 0).sum())     # sıfır farklar atılır
+print(f"Pozitif = {poz}, negatif = {neg}")
+
+a = binomtest(min(poz, neg), poz + neg, p=0.5)
+print(f"p-değeri (çift kuyruklu) = {a.pvalue:.4f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap H₁'i önce “fark ortancası sıfır değildir” (çift kuyruklu), sonra “fark ortancası pozitiftir” (tek kuyruklu) olarak tanımlıyor, ama karşılaştırmayı çift kuyruklu kritik değerle yapıyor. H₀'ın reddedilememesi “uygulama işe yaramıyor” demek değildir: 8 kişiyle etkiyi yakalamaya yetecek güç yoktur.</div>
+</section>
+
+<!-- 12 WILCOXON -->
+<section id="wilcoxon" style="--dot:var(--c4)">
+  <div class="kicker">s. 231–237 <span class="kind">2 eşleştirilmiş grup</span></div>
+  <h2 class="sec">Wilcoxon işaretli sıralar testi</h2>
+  <p>Parametrik olmayan bir testtir ve işaret testiyle aynı varsayımlara dayanır. İşaret testinden farkı, farkların yalnızca yönünü değil <em>büyüklüğünü</em> de kullanmasıdır; bu yüzden genellikle daha güçlüdür.</p>
+  <ol class="steps">
+    <li><div><strong>Fark puanlarını hesapla</strong> (önce − sonra).</div></li>
+    <li><div><strong>Farkların mutlak değerlerini sırala.</strong></div></li>
+    <li><div><strong>Sıra numarası ver;</strong> eşit mutlak değerlere ortalama sıra verilir.</div></li>
+    <li><div><strong>Sıralara farkın işaretini ekle</strong> (işaretli sıralar).</div></li>
+    <li><div><strong>W+ (pozitif sıraların toplamı) ve W− (negatif sıraların toplamı) hesapla.</strong> Kontrol: W+ + W− = n(n + 1)/2.</div></li>
+    <li><div><strong>Hipotezleri belirle.</strong> H₀: fark ortancası sıfırdır (W+ = W−). H₁: sıfır değildir.</div></li>
+    <li><div><strong>W'yi bul:</strong> W+ ile W−'den küçük olanı.</div></li>
+    <li><div><strong>W'yi kritik değer tablosuyla karşılaştır.</strong></div></li>
+    <li><div><strong>Yorumla:</strong> W ≤ kritik değer ise H₀ reddedilir.</div></li>
+  </ol>
+  <p>Aynı tükenmişlik verisinde (hesaplayıcı yukarıda): mutlak farklar 1, 1, 1 → ortalama sıra 2; 2, 2, 2 → ortalama sıra 5; 3 → 7; 6 → 8. Negatif farklar −1 (sıra 2) ve −2 (sıra 5) olduğu için W− = 7, W+ = 29; toplam 36 = 8 · 9 / 2. W = 7. n = 8 ve çift kuyruklu α = 0,05 için kritik değer 4; 7 &gt; 4 olduğundan H₀ reddedilemez.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · Wilcoxon işaretli sıralar</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="18">import numpy as np
+from scipy.stats import wilcoxon, rankdata
+
+once  = np.array([9, 7, 4, 7, 8, 8, 6, 3])
+sonra = np.array([8, 5, 5, 4, 2, 7, 4, 5])
+d = once - sonra
+
+sira = rankdata(np.abs(d))
+isaretli = np.sign(d) * sira
+print("Farklar        :", d.tolist())
+print("İşaretli sıralar:", isaretli.tolist())
+print(f"W+ = {sira[d > 0].sum()}, W− = {sira[d < 0].sum()}")
+
+z = wilcoxon(once, sonra, zero_method='wilcox')
+print(z)
+# Not: scipy sürümüne göre p kesin (≈0.16) ya da normal yaklaşımla (≈0.12) hesaplanır.</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki sıra tablosunun sütunları kaymış: “farklar” sütunu ile “sıralı mutlak değerler” sütunu farklı satırlara ait. Yukarıdaki hesaplayıcı tabloyu doğru eşleşmeyle gösteriyor. Kitap p = 0,1198 buluyor; güncel scipy küçük örneklemde kesin dağılımı kullanıp yaklaşık 0,16 verebilir. Karar değişmez.</div>
+</section>
+
+<!-- 13 KRUSKAL -->
+<section id="kw" style="--dot:var(--c2)">
+  <div class="kicker">s. 237–245 <span class="kind">3+ bağımsız grup</span></div>
+  <h2 class="sec">Kruskal-Wallis testi</h2>
+  <p>Tek yönlü ANOVA'nın parametrik olmayan karşılığıdır ve ikiden fazla bağımsız grupta uygulanabilir. Genellikle örneklemler küçük olduğunda ve normal dağılmadığında kullanılır. Gözlemler birbirinden bağımsız olmalıdır.</p>
+  <ol class="steps">
+    <li><div><strong>Hipotezleri belirle.</strong> H₀: tüm grupların evren ortancaları eşittir. H₁: eşit değildir.</div></li>
+    <li><div><strong>Tüm gözlemleri küçükten büyüğe sırala,</strong> hangi gruba ait olduklarını kaybetmeden.</div></li>
+    <li><div><strong>Grupların sıra toplamlarını hesapla</strong> (R₁, R₂, R₃…). Kontrol: toplam = n(n + 1)/2.</div></li>
+    <li><div><strong>H değerini hesapla:</strong> H = 12 / (n(n + 1)) · Σ Rᵢ²/nᵢ − 3(n + 1).</div></li>
+    <li><div><strong>H'yi Kruskal-Wallis kritik değer tablosuyla karşılaştır.</strong></div></li>
+    <li><div><strong>Yorumla:</strong> H ≥ kritik değer ise H₀ reddedilir.</div></li>
+  </ol>
+  <div class="case"><span class="tag">İK vakası</span>Kitapta ilacın %5, %10 ve %15'lik çözeltileri karşılaştırılıyor. İK karşılığı: üç farklı <strong>hibrit çalışma modeli</strong> uygulayan ekiplerde iş yükü stresi (1–12). Haftada 1 gün ofis (n = 3): 7, 6, 9; 3 gün ofis (n = 5): 6, 5, 7, 8, 5; esnek, çalışan seçer (n = 4): 5, 2, 3, 4.</div>
+  <p>Sıra toplamları R₁ = 29, R₂ = 38, R₃ = 11 (toplam 78 = 12 · 13 / 2). H = 12/(12 · 13) · (29²/3 + 38²/5 + 11²/4) − 3 · 13 ≈ <strong>7,1</strong>. n = (3, 5, 4) ve α = 0,05 için kritik değer 5,656; H₀ reddedilir.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · Kruskal-Wallis ve ikili karşılaştırmalar</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="22">import numpy as np
+from scipy.stats import kruskal, mannwhitneyu, rankdata
+from itertools import combinations
+
+gruplar = {"1 gün ofis": [7, 6, 9],
+           "3 gün ofis": [6, 5, 7, 8, 5],
+           "Esnek":      [5, 2, 3, 4]}
+
+# Elle H (eşit değer düzeltmesi olmadan)
+tum = np.concatenate(list(gruplar.values()))
+sira = rankdata(tum); n = len(tum)
+R, i = [], 0
+for v in gruplar.values():
+    R.append(float(sira[i:i + len(v)].sum())); i += len(v)
+H = 12 / (n * (n + 1)) * sum(r ** 2 / len(v) for r, v in zip(R, gruplar.values())) - 3 * (n + 1)
+print("Sıra toplamları:", R, " H (elle) =", round(H, 3))
+
+print(kruskal(*gruplar.values()))      # eşit değer düzeltmeli
+
+# Anlamlıysa: hangi gruplar farklı? Bonferroni düzeltmeli ikili testler
+for (a, x), (b, y) in combinations(gruplar.items(), 2):
+    p = mannwhitneyu(x, y).pvalue
+    print(f"{a} vs {b}: p = {p:.3f}, Bonferroni p = {min(1, p * 3):.3f}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitap H'yi yuvarlayarak 7 buluyor; tam değer 7,11'dir. scipy eşit değerler için düzeltme yaptığı için 7,26 verir. Anlamlı bir Kruskal-Wallis sonucu yalnızca “en az bir grup farklı” der. Hangi grupların farklı olduğunu bulmak için düzeltilmiş ikili karşılaştırmalar (ör. Dunn testi ya da Bonferroni'li Mann-Whitney) gerekir. Bu örnekte Bonferroni düzeltmesinden sonra hiçbir ikili fark anlamlı kalmıyor: grup başına 3–5 kişiyle genel test anlamlı çıksa bile hangi grubun farklı olduğunu söylemek için veri yetersizdir.</div>
+</section>
+
+<!-- 14 FRIEDMAN -->
+<section id="friedman" style="--dot:var(--c1)">
+  <div class="kicker">s. 248–255 <span class="kind">3+ eşleştirilmiş grup</span></div>
+  <h2 class="sec">Friedman testi</h2>
+  <p>İki yönlü ANOVA'nın parametrik olmayan karşılığı olarak kabul edilen bir testtir. Bağımlı değişken sürekli ya da sıralı düzeyde ölçülmeli; veri, en az üç farklı durumda ölçülen tek bir grupla (ya da bloklarla) ilgili olmalı ve grup evrenden rastgele seçilmelidir.</p>
+  <ol class="steps">
+    <li><div><strong>Hipotezleri belirle.</strong> H₀: tüm grupların ortanca sıraları eşittir. H₁: en az bir grubun ortanca sırası diğerlerinden farklıdır.</div></li>
+    <li><div><strong>Veriyi bloklara yerleştir.</strong></div></li>
+    <li><div><strong>Her bloğu kendi içinde sırala</strong> (en küçük = 1).</div></li>
+    <li><div><strong>Her grubun sıralarını topla</strong> (R₁, R₂, …).</div></li>
+    <li><div><strong>Kontrol:</strong> ΣRᵢ = r·c(c + 1)/2 (r: blok sayısı, c: grup sayısı).</div></li>
+    <li><div><strong>İstatistiği hesapla:</strong> F = [12 / (r·c(c + 1)) · ΣRᵢ²] − 3r(c + 1).</div></li>
+    <li><div><strong>Ki-kare tablosuyla (sd = c − 1) karşılaştır.</strong></div></li>
+    <li><div><strong>Yorumla:</strong> F &gt; kritik değer ise H₀ reddedilir.</div></li>
+  </ol>
+  <div class="case"><span class="tag">İK vakası</span>Kitapta 4 yaş grubundaki katılımcılardan 6 “değerlendirici bloğu” ağrı puanları alınıyor. Friedman testinin İK'daki doğal karşılığı bir <strong>değerlendirme merkezi</strong>dir: 6 değerlendirici (bloklar), son aşamadaki 4 adayın (A, B, C, D) vaka sunumunu 10 üzerinden puanladı. Her değerlendirici kendi puanlama eğilimine sahip olduğu için puanlar değerlendirici içinde sıralanır.</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Değerlendirici</th><th class="num">A puan</th><th class="num">sıra</th><th class="num">B puan</th><th class="num">sıra</th><th class="num">C puan</th><th class="num">sıra</th><th class="num">D puan</th><th class="num">sıra</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="num">8</td><td class="num">4</td><td class="num">7</td><td class="num">3</td><td class="num">6</td><td class="num">2</td><td class="num">5</td><td class="num">1</td></tr>
+      <tr><td>2</td><td class="num">9</td><td class="num">4</td><td class="num">8</td><td class="num">3</td><td class="num">7</td><td class="num">2</td><td class="num">6</td><td class="num">1</td></tr>
+      <tr><td>3</td><td class="num">7</td><td class="num">4</td><td class="num">5</td><td class="num">2</td><td class="num">6</td><td class="num">3</td><td class="num">4</td><td class="num">1</td></tr>
+      <tr><td>4</td><td class="num">6</td><td class="num">3</td><td class="num">7</td><td class="num">4</td><td class="num">5</td><td class="num">2</td><td class="num">3</td><td class="num">1</td></tr>
+      <tr><td>5</td><td class="num">9</td><td class="num">4</td><td class="num">6</td><td class="num">3</td><td class="num">4</td><td class="num">1,5</td><td class="num">4</td><td class="num">1,5</td></tr>
+      <tr><td>6</td><td class="num">8</td><td class="num">3,5</td><td class="num">7</td><td class="num">2</td><td class="num">8</td><td class="num">3,5</td><td class="num">5</td><td class="num">1</td></tr>
+      <tr class="tot"><td>Sıra toplamı</td><td></td><td class="num">R₁ = 22,5</td><td></td><td class="num">R₂ = 17</td><td></td><td class="num">R₃ = 14</td><td></td><td class="num">R₄ = 6,5</td></tr>
+    </tbody>
+  </table></div>
+  <p>Kontrol: 22,5 + 17 + 14 + 6,5 = 60 = 6 · 4 · 5 / 2. F = [12/(6 · 4 · 5) · (22,5² + 17² + 14² + 6,5²)] − 3 · 6 · 5 = <strong>13,35</strong>. sd = 3 ve α = 0,05 için ki-kare kritik değeri 7,815; H₀ reddedilir. Adaylar değerlendiriciler arasında tutarlı biçimde farklı sıralanıyor; A adayı öne çıkıyor.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · Friedman testi</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="24">import numpy as np
+from scipy.stats import friedmanchisquare, rankdata
+
+# Satırlar değerlendirici (blok), sütunlar aday
+puan = np.array([[8, 7, 6, 5],
+                 [9, 8, 7, 6],
+                 [7, 5, 6, 4],
+                 [6, 7, 5, 3],
+                 [9, 6, 4, 4],
+                 [8, 7, 8, 5]])
+
+# DOĞRU: her ADAY (sütun) ayrı bir örneklem olarak verilir
+A, B, C, D = puan.T
+print("Adaylara göre:", friedmanchisquare(A, B, C, D))
+
+# Kitaptaki çağrı: her DEĞERLENDİRİCİ (satır) grup sayılıyor → yanlış soru
+print("Kitaptaki (satırlar):", friedmanchisquare(*puan))
+
+# Elle hesap
+sira = np.apply_along_axis(rankdata, 1, puan)
+R = sira.sum(axis=0); r, c = puan.shape
+F = 12 / (r * c * (c + 1)) * (R ** 2).sum() - 3 * r * (c + 1)
+print("Sıra toplamları:", R, " F (elle) =", round(F, 2))
+
+# Kendall W: değerlendiriciler arası uyum (0 = yok, 1 = tam)
+print("Kendall W =", round(F / (r * (c - 1)), 3))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note warn"><strong>Kitaptaki kod hakkında uyarı.</strong> Kitap <code class="i">friedmanchisquare(u, v, w, x, y, z)</code> çağrısında her <em>satırı</em> (değerlendirici bloğunu) ayrı bir grup olarak veriyor. Bu, 6 grubun 4 blokta karşılaştırılması demektir; elle yaptığı hesapla aynı soru değildir ve farklı sonuç (12,25, sd = 5) verir. Doğru çağrı her <em>sütunu</em> (grubu) ayrı vermektir: <code class="i">friedmanchisquare(A, B, C, D)</code>. Bu çağrı eşit değer düzeltmesiyle yaklaşık 13,8 verir ve elle bulunan 13,35 ile tutarlıdır. Friedman istatistiğinin <em>F</em> diye adlandırılması da kafa karıştırıcıdır; ANOVA'nın F istatistiğiyle ilgisi yoktur ve ki-kare dağılımıyla değerlendirilir.</div>
+</section>
+
+</main>
+
+<footer>
+  Kaynak: Usman Zafar Paracha, <em>Colorful Statistics and Python Programming Language</em>, s. 190–255. Kavram anlatımları kitaptan çevrilmiş; örnekler insan kaynakları bağlamına uyarlanmış, kodlar güncel scipy ve statsmodels sürümlerine göre düzeltilmiş, simülatör ve hesaplayıcılar eklenmiştir. Örnek veriler eğitim amaçlı ve kurgusaldır. Python kodları tarayıcıda <a href="https://pyodide.org" style="color:var(--c1)">Pyodide</a> ile çalışır; ilk çalıştırmada paketlerin inmesi biraz zaman alabilir. Sayfa internet bağlantısı gerektirir.
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+/* ---------- Pyodide + matplotlib yakalama ---------- */
+const statusEl = document.getElementById('status');
+function setStatus(txt, cls){ statusEl.className = 'status' + (cls ? ' ' + cls : ''); statusEl.querySelector('span').textContent = txt; }
+let pyReady = null;
+function getPy(){
+  if (!pyReady){
+    pyReady = (async () => {
+      const py = await loadPyodide();
+      setStatus('Python hazır · paketler ilk kullanımda yüklenir', 'ready');
+      return py;
+    })().catch(e => { setStatus('Pyodide yüklenemedi: internet bağlantısını kontrol edin', 'err'); throw e; });
+  }
+  return pyReady;
+}
+getPy();
+const MPL_PRELUDE = `
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt, io as _io, base64 as _b64
+plt.rcParams.update({"figure.figsize": (7, 4.2), "axes.spines.top": False, "axes.spines.right": False})
+_imgs = []
+def _yakala(*a, **k):
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = _io.BytesIO()
+        f.savefig(b, format="png", dpi=110, bbox_inches="tight", facecolor="white")
+        _imgs.append(_b64.b64encode(b.getvalue()).decode())
+    plt.close("all")
+plt.show = _yakala
+`;
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.querySelectorAll('[data-cell]').forEach(cell => {
+  const ta = cell.querySelector('textarea'), out = cell.querySelector('pre.out'), figs = cell.querySelector('.figs');
+  const runBtn = cell.querySelector('[data-run]');
+  const original = ta.value;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab'){ e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runBtn.click(); }
+  });
+  cell.querySelector('[data-reset]').addEventListener('click', () => { ta.value = original; out.innerHTML = ''; figs.innerHTML = ''; });
+  runBtn.addEventListener('click', async () => {
+    runBtn.disabled = true; runBtn.textContent = 'Çalışıyor…';
+    out.innerHTML = '<span class="w">Hazırlanıyor…</span>'; figs.innerHTML = '';
+    let buf = '';
+    const usesPlot = /matplotlib|seaborn|pyplot/.test(ta.value);
+    try {
+      const py = await getPy();
+      await py.loadPackagesFromImports(usesPlot ? ta.value + '\nimport matplotlib' : ta.value, { messageCallback: m => { out.innerHTML = '<span class="w">' + esc(m) + '</span>'; } });
+      py.setStdout({ batched: s => { buf += s + '\n'; } });
+      py.setStderr({ batched: s => { if (!/Matplotlib is building the font cache/.test(s)) buf += s + '\n'; } });
+      if (usesPlot) await py.runPythonAsync(MPL_PRELUDE);
+      await py.runPythonAsync(ta.value);
+      if (usesPlot){
+        await py.runPythonAsync('_yakala()');
+        const imgs = py.globals.get('_imgs').toJs();
+        figs.innerHTML = imgs.map((b, i) => `<img alt="Grafik ${i + 1}" src="data:image/png;base64,${b}">`).join('');
+      }
+      out.innerHTML = esc(buf.trimEnd()) || (usesPlot ? '' : '<span class="w">(çıktı yok)</span>');
+    } catch (err) {
+      const msg = String(err.message || err).split('\n').filter(Boolean);
+      out.innerHTML = (buf ? esc(buf) : '') + '<span class="e">' + esc(msg.slice(-3).join('\n')) + '</span>';
+    } finally { runBtn.disabled = false; runBtn.textContent = 'Çalıştır ▸'; }
+  });
+});
+
+/* ---------- Yardımcılar ---------- */
+const fmt = (v, d = 4) => Number.isFinite(v) ? Number(v).toLocaleString('tr-TR', { maximumFractionDigits: d }) : '—';
+const parseNums = s => s.split(/[\s,;]+/).map(Number).filter(Number.isFinite);
+const statHTML = arr => arr.map(([k, v, hl]) => `<div class="stat${hl ? ' hl' : ''}"><span>${k}</span><b>${v}</b></div>`).join('');
+function erf(x){ const s = Math.sign(x); x = Math.abs(x); const t = 1 / (1 + 0.3275911 * x);
+  return s * (1 - (((((1.061405429 * t - 1.453152027) * t) + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x)); }
+const Phi = x => 0.5 * (1 + erf(x / Math.SQRT2));
+const phi = x => Math.exp(-x * x / 2) / Math.sqrt(2 * Math.PI);
+function zinv(p){ let lo = -10, hi = 10; for (let i = 0; i < 80; i++){ const m = (lo + hi) / 2; if (Phi(m) < p) lo = m; else hi = m; } return (lo + hi) / 2; }
+function ranks(a){ const idx = a.map((v, i) => [v, i]).sort((x, y) => x[0] - y[0]); const r = Array(a.length);
+  for (let i = 0; i < idx.length;){ let j = i; while (j + 1 < idx.length && idx[j + 1][0] === idx[i][0]) j++;
+    const avg = (i + j) / 2 + 1; for (let k = i; k <= j; k++) r[idx[k][1]] = avg; i = j + 1; } return r; }
+function lchoose(n, k){ let s = 0; for (let i = 1; i <= k; i++) s += Math.log(n - k + i) - Math.log(i); return s; }
+const binomPmf = (k, n, p) => Math.exp(lchoose(n, k) + k * Math.log(p) + (n - k) * Math.log(1 - p));
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+const path = pts => pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join('');
+
+/* ---------- Merkezi limit teoremi ---------- */
+const POPS = {
+  skew:  { ad: 'Aylık ücret (bin TL)', draw: r => Math.exp(Math.log(50) + 0.55 * gauss(r)) },
+  unif:  { ad: 'Vardiya başlangıç saati', draw: r => 6 + 16 * r() },
+  bimod: { ad: 'Yaş', draw: r => r() < 0.6 ? 28 + 4 * gauss(r) : 50 + 5 * gauss(r) },
+  exp:   { ad: 'İstifalar arası gün', draw: r => -12 * Math.log(1 - r()) },
+};
+let cltSeed = 7;
+function hist(vals, lo, hi, bins){ const c = Array(bins).fill(0), w = (hi - lo) / bins; vals.forEach(v => { const i = Math.floor((v - lo) / w); if (i >= 0 && i < bins) c[i]++; }); return c; }
+function drawCLT(){
+  const key = document.getElementById('clt-pop').value, n = Number(document.getElementById('clt-n').value);
+  document.getElementById('clt-nv').textContent = n;
+  const P = POPS[key], r = mulberry32(cltSeed);
+  const pop = Array.from({ length: 20000 }, () => P.draw(r));
+  const sorted = [...pop].sort((a, b) => a - b), lo = sorted[Math.floor(sorted.length * 0.002)], hi = sorted[Math.floor(sorted.length * 0.995)];
+  const mu = pop.reduce((a, b) => a + b) / pop.length, sd = Math.sqrt(pop.reduce((a, b) => a + (b - mu) ** 2, 0) / pop.length);
+  const means = Array.from({ length: 2000 }, () => { let s = 0; for (let i = 0; i < n; i++) s += P.draw(r); return s / n; });
+  const mm = means.reduce((a, b) => a + b) / means.length, msd = Math.sqrt(means.reduce((a, b) => a + (b - mm) ** 2, 0) / means.length);
+  const sk = means.reduce((a, b) => a + ((b - mm) / msd) ** 3, 0) / means.length;
+  const W = 640, Hh = 150, L = 16, R = 16, gap = 30, bins = 40;
+  const sx = v => L + (v - lo) / (hi - lo) * (W - L - R);
+  const h1 = hist(pop, lo, hi, bins), h2 = hist(means, lo, hi, bins), m1 = Math.max(...h1), m2 = Math.max(...h2);
+  const bw = (W - L - R) / bins;
+  let svg = `<svg viewBox="0 0 ${W} ${Hh * 2 + gap + 30}" role="img" aria-label="Evren ve örneklem ortalamaları histogramları">`;
+  svg += `<text class="ttl" x="${L}" y="14">Evren: ${P.ad}</text>`;
+  h1.forEach((c, i) => { const h = c / m1 * (Hh - 26); svg += `<rect class="bar" x="${L + i * bw + 0.5}" y="${Hh - h}" width="${bw - 1}" height="${h}"/>`; });
+  svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${Hh}" y2="${Hh}"/>`;
+  const y0 = Hh + gap;
+  svg += `<text class="ttl" x="${L}" y="${y0 + 14}">n = ${n} kişilik 2.000 örneklemin ortalamaları</text>`;
+  h2.forEach((c, i) => { const h = c / m2 * (Hh - 26); svg += `<rect class="bar2" x="${L + i * bw + 0.5}" y="${y0 + Hh - h}" width="${bw - 1}" height="${h}"/>`; });
+  const np = []; for (let i = 0; i <= 200; i++){ const v = lo + (hi - lo) * i / 200; np.push([sx(v), y0 + Hh - phi((v - mm) / msd) / msd * (2000 * (hi - lo) / bins) / m2 * (Hh - 26)]); }
+  svg += `<path class="crv2" d="${path(np.filter(p => p[1] >= y0 + 16))}"/>`;
+  svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${y0 + Hh}" y2="${y0 + Hh}"/>`;
+  const span = hi - lo, mag = 10 ** Math.floor(Math.log10(span / 6)), st = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= span / 7);
+  for (let t = Math.ceil(lo / st) * st; t <= hi; t += st) svg += `<text class="tk" x="${sx(t)}" y="${y0 + Hh + 16}" text-anchor="middle">${fmt(+t.toFixed(6), 1)}</text>`;
+  svg += `</svg>`; document.getElementById('clt-svg').innerHTML = svg;
+  document.getElementById('clt-stats').innerHTML = statHTML([['Evren μ', fmt(mu, 2)], ['Evren σ', fmt(sd, 2)], ['Ortalamaların ort.', fmt(mm, 2)], ['Ortalamaların std sapması', fmt(msd, 3), true], ['σ / √n', fmt(sd / Math.sqrt(n), 3)], ['Ortalamaların çarpıklığı', fmt(sk, 2)]]);
+}
+['clt-pop', 'clt-n'].forEach(id => document.getElementById(id).addEventListener('input', drawCLT));
+document.getElementById('clt-go').addEventListener('click', () => { cltSeed++; drawCLT(); });
+drawCLT();
+
+/* ---------- Kuyruklar ---------- */
+function drawTail(){
+  const z = Number(document.getElementById('tl-z').value), t = document.getElementById('tl-t').value, a = Number(document.getElementById('tl-a').value);
+  const W = 640, H = 230, L = 20, R = 20, T = 14, B = 36, lo = -4, hi = 4;
+  const sx = v => L + (v - lo) / (hi - lo) * (W - L - R), sy = d => H - B - d / phi(0) * (H - T - B);
+  const area = (x0, x1, cls) => { const pts = []; for (let i = 0; i <= 60; i++){ const v = x0 + (x1 - x0) * i / 60; pts.push([sx(v), sy(phi(v))]); } return `<path class="${cls}" d="M${sx(x0)} ${H - B}${path(pts).replace('M', 'L')}L${sx(x1)} ${H - B}Z"/>`; };
+  let crit, p, svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Normal eğri ve reddetme bölgesi">`;
+  if (t === 'two'){ crit = zinv(1 - a / 2); p = 2 * (1 - Phi(Math.abs(z)));
+    svg += area(-4, -crit, 'rej') + area(crit, 4, 'rej');
+    if (Number.isFinite(z)) svg += area(Math.min(4, Math.abs(z)), 4, 'pv') + area(-4, Math.max(-4, -Math.abs(z)), 'pv'); }
+  else if (t === 'right'){ crit = zinv(1 - a); p = 1 - Phi(z); svg += area(crit, 4, 'rej'); if (Number.isFinite(z)) svg += area(Math.max(-4, Math.min(4, z)), 4, 'pv'); }
+  else { crit = zinv(a); p = Phi(z); svg += area(-4, crit, 'rej'); if (Number.isFinite(z)) svg += area(-4, Math.max(-4, Math.min(4, z)), 'pv'); }
+  const pts = []; for (let i = 0; i <= 200; i++){ const v = lo + (hi - lo) * i / 200; pts.push([sx(v), sy(phi(v))]); }
+  svg += `<path class="crv" d="${path(pts)}"/><line class="ax" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
+  for (let i = -3; i <= 3; i++) svg += `<text class="tk" x="${sx(i)}" y="${H - B + 14}" text-anchor="middle">${i}</text>`;
+  if (Number.isFinite(z) && z >= lo && z <= hi) svg += `<line class="me" x1="${sx(z)}" x2="${sx(z)}" y1="${T}" y2="${H - B}"/><text class="ttl" x="${sx(z)}" y="${H - 4}" text-anchor="middle">z = ${fmt(z, 2)}</text>`;
+  svg += `</svg>`; document.getElementById('tl-svg').innerHTML = svg;
+  const kr = t === 'two' ? `±${fmt(crit, 3)}` : fmt(crit, 3), rej = p < a;
+  document.getElementById('tl-v').innerHTML = `Kritik değer: <b>${kr}</b> · p-değeri: <b>${fmt(p, 4)}</b> · Kırmızı alan reddetme bölgesi, turuncu alan p-değeri. <b>${rej ? 'H₀ reddedilir.' : 'H₀ reddedilemez.'}</b>`;
+}
+['tl-z', 'tl-t', 'tl-a'].forEach(id => document.getElementById(id).addEventListener('input', drawTail));
+drawTail();
+
+/* ---------- Test seçici ---------- */
+function pick(){
+  const amac = document.getElementById('s-amac').value, veri = document.getElementById('s-veri').value, g = document.getElementById('s-grup').value, bag = document.getElementById('s-bag').value;
+  ['s-veri', 's-grup', 's-bag'].forEach(id => document.getElementById(id).disabled = amac !== 'karsi');
+  let t;
+  if (amac === 'uyum') t = ['Kolmogorov-Smirnov (Lilliefors) ya da ki-kare uyum iyiliği', 'Sürekli veri için KS / Lilliefors (ya da Shapiro-Wilk); kategorik sayımlar için ki-kare uyum iyiliği.', 'ks'];
+  else if (amac === 'iliski') t = ['Ki-kare bağımsızlık testi', 'İki kategorik değişkenin olumsallık tablosu. Beklenen frekanslar 5\'in altındaysa Fisher kesin testi düşünülmeli.', 'kikare'];
+  else if (veri === 'kat') t = bag === 'esl' ? ['McNemar testi', 'Aynı kişilerin önce/sonra evet-hayır yanıtları (2 × 2).', 'mcnemar'] : ['Ki-kare bağımsızlık testi', 'Bağımsız grupların evet-hayır oranları.', 'kikare'];
+  else if (g === '2') t = bag === 'esl' ? ['Wilcoxon işaretli sıralar testi', 'Aynı çalışanların iki ölçümü. Farkların yalnızca yönü güvenilirse işaret testi.', 'wilcoxon'] : ['Mann-Whitney U testi', 'İki bağımsız grup. Yalnızca ortancalar karşılaştırılacaksa Mood ortanca testi de kullanılabilir.', 'mwu'];
+  else t = bag === 'esl' ? ['Friedman testi', 'Aynı bloklar (kişiler ya da değerlendiriciler) üç veya daha fazla koşulda ölçülüyor.', 'friedman'] : ['Kruskal-Wallis testi', 'Üç veya daha fazla bağımsız grup. Anlamlıysa düzeltilmiş ikili karşılaştırmalar yapılmalı.', 'kw'];
+  document.getElementById('s-rec').innerHTML = `<h4>${t[0]}</h4><p>${t[1]}</p><a href="#${t[2]}">Bölüme git →</a>`;
+}
+['s-amac', 's-veri', 's-grup', 's-bag'].forEach(id => document.getElementById(id).addEventListener('input', pick));
+pick();
+
+/* ---------- Mann-Whitney sıra tablosu ---------- */
+const MW05 = { 3: { 3: null, 4: null, 5: 0, 6: 1, 7: 1, 8: 2 }, 4: { 4: 0, 5: 1, 6: 2, 7: 3, 8: 4 }, 5: { 5: 2, 6: 3, 7: 5, 8: 6 }, 6: { 6: 5, 7: 6, 8: 8 }, 7: { 7: 8, 8: 10 }, 8: { 8: 13 } };
+function crit(n1, n2){ const a = Math.min(n1, n2), b = Math.max(n1, n2); return MW05[a] && b in MW05[a] ? MW05[a][b] : undefined; }
+function drawMW(){
+  const g1 = parseNums(document.getElementById('mw-1').value), g2 = parseNums(document.getElementById('mw-2').value);
+  if (g1.length < 2 || g2.length < 2){ document.getElementById('mw-stats').innerHTML = statHTML([['Uyarı', 'Her grupta en az 2 değer']]); return; }
+  const all = [...g1.map(v => [v, 1]), ...g2.map(v => [v, 2])], r = ranks(all.map(x => x[0]));
+  const rows = all.map((x, i) => [x[0], x[1], r[i]]).sort((a, b) => a[0] - b[0]);
+  document.getElementById('mw-tbl').innerHTML = `<thead><tr><th>Sıralı değer</th><th>Grup</th><th class="num">Sıra</th></tr></thead><tbody>${rows.map(([v, g, rk]) => `<tr><td>${fmt(v, 2)}</td><td>${g === 1 ? 'Grup 1' : 'Grup 2'}</td><td class="num">${fmt(rk, 1)}</td></tr>`).join('')}</tbody>`;
+  const n1 = g1.length, n2 = g2.length, n = n1 + n2, R1 = r.slice(0, n1).reduce((a, b) => a + b, 0), R2 = r.slice(n1).reduce((a, b) => a + b, 0);
+  const U1 = n1 * n2 + n1 * (n1 + 1) / 2 - R1, U2 = n1 * n2 + n2 * (n2 + 1) / 2 - R2, U = Math.min(U1, U2);
+  const zv = (U - n1 * n2 / 2) / Math.sqrt(n1 * n2 * (n + 1) / 12), p = 2 * Phi(-Math.abs(zv));
+  const cv = crit(n1, n2);
+  document.getElementById('mw-stats').innerHTML = statHTML([['R₁', fmt(R1, 1)], ['R₂', fmt(R2, 1)], ['Kontrol n(n+1)/2', fmt(n * (n + 1) / 2, 1)], ['U₁', fmt(U1, 1)], ['U₂', fmt(U2, 1)], ['U = min', fmt(U, 1), true], ['Yaklaşık p (normal)', fmt(p, 4)]]);
+  document.getElementById('mw-v').innerHTML = cv === undefined
+    ? `Kritik değer tablosu bu örneklem büyüklükleri için gömülü değil; yaklaşık p = ${fmt(p, 4)} ile karar verin: <b>${p < 0.05 ? 'H₀ reddedilir.' : 'H₀ reddedilemez.'}</b>`
+    : cv === null ? 'Bu kadar küçük örneklemde α = 0,05 düzeyinde anlamlılık mümkün değil.'
+    : `Çift kuyruklu α = 0,05 kritik değeri (n₁ = ${n1}, n₂ = ${n2}): <b>${cv}</b>. U = ${fmt(U, 1)} ${U <= cv ? '≤' : '>'} ${cv} → <b>${U <= cv ? 'H₀ reddedilir.' : 'H₀ reddedilemez.'}</b>`;
+}
+['mw-1', 'mw-2'].forEach(id => document.getElementById(id).addEventListener('input', drawMW));
+drawMW();
+
+/* ---------- İşaret ve Wilcoxon ---------- */
+const SIGN05 = { 6: 0, 7: 0, 8: 0, 9: 1, 10: 1, 11: 1, 12: 2, 13: 2, 14: 2, 15: 3, 16: 3, 17: 4, 18: 4, 19: 4, 20: 5, 21: 5, 22: 5, 23: 6, 24: 6, 25: 7 };
+const W05 = { 6: 1, 7: 2, 8: 4, 9: 6, 10: 8, 11: 11, 12: 14, 13: 17, 14: 21, 15: 25, 16: 30, 17: 35, 18: 40, 19: 46, 20: 52, 21: 59, 22: 66, 23: 73, 24: 81, 25: 90, 26: 98, 27: 107, 28: 117, 29: 127, 30: 137 };
+function drawPR(){
+  const b = parseNums(document.getElementById('pr-b').value), a = parseNums(document.getElementById('pr-a').value);
+  const n0 = Math.min(a.length, b.length);
+  if (n0 < 2){ document.getElementById('pr-stats').innerHTML = statHTML([['Uyarı', 'En az 2 çift girin']]); return; }
+  const d = Array.from({ length: n0 }, (_, i) => b[i] - a[i]);
+  const nz = d.map((v, i) => [v, i]).filter(x => x[0] !== 0), rk = ranks(nz.map(x => Math.abs(x[0])));
+  const rankOf = {}; nz.forEach((x, j) => rankOf[x[1]] = rk[j]);
+  document.getElementById('pr-tbl').innerHTML = `<thead><tr><th>Çalışan</th><th class="num">Önce</th><th class="num">Sonra</th><th class="num">Fark</th><th>İşaret</th><th class="num">|Fark| sırası</th><th class="num">İşaretli sıra</th></tr></thead><tbody>${d.map((v, i) => { const s = v > 0 ? '+' : v < 0 ? '−' : '0'; const r = rankOf[i];
+    return `<tr><td>${i + 1}</td><td class="num">${fmt(b[i], 2)}</td><td class="num">${fmt(a[i], 2)}</td><td class="num">${fmt(v, 2)}</td><td class="${v > 0 ? 'pos' : v < 0 ? 'neg' : ''}">${s}</td><td class="num">${r ? fmt(r, 2) : '—'}</td><td class="num ${v > 0 ? 'pos' : v < 0 ? 'neg' : ''}">${r ? (v > 0 ? '' : '−') + fmt(r, 2) : '—'}</td></tr>`; }).join('')}</tbody>`;
+  const pos = nz.filter(x => x[0] > 0).length, neg = nz.length - pos, n = nz.length, k = Math.min(pos, neg);
+  let ps = 0; for (let i = 0; i <= k; i++) ps += binomPmf(i, n, 0.5); ps = Math.min(1, 2 * ps);
+  const Wp = nz.reduce((s, x, j) => s + (x[0] > 0 ? rk[j] : 0), 0), Wm = nz.reduce((s, x, j) => s + (x[0] < 0 ? rk[j] : 0), 0), Wv = Math.min(Wp, Wm);
+  document.getElementById('pr-stats').innerHTML = statHTML([['Pozitif işaret', pos], ['Negatif işaret', neg], ['İşaret testi p (kesin)', fmt(ps, 4), true], ['W+', fmt(Wp, 2)], ['W−', fmt(Wm, 2)], ['W = min', fmt(Wv, 2), true], ['Kontrol n(n+1)/2', fmt(n * (n + 1) / 2, 1)]]);
+  const cs = SIGN05[n], cw = W05[n];
+  const sv = cs === undefined ? `İşaret testi: p = ${fmt(ps, 4)}.` : `İşaret testi: küçük sayı ${k} ${k <= cs ? '≤' : '>'} kritik ${cs} → <b>${k <= cs ? 'H₀ reddedilir' : 'H₀ reddedilemez'}</b>.`;
+  const wv = cw === undefined ? 'Wilcoxon: bu n için kritik değer tablosu yok.' : `Wilcoxon: W = ${fmt(Wv, 2)} ${Wv <= cw ? '≤' : '>'} kritik ${cw} → <b>${Wv <= cw ? 'H₀ reddedilir' : 'H₀ reddedilemez'}</b>.`;
+  document.getElementById('pr-v').innerHTML = `n = ${n} (sıfır farklar atıldı), çift kuyruklu α = 0,05. ${sv} ${wv}`;
+}
+['pr-b', 'pr-a'].forEach(id => document.getElementById(id).addEventListener('input', drawPR));
+drawPR();
+</script>
+</body>
+</html>

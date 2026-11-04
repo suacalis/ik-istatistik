@@ -1,0 +1,833 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Grafikler ve Çizimler</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Düzen: solda yapışkan içindekiler, sağda okunur sütun; her grafik türü = açıklama + İK vakası + etkileşimli araç / grafik çizen Python hücresi */
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --sunk:#f1efe9; --line:#e2ddd2;
+  --fg:#1f2328; --muted:#5d6470;
+  --c1:#2f6fb5; --c2:#d9822b; --c3:#3f9a5c; --c4:#8a4fb0; --c5:#c2453d;
+  --code-bg:#f6f4ef; --code-fg:#24292f; --out-bg:#0f1720; --out-fg:#d6e2ee;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Literata",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:240px minmax(0,1fr);gap:48px}
+@media (max-width:880px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}}
+
+header.hero{grid-column:1/-1;padding-block:48px 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.stripe{display:flex;gap:6px;margin-bottom:18px}
+.stripe span{width:28px;height:8px;border-radius:4px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:62ch;margin:0}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-family:var(--f-mono);font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--c2);display:inline-block}
+.status.ready i{background:var(--c3)} .status.err i{background:var(--c5)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:28px;max-height:100vh;overflow:auto}
+nav.toc h2{font-family:var(--f-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--fg);font-family:var(--f-display);font-size:.95rem;padding:5px 8px;border-radius:6px}
+nav.toc a small{font-family:var(--f-mono);color:var(--muted);font-size:.72rem;min-width:22px}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sunk);outline:none}
+@media (max-width:880px){nav.toc{position:static;max-height:none;padding-top:20px}
+  nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
+
+main{min-width:0}
+section{padding-block:36px 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.kicker{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.04em}
+h2.sec{font-family:var(--f-display);font-weight:700;font-size:1.75rem;margin:4px 0 14px;text-wrap:balance;display:flex;align-items:center;gap:12px}
+h2.sec::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--dot,var(--c1));flex:none}
+h3{font-family:var(--f-display);font-weight:500;font-size:1.15rem;margin:26px 0 8px}
+p{max-width:68ch;margin:0 0 14px}
+.muted{color:var(--muted)}
+code.i{font-family:var(--f-mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+
+.note{border-left:4px solid var(--c2);background:var(--sunk);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.note strong{font-family:var(--f-display)}
+.case{background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--dot,var(--c1));padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.case .tag{font-family:var(--f-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dot,var(--c1));display:block;margin-bottom:4px}
+
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.95rem;min-width:100%}
+th,td{padding:6px 12px;text-align:left;border-bottom:1px solid var(--line)}
+th{font-family:var(--f-display);font-weight:500;color:var(--muted);font-size:.85rem}
+td.num,th.num{text-align:right;white-space:nowrap}
+
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:16px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-top:4px solid var(--kc,var(--c1));border-radius:10px;padding:12px 14px;min-width:0;font-size:.92rem}
+.card h4{font-family:var(--f-display);font-weight:700;font-size:1rem;margin:0 0 4px}
+.card p{margin:0}
+
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin:18px 0}
+.tool .lbl{font-family:var(--f-display);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.field{display:grid;gap:4px;flex:1 1 160px;min-width:0}
+.field label{font-size:.82rem;color:var(--muted);font-family:var(--f-display)}
+input[type=text],input[type=number],select{font-family:var(--f-mono);font-size:.9rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;width:100%}
+input[type=range]{width:100%;accent-color:var(--c1)}
+button{font-family:var(--f-display);font-weight:500;font-size:.92rem;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--c1);color:#fff}
+button.ghost{background:var(--sunk);color:var(--fg)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{background:var(--sunk);color:var(--fg);font-size:.85rem;padding:6px 10px}
+.chips button.active{background:var(--c2);color:#fff}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+button:disabled{opacity:.55;cursor:default}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px;margin-top:12px}
+.stat{background:var(--sunk);border-radius:10px;padding:8px 12px}
+.stat span{display:block;font-size:.75rem;color:var(--muted);font-family:var(--f-display)}
+.stat b{font-family:var(--f-mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+
+/* SVG grafikleri: renkler tema belirteçlerinden */
+.svgbox{overflow-x:auto;margin-top:12px}
+.svgbox svg{display:block;width:100%;height:auto;min-width:320px;font-family:var(--f-mono)}
+.svgbox .ax{stroke:var(--line);stroke-width:1}
+.svgbox .grid{stroke:var(--line);stroke-width:1;stroke-dasharray:3 3}
+.svgbox .tk{fill:var(--muted);font-size:11px}
+.svgbox .lab{fill:var(--muted);font-size:12px;font-family:var(--f-display)}
+.svgbox .pt{fill:var(--c1);fill-opacity:.7;stroke:var(--c1)}
+.svgbox .fit{stroke:var(--c2);stroke-width:2;fill:none}
+.svgbox .bar{fill:var(--c1);fill-opacity:.8}
+.svgbox .bar:hover{fill-opacity:1}
+.svgbox .bx{fill:color-mix(in srgb,var(--c1) 22%,transparent);stroke:var(--c1);stroke-width:1.5}
+.svgbox .wh{stroke:var(--fg);stroke-width:1.2}
+.svgbox .md{stroke:var(--c5);stroke-width:2.5}
+.svgbox .out{fill:none;stroke:var(--c5);stroke-width:1.5}
+.svgbox .val{fill:var(--fg);font-size:10px}
+
+.py{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:18px 0;background:var(--code-bg)}
+.py .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.py .bar span{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.py .bar .btns{display:flex;gap:6px}
+.py textarea{display:block;width:100%;border:0;resize:vertical;background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:.86rem;line-height:1.55;padding:14px 16px;tab-size:4;white-space:pre;overflow-x:auto}
+.py pre.out{margin:0;padding:12px 16px;background:var(--out-bg);color:var(--out-fg);font-family:var(--f-mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+.py pre.out:empty{display:none}
+.py pre.out .e{color:#ff9c8f}
+.py pre.out .w{color:#9fb3c8;font-style:italic}
+.py .figs{background:#ffffff;display:grid;gap:8px;padding:12px;justify-items:center}
+.py .figs:empty{display:none}
+.py .figs img{max-width:100%;height:auto}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="stripe" aria-hidden="true"><span style="background:var(--c1)"></span><span style="background:var(--c2)"></span><span style="background:var(--c3)"></span><span style="background:var(--c4)"></span><span style="background:var(--c5)"></span></div>
+  <h1>Grafikler ve Çizimler</h1>
+  <p class="lede">Usman Zafar Paracha'nın <em>Colorful Statistics and Python Programming Language</em> kitabının 43–71. sayfalarının Türkçe, etkileşimli ve insan kaynakları örnekleriyle uyarlanmış sürümü. Python hücreleri matplotlib ve seaborn grafiklerini doğrudan sayfada çizer.</p>
+  <div class="status" id="status" role="status"><i></i><span>Python (Pyodide) yükleniyor…</span></div>
+</header>
+
+<nav class="toc" aria-label="İçindekiler">
+  <h2>İçindekiler</h2>
+  <ol>
+    <li><a href="#sutun"><small>1</small>Sütun grafiği</a></li>
+    <li><a href="#pasta"><small>2</small>Pasta grafiği</a></li>
+    <li><a href="#sacilim"><small>3</small>Saçılım ve kabarcık</a></li>
+    <li><a href="#oruntu"><small>4</small>İlişki örüntüleri</a></li>
+    <li><a href="#nokta"><small>5</small>Nokta grafiği</a></li>
+    <li><a href="#matris"><small>6</small>Matris grafiği</a></li>
+    <li><a href="#pareto"><small>7</small>Pareto grafiği</a></li>
+    <li><a href="#histogram"><small>8</small>Histogram</a></li>
+    <li><a href="#govde"><small>9</small>Gövde-yaprak</a></li>
+    <li><a href="#kutu"><small>10</small>Kutu grafiği</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 SÜTUN -->
+<section id="sutun" style="--dot:var(--c1)">
+  <div class="kicker">s. 43–46</div>
+  <h2 class="sec">Sütun grafiği</h2>
+  <p>Sütun grafiği, farklı kategorileri grafikte sütunlarla gösterir. Genellikle x ekseni kategorileri, y ekseni kategorilerin değerlerini gösterir. Sütunların yükseklikleri kategorilerin değerleriyle orantılıdır.</p>
+  <div class="case"><span class="tag">İK vakası</span>Son bir yılda şirketten kendi isteğiyle ayrılan çalışanlarla çıkış görüşmeleri yapıldı. Her çalışanın belirttiği <strong>birincil ayrılma nedeni</strong> şöyle dağılıyor (kitaptaki seyahat nedenleri anketiyle aynı yüzdeler):</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Ayrılma nedeni</th><th class="num">Çalışanların yüzdesi</th></tr></thead>
+    <tbody>
+      <tr><td>Daha yüksek ücret teklifi</td><td class="num">25</td></tr>
+      <tr><td>Yöneticiyle ilişki</td><td class="num">15</td></tr>
+      <tr><td>Kariyer gelişimi olanağı yok</td><td class="num">18</td></tr>
+      <tr><td>Kişisel / ailevi nedenler</td><td class="num">10</td></tr>
+      <tr><td>Şehir değiştirme</td><td class="num">6</td></tr>
+      <tr><td>Yeni bir alana geçiş</td><td class="num">11</td></tr>
+      <tr><td>İş-yaşam dengesi</td><td class="num">15</td></tr>
+    </tbody>
+  </table></div>
+  <div class="py" data-cell><div class="bar"><span>Python · ayrılma nedenleri sütun grafiği</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="22">import numpy as np
+import matplotlib.pyplot as plt
+
+ayrilma_nedeni = ('Daha yüksek ücret teklifi', 'Yöneticiyle ilişki',
+                  'Kariyer gelişimi olanağı yok', 'Kişisel / ailevi nedenler',
+                  'Şehir değiştirme', 'Yeni bir alana geçiş', 'İş-yaşam dengesi')
+y_pos = np.arange(len(ayrilma_nedeni))
+yuzde = [25, 15, 18, 10, 6, 11, 15]
+
+plt.bar(y_pos, yuzde, align='center', alpha=0.5)
+plt.xticks(y_pos, ayrilma_nedeni, fontsize=10, rotation=90)
+plt.xlabel('Ayrılma nedeni')
+plt.ylabel('Çalışanların yüzdesi')
+plt.title('Çıkış görüşmelerinde belirtilen ayrılma nedenleri')
+plt.show()
+
+# Daha okunur sürüm: büyükten küçüğe sıralı yatay sütunlar
+sira = np.argsort(yuzde)
+plt.barh(np.array(ayrilma_nedeni)[sira], np.array(yuzde)[sira], color="#2f6fb5")
+plt.xlabel('Çalışanların yüzdesi')
+plt.title('Ayrılma nedenleri (sıralı)')
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <p class="muted" style="font-size:.92rem">Uzun kategori adlarında yatay ve sıralı sütunlar okumayı kolaylaştırır: en sık nedenin ücret, ikincisinin kariyer gelişimi olduğu ilk bakışta görülür.</p>
+</section>
+
+<!-- 2 PASTA -->
+<section id="pasta" style="--dot:var(--c2)">
+  <div class="kicker">s. 46–49</div>
+  <h2 class="sec">Pasta grafiği</h2>
+  <p>Pasta grafiği (daire grafiği), sayısal oranların dilimlere bölündüğü dairesel bir istatistik grafiğidir. Yüzdeler, her değerin toplama bölünüp 100 ile çarpılmasıyla elde edilir. Dairenin 360 derecesi %100'ü gösterir; x ya da y ekseni yoktur.</p>
+  <div class="case"><span class="tag">İK vakası</span>Bir üretim biriminin aylık <strong>toplam personel maliyeti</strong> 300.000 TL. Kalemlere dağılımı aşağıda (kitaptaki örnek bir evin inşaat maliyetiydi).</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Maliyet kalemi</th><th class="num">Tutar (TL)</th><th class="num">Yüzde</th></tr></thead>
+    <tbody>
+      <tr><td>Brüt ücretler</td><td class="num">180.000</td><td class="num">60</td></tr>
+      <tr><td>SGK işveren payı</td><td class="num">36.000</td><td class="num">12</td></tr>
+      <tr><td>Prim ve ikramiye</td><td class="num">24.000</td><td class="num">8</td></tr>
+      <tr><td>Yemek ve ulaşım</td><td class="num">18.000</td><td class="num">6</td></tr>
+      <tr><td>Özel sağlık sigortası</td><td class="num">12.000</td><td class="num">4</td></tr>
+      <tr><td>Eğitim ve gelişim</td><td class="num">12.000</td><td class="num">4</td></tr>
+      <tr><td>İşe alım</td><td class="num">9.000</td><td class="num">3</td></tr>
+      <tr><td>Kıdem tazminatı karşılığı</td><td class="num">9.000</td><td class="num">3</td></tr>
+      <tr><th>Toplam</th><th class="num">300.000</th><th class="num">100</th></tr>
+    </tbody>
+  </table></div>
+  <div class="py" data-cell><div class="bar"><span>Python · personel maliyeti pasta grafiği</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="16">import matplotlib.pyplot as plt
+
+labels = ('Brüt ücretler', 'SGK işveren payı', 'Prim ve ikramiye',
+          'Yemek ve ulaşım', 'Özel sağlık sigortası', 'Eğitim ve gelişim',
+          'İşe alım', 'Kıdem tazminatı karşılığı')
+tutar = [180000, 36000, 24000, 18000, 12000, 12000, 9000, 9000]
+sizes = [t / sum(tutar) * 100 for t in tutar]     # yüzdeye çevir
+
+fig1, ax1 = plt.subplots(figsize=(7, 5))
+ax1.pie(sizes, labels=labels, autopct='%1.1f%%',
+        shadow=True, startangle=90, counterclock=False)
+ax1.axis('equal')                                 # daireyi tam yuvarlak çiz
+ax1.set_title('Aylık personel maliyetinin dağılımı')
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Pasta grafiği az sayıda kalem (en fazla 5–6) ve “bütünün parçaları” vurgusu için uygundur. Küçük dilimler (%3, %4) okunması güç olduğundan, kalem sayısı fazla olduğunda sıralı bir sütun grafiği genellikle daha iyi iş görür. Kitaptaki <code class="i">shadow=True</code> görsel bir süsten ibarettir.</div>
+</section>
+
+<!-- 3 SAÇILIM -->
+<section id="sacilim" style="--dot:var(--c3)">
+  <div class="kicker">s. 49–54</div>
+  <h2 class="sec">Saçılım grafiği ve kabarcık grafiği</h2>
+  <p>Saçılım grafiği, iki değişken (iki veri kümesi) arasındaki ilişkiyi noktalar biçiminde gösterir. Bir noktanın konumu, x ve y eksenindeki değerlerine karşılık gelir. Noktaların yerini farklı büyüklük ve özellikteki dairelere (kabarcıklara) bırakması durumunda grafiğe <strong>kabarcık grafiği</strong> denir.</p>
+  <div class="case"><span class="tag">İK vakası</span>Şirketin kariyer sitesine son 7 yılda gelen <strong>iş başvurusu sayısı</strong> (kitaptaki Pakistan'a gelen turist sayılarıyla aynı örüntü; ölçek 1/100). 2020–2022'deki düşüş salgın dönemi işe alım dondurmasını, 2024'teki sıçrama yeni bir işveren markası kampanyasını yansıtıyor. Kabarcık grafiğinde üçüncü değişken olarak o yıl <strong>işe alınan kişi sayısı</strong> kullanılıyor.</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Yıl</th><th class="num">Başvuru sayısı</th><th class="num">İşe alınan</th></tr></thead>
+    <tbody>
+      <tr><td>2018</td><td class="num">11.670</td><td class="num">120</td></tr>
+      <tr><td>2019</td><td class="num">9.660</td><td class="num">95</td></tr>
+      <tr><td>2020</td><td class="num">5.652</td><td class="num">40</td></tr>
+      <tr><td>2021</td><td class="num">5.300</td><td class="num">35</td></tr>
+      <tr><td>2022</td><td class="num">5.634</td><td class="num">60</td></tr>
+      <tr><td>2023</td><td class="num">9.655</td><td class="num">110</td></tr>
+      <tr><td>2024</td><td class="num">17.500</td><td class="num">180</td></tr>
+    </tbody>
+  </table></div>
+  <div class="py" data-cell><div class="bar"><span>Python · saçılım ve kabarcık grafiği</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="26">import numpy as np
+import matplotlib.pyplot as plt
+
+x = [2018, 2019, 2020, 2021, 2022, 2023, 2024]
+y = [11670, 9660, 5652, 5300, 5634, 9655, 17500]   # başvuru sayısı
+
+# Saçılım grafiği
+plt.scatter(x, y, alpha=0.5)
+plt.title('Yıllara göre iş başvurusu sayısı')
+plt.xlabel('Yıl')
+plt.ylabel('Başvuru sayısı')
+plt.show()
+
+# Kabarcık grafiği – kitaptaki gibi alan = y ile orantılı
+area = (30 * np.array(y) / 10000) ** 2
+plt.scatter(x, y, s=area, alpha=0.5)
+plt.title('Kabarcık grafiği (boyut = başvuru sayısı)')
+plt.show()
+
+# Üçüncü bir değişkenle: kabarcık boyutu = işe alınan kişi sayısı
+ise_alinan = np.array([120, 95, 40, 35, 60, 110, 180])
+plt.scatter(x, y, s=ise_alinan * 8, alpha=0.5, edgecolors='k')
+for xi, yi, n in zip(x, y, ise_alinan):
+    plt.annotate(f'{n} kişi', (xi, yi), ha='center', va='center', fontsize=8)
+plt.title('Başvuru sayısı ve işe alınan kişi sayısı')
+plt.xlabel('Yıl'); plt.ylabel('Başvuru sayısı')
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki kabarcık örneğinde boyut y ile aynı değişkeni gösteriyor, yani yeni bilgi eklemiyor. Kabarcık grafiği asıl gücünü üçüncü bir değişkeni (burada işe alınan kişi sayısı) gösterdiğinde kazanır. Zaman serisi verisinde noktaları bir çizgiyle birleştirmek eğilimi daha net gösterir.</div>
+</section>
+
+<!-- 4 ÖRÜNTÜLER -->
+<section id="oruntu" style="--dot:var(--c4)">
+  <div class="kicker">s. 50–51</div>
+  <h2 class="sec">Kabarcık grafiklerinde veri örüntüleri</h2>
+  <p>Kabarcık (saçılım) grafikleri doğrusallık, eğim ve güç açısından farklı türlerde olabilir.</p>
+  <div class="cards">
+    <div class="card" style="--kc:var(--c4)"><h4>Doğrusallık</h4><p><b>Doğrusal:</b> noktalar düz bir çizgi boyunca dizilir. <b>Eğrisel:</b> noktalar bir eğri izler.</p></div>
+    <div class="card" style="--kc:var(--c3)"><h4>Eğim</h4><p><b>Pozitif:</b> x arttıkça y artar. <b>Negatif:</b> x arttıkça y azalır.</p></div>
+    <div class="card" style="--kc:var(--c2)"><h4>Güç</h4><p><b>Geniş dağılmış kabarcıklar:</b> zayıf ilişki. <b>Yoğun kabarcıklar:</b> güçlü ilişki.</p></div>
+  </div>
+  <div class="tool">
+    <div class="lbl">Örüntü keşfedici · İK senaryoları</div>
+    <div class="chips" id="pat-chips" role="group" aria-label="Senaryo"></div>
+    <div class="row" style="margin-top:12px"><div class="field"><label for="pat-noise">Dağınıklık (gürültü): <span id="pat-nv">orta</span></label><input id="pat-noise" type="range" min="0" max="100" value="35"></div></div>
+    <div class="svgbox" id="pat-svg" aria-label="Saçılım grafiği"></div>
+    <div class="stats" id="pat-stats"></div>
+    <p class="muted" id="pat-txt" style="margin:10px 0 0;font-size:.92rem"></p>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · altı örüntü tek figürde</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="30">import numpy as np
+import matplotlib.pyplot as plt
+
+rng = np.random.default_rng(3)
+x = np.linspace(1, 10, 25)
+senaryolar = {
+    "Doğrusal: kıdem → ücret":
+        ("Kıdem (yıl)", "Ücret (bin TL)", 35 + 4 * x + rng.normal(0, 1.5, x.size)),
+    "Eğrisel: çalışma saati → verimlilik":
+        ("Haftalık saat (×5)", "Verimlilik", 80 - 2.2 * (x - 6) ** 2 + rng.normal(0, 3, x.size)),
+    "Pozitif: eğitim saati → yetkinlik":
+        ("Eğitim saati (×4)", "Yetkinlik puanı", 50 + 3 * x + rng.normal(0, 3, x.size)),
+    "Negatif: eğitim saati → hata sayısı":
+        ("Eğitim saati (×4)", "Aylık hata", 30 - 2.4 * x + rng.normal(0, 2, x.size)),
+    "Zayıf: yaş → bağlılık":
+        ("Yaş (×5)", "Bağlılık", 65 + 0.6 * x + rng.normal(0, 9, x.size)),
+    "Güçlü: görüşme → satış":
+        ("Müşteri görüşmesi (×3)", "Satış adedi", 4 + 1.8 * x + rng.normal(0, 0.8, x.size)),
+}
+
+fig, axs = plt.subplots(3, 2, figsize=(9, 9))
+for ax, (baslik, (xl, yl, y)) in zip(axs.flat, senaryolar.items()):
+    r = np.corrcoef(x, y)[0, 1]
+    ax.scatter(x, y, facecolors='none', edgecolors='#2f6fb5')
+    ax.set_title(f"{baslik}\nr = {r:.2f}", fontsize=10)
+    ax.set_xlabel(xl, fontsize=8); ax.set_ylabel(yl, fontsize=8)
+fig.tight_layout()
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Pearson korelasyon katsayısı (r) yalnızca <em>doğrusal</em> ilişkinin gücünü ölçer. Çalışma saati ile verimlilik arasındaki ters U biçimli ilişki çok güçlü olabilir ama r sıfıra yakın çıkar. Bu yüzden r hesaplamadan önce her zaman saçılım grafiğine bakılmalıdır.</div>
+</section>
+
+<!-- 5 NOKTA -->
+<section id="nokta" style="--dot:var(--c5)">
+  <div class="kicker">s. 54–57</div>
+  <h2 class="sec">Nokta grafiği</h2>
+  <p>Nokta grafiği, veriyi noktalar biçiminde gösterir. Her nokta bir sayım birimidir.</p>
+  <div class="case"><span class="tag">İK vakası</span>Bir fabrikadaki 7 vardiya ekibinde bu yıl kayda geçen <strong>ramak kala olayı</strong> sayıları (kitaptaki 7 evdeki kardeş sayısıyla aynı değerler): Ekip 1: 4, Ekip 2: 3, Ekip 3: 1, Ekip 4: 0, Ekip 5: 5, Ekip 6: 2, Ekip 7: 2.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · ekip başına ramak kala olayları</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="28">import matplotlib.pyplot as plt
+from collections import Counter
+
+ekip = [1, 2, 3, 4, 5, 6, 7]
+olay = [4, 3, 1, 0, 5, 2, 2]
+
+# Kitabın yöntemi: her satır için ayrı liste (0'dan değere kadar)
+b = [4, 3, 1, 0, 5, 2, 2]
+c = [3, 2, 0, 0, 4, 1, 1]
+d = [2, 1, 0, 0, 3, 0, 0]
+e = [1, 0, 0, 0, 2, 0, 0]
+f = [0, 0, 0, 0, 1, 0, 0]
+g = [0, 0, 0, 0, 0, 0, 0]
+for satir in [b, c, d, e, f, g]:
+    plt.scatter(ekip, satir, c='#A9A9A9')
+plt.title('Kitaptaki yöntem (0 değeri de bir nokta olarak çiziliyor)')
+plt.show()
+
+# Daha doğru ve kısa: her olay için bir nokta, 1'den başlayarak üst üste
+for x, n in zip(ekip, olay):
+    plt.scatter([x] * n, range(1, n + 1), s=120, color='#c2453d')
+plt.xticks(ekip, [f'Ekip {i}' for i in ekip])
+plt.yticks(range(0, 6)); plt.ylim(0, 5.8)
+plt.ylabel('Ramak kala olayı')
+plt.title('Ekip başına ramak kala olayı (her nokta = 1 olay)')
+plt.show()
+
+# Klasik nokta grafiği: x = olay sayısı, nokta sayısı = kaç ekipte görüldüğü
+say = Counter(olay)
+for deger, adet in say.items():
+    plt.scatter([deger] * adet, range(1, adet + 1), s=150, color='#2f6fb5')
+plt.xticks(range(0, 6)); plt.yticks([1, 2]); plt.ylim(0.3, 2.7)
+plt.xlabel('Bir ekipteki olay sayısı'); plt.ylabel('Ekip sayısı')
+plt.title('Olay sayısının ekipler arasındaki dağılımı')
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki kod her sütunun en altına 0 değerinde bir nokta koyar; bu yüzden hiç olayı olmayan Ekip 4'te bile bir nokta görünür. Her nokta bir sayıyı temsil ettiğinde noktalar 1'den başlamalıdır. İkinci grafik bunu düzeltiyor.</div>
+</section>
+
+<!-- 6 MATRİS -->
+<section id="matris" style="--dot:var(--c1)">
+  <div class="kicker">s. 57–60</div>
+  <h2 class="sec">Matris grafiği</h2>
+  <p>Matris grafiği, birden çok değişken çiftinin ilişkisini aynı anda incelemek için kullanılır. Her hücre iki değişkenin saçılım grafiğidir; köşegende her değişkenin kendi dağılımı (histogram) yer alır.</p>
+  <div class="case"><span class="tag">İK vakası</span>8 çalışan için dört değişken (kitaptaki A, B, C, D sütunlarıyla aynı değerler): <strong>vardiya</strong> (1 = gündüz, 2 = gece), <strong>iş yükü algısı</strong>, <strong>iş tatmini</strong> ve <strong>performans puanı</strong> (son üçü 1–10 ölçeğinde).</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Vardiya (A)</th><th class="num">İş yükü (B)</th><th class="num">İş tatmini (C)</th><th class="num">Performans (D)</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td class="num">3,6</td><td class="num">4,9</td><td class="num">4,1</td></tr>
+      <tr><td>1</td><td class="num">5,0</td><td class="num">3,5</td><td class="num">4,1</td></tr>
+      <tr><td>1</td><td class="num">4,7</td><td class="num">4,1</td><td class="num">4,4</td></tr>
+      <tr><td>1</td><td class="num">6,1</td><td class="num">7,3</td><td class="num">5,3</td></tr>
+      <tr><td>2</td><td class="num">7,6</td><td class="num">5,2</td><td class="num">2,4</td></tr>
+      <tr><td>2</td><td class="num">6,9</td><td class="num">4,7</td><td class="num">4,0</td></tr>
+      <tr><td>2</td><td class="num">5,6</td><td class="num">5,0</td><td class="num">5,4</td></tr>
+      <tr><td>2</td><td class="num">5,0</td><td class="num">5,7</td><td class="num">5,8</td></tr>
+    </tbody>
+  </table></div>
+  <div class="py" data-cell><div class="bar"><span>Python · seaborn pairplot</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="22">import pandas as pd
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+df = pd.DataFrame({
+    'vardiya':    [1, 1, 1, 1, 2, 2, 2, 2],
+    'is_yuku':    [3.6, 5.0, 4.7, 6.1, 7.6, 6.9, 5.6, 5.0],
+    'is_tatmini': [4.9, 3.5, 4.1, 7.3, 5.2, 4.7, 5.0, 5.7],
+    'performans': [4.1, 4.1, 4.4, 5.3, 2.4, 4.0, 5.4, 5.8],
+})
+
+# Kitaptaki gibi: dört değişkenin hepsi
+sns.pairplot(df, height=1.9)
+plt.show()            # kitaptaki sns.plt.show() güncel seaborn'da çalışmaz
+
+# Daha anlamlı: vardiya bir kategori; onu renk olarak kullan
+df['vardiya'] = df['vardiya'].map({1: 'Gündüz', 2: 'Gece'})
+sns.pairplot(df, hue='vardiya', height=1.9, palette=['#2f6fb5', '#d9822b'])
+plt.show()
+
+print(df.drop(columns='vardiya').corr().round(2))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki <code class="i">sns.plt.show()</code> seaborn 0.9 sonrasında kaldırıldı; yerine <code class="i">plt.show()</code> kullanılır. Ayrıca A değişkeni (vardiya) bir kategori olduğundan saçılım hücrelerinde iki dikey çizgi gibi görünür; onu <code class="i">hue</code> ile renk olarak vermek daha bilgilendiricidir.</div>
+</section>
+
+<!-- 7 PARETO -->
+<section id="pareto" style="--dot:var(--c2)">
+  <div class="kicker">s. 60–64</div>
+  <h2 class="sec">Pareto grafiği</h2>
+  <p>Pareto grafiği (Pareto dağılım diyagramı), sık yaşanan kusurları ya da şikâyet nedenlerini belirleyerek en çok fayda sağlayacak alanları iyileştirmek için kullanılır. Çıktının yaklaşık %80'inin girdinin %20'siyle ilişkili olduğunu söyleyen Pareto ilkesine dayanır. Sütunlar büyükten küçüğe sıralanır; çizgi birikimli yüzdeyi gösterir.</p>
+  <div class="case"><span class="tag">İK vakası</span>Bir fabrikanın öneri ve şikâyet kutusuna bir yılda gelen <strong>çalışan şikâyetleri</strong> (kitaptaki otel müşteri şikâyetleriyle aynı sayılar). Hangi birkaç konuya odaklanmak şikâyetlerin çoğunu çözer?</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Şikâyet</th><th class="num">Sayı</th></tr></thead>
+    <tbody>
+      <tr><td>Servis saatleri vardiyaya uymuyor</td><td class="num">175</td></tr>
+      <tr><td>Yöneticinin tutumu</td><td class="num">25</td></tr>
+      <tr><td>Yetersiz aydınlatma</td><td class="num">11</td></tr>
+      <tr><td>Fazla mesai planlaması</td><td class="num">21</td></tr>
+      <tr><td>Yemekhane kalitesi</td><td class="num">145</td></tr>
+      <tr><td>Bordro hataları</td><td class="num">12</td></tr>
+      <tr><td>Üretim alanında gürültü</td><td class="num">32</td></tr>
+      <tr><td>Soyunma odası düzeni</td><td class="num">16</td></tr>
+    </tbody>
+  </table></div>
+  <div class="py" data-cell><div class="bar"><span>Python · çalışan şikâyetleri Pareto grafiği</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="30">import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.ticker import PercentFormatter
+
+df = pd.DataFrame({'Sikayet': [175, 25, 11, 21, 145, 12, 32, 16]})
+df.index = ['Servis saatleri vardiyaya uymuyor', 'Yöneticinin tutumu',
+            'Yetersiz aydınlatma', 'Fazla mesai planlaması',
+            'Yemekhane kalitesi', 'Bordro hataları',
+            'Üretim alanında gürültü', 'Soyunma odası düzeni']
+df = df.sort_values(by='Sikayet', ascending=False)
+df['birikimli_yuzde'] = df['Sikayet'].cumsum() / df['Sikayet'].sum() * 100
+
+fig, ax = plt.subplots(figsize=(8, 4.5))
+ax.bar(df.index, df['Sikayet'], color='C0')
+ax2 = ax.twinx()
+ax2.plot(df.index, df['birikimli_yuzde'], color='C1', marker='D', ms=7)
+ax2.yaxis.set_major_formatter(PercentFormatter())
+ax2.axhline(80, color='C1', linestyle='--', linewidth=1)   # %80 eşiği
+ax2.set_ylim(0, 105)
+
+ax.tick_params(axis='y', colors='C0')
+ax2.tick_params(axis='y', colors='C1')
+ax.tick_params(axis='x', labelrotation=90)
+ax.set_title('Çalışan şikâyetleri – Pareto grafiği')
+plt.show()
+
+print(df.round(1))
+ilk = df[df['birikimli_yuzde'].shift(fill_value=0) < 80]
+print("\n%80'e ulaşmak için odaklanılacak konular:", list(ilk.index))</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <p class="muted" style="font-size:.92rem">Kitaptaki otel örneğinde olduğu gibi burada da ilk üç konu (servis saatleri, yemekhane, gürültü) şikâyetlerin yaklaşık %80'ini oluşturuyor. İK bütçesi önce bu üç alana ayrılırsa en büyük etki elde edilir.</p>
+</section>
+
+<!-- 8 HİSTOGRAM -->
+<section id="histogram" style="--dot:var(--c3)">
+  <div class="kicker">s. 64–67</div>
+  <h2 class="sec">Histogram</h2>
+  <p>Histogram, sayıları aralıklara gruplayan bir grafiktir. Veriyi sütunlarla gösterir, ama sütun grafiğinden farklı olarak sütunlar arasında boşluk yoktur; x ekseni sınıf aralıklarını (ör. 0–2, 2–4, 4–6) gösterir.</p>
+  <div class="case"><span class="tag">İK vakası</span>Kitaptaki 7 değer yerine daha gerçekçi bir veri kullanalım: 80 kişilik bir şirkette <strong>çalışanların yaşları</strong>. Yaş dağılımı, emeklilik planlaması ve kuşaklar arası bilgi aktarımı için temel göstergelerden biridir.</div>
+  <div class="tool">
+    <div class="lbl">Sınıf aralığı genişliğinin etkisi</div>
+    <div class="row"><div class="field"><label for="h-w">Aralık genişliği: <span id="h-wv">5</span> yıl</label><input id="h-w" type="range" min="1" max="15" value="5"></div></div>
+    <div class="svgbox" id="h-svg" aria-label="Yaş histogramı"></div>
+    <div class="stats" id="h-stats"></div>
+    <p class="muted" style="margin:10px 0 0;font-size:.92rem">Çok dar aralıklar gürültülü, çok geniş aralıklar ise bilgi kaybettiren bir resim verir. Bu veride 5 yıllık aralıklar iki tepeyi (genç ve deneyimli çalışan grupları) açıkça gösteriyor.</p>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · histogram</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="26">import numpy as np
+import matplotlib.pyplot as mp
+
+# Kitaptaki yöntem: np.histogram + bar (7 ekipteki ramak kala sayıları)
+hist, bin_edges = np.histogram([4, 3, 1, 0, 5, 2, 2], bins=range(7))
+mp.bar(bin_edges[:-1], hist, width=1, align='edge', edgecolor='white')
+mp.xlim(min(bin_edges), max(bin_edges))
+mp.title('Ramak kala olayı sayısı (aralık = 1)')
+mp.show()
+
+# Çalışan yaşları (80 kişi)
+rng = np.random.default_rng(11)
+yas = np.concatenate([rng.normal(29, 4, 50), rng.normal(48, 5, 30)]).round()
+yas = np.clip(yas, 20, 64)
+
+mp.hist(yas, bins=range(20, 70, 5), edgecolor='white', color='#3f9a5c')
+mp.xlabel('Yaş'); mp.ylabel('Çalışan sayısı')
+mp.title('Çalışanların yaş dağılımı (5 yıllık aralıklar)')
+mp.show()
+
+sayim, kenar = np.histogram(yas, bins=range(20, 70, 5))
+for a, b, n in zip(kenar[:-1], kenar[1:], sayim):
+    print(f"{a}–{b - 1} yaş: {'█' * n} {n}")
+print(f"\n55 yaş ve üstü (5 yıl içinde emekliliğe yaklaşabilecek): {(yas >= 55).sum()} kişi")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki <code class="i">mp.bar(bin_edges[:-1], hist, width=1)</code> sütunları aralığın ortasına yerleştirir ve grafik 0,5 kadar kayar. <code class="i">align='edge'</code> eklenince her sütun kendi aralığının başlangıcından başlar. Histogram için doğrudan <code class="i">plt.hist()</code> kullanmak daha kısadır.</div>
+</section>
+
+<!-- 9 GÖVDE-YAPRAK -->
+<section id="govde" style="--dot:var(--c4)">
+  <div class="kicker">s. 67–69</div>
+  <h2 class="sec">Gövde-yaprak grafiği</h2>
+  <p>Gövde-yaprak grafiğinde veri değerleri, “gövde” olan ilk basamak(lar) ile “yaprak” olan son basamağa ayrılır. Örneğin 15, gövde 1 ve yaprak 5'e; 69, gövde 6 ve yaprak 9'a ayrılır. Böylece büyük miktarda veri hızla düzenlenebilir ve histogram gibi bir şekil elde edilirken tek tek değerler de kaybolmaz.</p>
+  <div class="case"><span class="tag">İK vakası</span>Son 14 pozisyonun <strong>işe alım süreleri (gün)</strong>: 15, 14, 17, 12, 23, 24, 29, 35, 47, 41, 59, 62, 67, 69 (kitaptaki sayıların aynısı).</div>
+  <div class="tbl" style="max-width:340px"><table>
+    <thead><tr><th>Gövde (on gün)</th><th>Yaprak (gün)</th></tr></thead>
+    <tbody style="font-family:var(--f-mono)">
+      <tr><td>1</td><td>2 4 5 7</td></tr><tr><td>2</td><td>3 4 9</td></tr><tr><td>3</td><td>5</td></tr>
+      <tr><td>4</td><td>1 7</td></tr><tr><td>5</td><td>9</td></tr><tr><td>6</td><td>2 7 9</td></tr>
+    </tbody>
+  </table></div>
+  <div class="py" data-cell><div class="bar"><span>Python · gövde-yaprak grafiği</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="24">from collections import defaultdict
+
+sure = [15, 14, 17, 12, 23, 24, 29, 35, 47, 41, 59, 62, 67, 69]   # gün
+
+def govde_yaprak(veri, birim=10):
+    agac = defaultdict(list)
+    for v in sorted(veri):
+        agac[v // birim].append(v % birim)
+    print(f"Anahtar: 6 | 2 = {6 * birim + 2} gün\n")
+    print("Gövde | Yaprak")
+    for g in range(min(agac), max(agac) + 1):
+        yapraklar = " ".join(str(y) for y in agac.get(g, []))
+        print(f"{g:>5} | {yapraklar}")
+
+govde_yaprak(sure)
+
+# Kitap 'stemgraphic' paketini kullanıyor. Pyodide'de denemek isterseniz:
+#   import micropip
+#   await micropip.install("stemgraphic")
+#   import stemgraphic
+#   stemgraphic.stem_graphic(sure)
+# Paketin bağımlılıkları tarayıcıda her zaman kurulamayabilir;
+# yukarıdaki kısa fonksiyon aynı sonucu bağımlılıksız verir.
+
+print(f"\n30 günlük hedefi aşan pozisyon: {sum(s > 30 for s in sure)} / {len(sure)}")</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <p class="muted" style="font-size:.92rem">Grafik ilk bakışta iki grup gösteriyor: 10–29 gün arasında hızlı dolan pozisyonlar ve 40–69 gün süren uzun aramalar. Bu ikinci grubun hangi unvanlar olduğuna bakmak, işe alım darboğazlarını ortaya çıkarır.</p>
+</section>
+
+<!-- 10 KUTU -->
+<section id="kutu" style="--dot:var(--c5)">
+  <div class="kicker">s. 69–71</div>
+  <h2 class="sec">Kutu grafiği</h2>
+  <p>Kutu grafiği (kutu-bıyık diyagramı), verinin dağılımını beş sayılı özete dayanarak gösterir: (1) en küçük değer, (2) birinci çeyrek (Q1), (3) ortanca (Q2), (4) üçüncü çeyrek (Q3) ve (5) en büyük değer. Her bölüm verinin %25'ini içerir. Kutunun boyu çeyrekler arası açıklıktır (IQR = Q3 − Q1); bıyıkların ötesindeki noktalar <strong>aykırı değerlerdir</strong>.</p>
+  <p>Kitaptaki örnek zaten bir İK konusudur: haftanın günlerine göre <strong>çalışılan saatler</strong>. Ortancalar insanların hafta ilerledikçe daha çok çalıştığını, hafta sonu ise daha az çalıştığını gösterir.</p>
+  <div class="case"><span class="tag">İK vakası</span>Üç departmanda 10'ar çalışanın <strong>çalışan bağlılığı puanı</strong> (0–100; kitaptaki üç okuldaki sıra sayılarıyla aynı değerler). Departmanları ortanca ve yayılım açısından karşılaştıralım.</div>
+  <div class="tool">
+    <div class="lbl">Kutu grafiği oluşturucu · değerleri değiştirin</div>
+    <div class="row">
+      <div class="field"><label for="bx-1">Satış</label><input id="bx-1" type="text" value="54,60,65,66,67,69,70,72,73,75"></div>
+      <div class="field"><label for="bx-2">Üretim</label><input id="bx-2" type="text" value="42,48,53,54,55,57,58,60,61,63"></div>
+      <div class="field"><label for="bx-3">BT</label><input id="bx-3" type="text" value="56,68,78,80,82,86,88,92,94,98"></div>
+    </div>
+    <div class="svgbox" id="bx-svg" aria-label="Kutu grafiği"></div>
+    <div class="tbl"><table id="bx-tbl"></table></div>
+    <p class="muted" style="margin:0;font-size:.92rem">Deneyin: Üretim'e 15 değerini ekleyin. Bıyığın dışında kalan bu değer aykırı nokta olarak işaretlenir.</p>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · departmanlara göre kutu grafiği</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="30">import numpy as np
+import matplotlib.pyplot as plt
+
+satis  = [54, 60, 65, 66, 67, 69, 70, 72, 73, 75]
+uretim = [42, 48, 53, 54, 55, 57, 58, 60, 61, 63]
+bt     = [56, 68, 78, 80, 82, 86, 88, 92, 94, 98]
+
+boxplot = [satis, uretim, bt]
+plt.boxplot(boxplot)
+plt.xticks([1, 2, 3], ['Satış', 'Üretim', 'BT'])
+plt.ylabel('Bağlılık puanı')
+plt.title('Departmanlara göre çalışan bağlılığı')
+plt.show()
+
+for ad, v in zip(['Satış', 'Üretim', 'BT'], boxplot):
+    q1, q2, q3 = np.percentile(v, [25, 50, 75])
+    print(f"{ad:7} min={min(v)}  Q1={q1:.2f}  ortanca={q2:.1f}  Q3={q3:.2f}  "
+          f"max={max(v)}  IQR={q3 - q1:.2f}")
+
+# Kitaptaki "haftanın günlerine göre çalışılan saat" örneği
+rng = np.random.default_rng(5)
+gunler = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz']
+ort = [6.5, 6.8, 7.2, 8.0, 7.0, 3.2, 2.6]
+yay = [2.2, 2.2, 2.0, 1.8, 1.9, 0.8, 0.7]
+saat = [np.clip(rng.normal(m, s, 30), 0, 12) for m, s in zip(ort, yay)]
+plt.boxplot(saat)
+plt.xticks(range(1, 8), gunler)
+plt.ylabel('Çalışılan saat'); plt.title('Haftanın günlerine göre çalışma süresi')
+plt.show()</textarea>
+  <pre class="out" aria-live="polite"></pre><div class="figs"></div></div>
+  <div class="note"><strong>Not.</strong> Çeyrekleri hesaplamanın birden çok yolu vardır. Burada numpy'ın ve matplotlib'in varsayılanı olan doğrusal ara değerleme kullanılıyor; elle hesaplanan ya da Excel'in farklı fonksiyonlarıyla bulunan değerler biraz farklı çıkabilir. Bıyıklar en uç değere değil, kutudan en fazla 1,5 × IQR uzaktaki son gözleme kadar uzanır.</div>
+</section>
+
+</main>
+
+<footer>
+  Kaynak: Usman Zafar Paracha, <em>Colorful Statistics and Python Programming Language</em>, s. 43–71. Kavram anlatımları kitaptan çevrilmiş; örnekler insan kaynakları bağlamına uyarlanmış, kodlar güncel matplotlib, seaborn ve pandas sürümlerine göre düzeltilmiş, etkileşimli araçlar eklenmiştir. Örnek veriler eğitim amaçlı ve kurgusaldır. Python kodları tarayıcıda <a href="https://pyodide.org" style="color:var(--c1)">Pyodide</a> ile çalışır; ilk grafikte matplotlib'in inmesi biraz zaman alabilir. Sayfa internet bağlantısı gerektirir.
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+/* ---------- Pyodide + matplotlib yakalama ---------- */
+const statusEl = document.getElementById('status');
+function setStatus(txt, cls){ statusEl.className = 'status' + (cls ? ' ' + cls : ''); statusEl.querySelector('span').textContent = txt; }
+let pyReady = null;
+function getPy(){
+  if (!pyReady){
+    pyReady = (async () => {
+      const py = await loadPyodide();
+      setStatus('Python hazır · paketler ilk kullanımda yüklenir', 'ready');
+      return py;
+    })().catch(e => { setStatus('Pyodide yüklenemedi: internet bağlantısını kontrol edin', 'err'); throw e; });
+  }
+  return pyReady;
+}
+getPy();
+
+const MPL_PRELUDE = `
+import matplotlib
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt, io as _io, base64 as _b64
+plt.rcParams.update({"figure.figsize": (7, 4.2), "axes.spines.top": False, "axes.spines.right": False})
+_imgs = []
+def _yakala(*a, **k):
+    for n in plt.get_fignums():
+        f = plt.figure(n); b = _io.BytesIO()
+        f.savefig(b, format="png", dpi=110, bbox_inches="tight", facecolor="white")
+        _imgs.append(_b64.b64encode(b.getvalue()).decode())
+    plt.close("all")
+plt.show = _yakala
+`;
+
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+document.querySelectorAll('[data-cell]').forEach(cell => {
+  const ta = cell.querySelector('textarea'), out = cell.querySelector('pre.out'), figs = cell.querySelector('.figs');
+  const runBtn = cell.querySelector('[data-run]');
+  const original = ta.value;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab'){ e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runBtn.click(); }
+  });
+  cell.querySelector('[data-reset]').addEventListener('click', () => { ta.value = original; out.innerHTML = ''; figs.innerHTML = ''; });
+  runBtn.addEventListener('click', async () => {
+    runBtn.disabled = true; runBtn.textContent = 'Çalışıyor…';
+    out.innerHTML = '<span class="w">Hazırlanıyor…</span>'; figs.innerHTML = '';
+    let buf = '';
+    const usesPlot = /matplotlib|seaborn/.test(ta.value);
+    try {
+      const py = await getPy();
+      const pkgs = usesPlot ? ta.value + '\nimport matplotlib' : ta.value;
+      await py.loadPackagesFromImports(pkgs, { messageCallback: m => { out.innerHTML = '<span class="w">' + esc(m) + '</span>'; } });
+      py.setStdout({ batched: s => { buf += s + '\n'; } });
+      py.setStderr({ batched: s => { if (!/Matplotlib is building the font cache/.test(s)) buf += s + '\n'; } });
+      if (usesPlot) await py.runPythonAsync(MPL_PRELUDE);
+      await py.runPythonAsync(ta.value);
+      if (usesPlot){
+        await py.runPythonAsync('_yakala()');
+        const imgs = py.globals.get('_imgs').toJs();
+        figs.innerHTML = imgs.map((b, i) => `<img alt="Grafik ${i + 1}" src="data:image/png;base64,${b}">`).join('');
+      }
+      out.innerHTML = esc(buf.trimEnd()) || (usesPlot ? '' : '<span class="w">(çıktı yok)</span>');
+    } catch (err) {
+      const msg = String(err.message || err).split('\n').filter(Boolean);
+      out.innerHTML = (buf ? esc(buf) : '') + '<span class="e">' + esc(msg.slice(-3).join('\n')) + '</span>';
+    } finally { runBtn.disabled = false; runBtn.textContent = 'Çalıştır ▸'; }
+  });
+});
+
+/* ---------- Yardımcılar ---------- */
+const fmt = (v, d = 2) => v.toLocaleString('tr-TR', { maximumFractionDigits: d });
+function mulberry32(a){ return function(){ a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function gauss(r){ let u = 0, v = 0; while (!u) u = r(); while (!v) v = r(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
+function niceTicks(lo, hi, n = 5){
+  const span = hi - lo || 1, step0 = span / n, mag = 10 ** Math.floor(Math.log10(step0));
+  const step = [1, 2, 2.5, 5, 10].map(m => m * mag).find(s => s >= step0);
+  const ticks = []; for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) ticks.push(+t.toFixed(10));
+  return ticks;
+}
+const parseNums = s => s.split(/[\s,;]+/).map(Number).filter(Number.isFinite);
+function quantile(sorted, p){ const pos = (sorted.length - 1) * p, lo = Math.floor(pos), hi = Math.ceil(pos); return sorted[lo] + (sorted[hi] - sorted[lo]) * (pos - lo); }
+
+/* ---------- Örüntü keşfedici ---------- */
+const PATTERNS = [
+  { id: 'lin', ad: 'Doğrusal pozitif', xl: 'Kıdem (yıl)', yl: 'Ücret (bin TL)', xr: [0, 20], f: x => 35 + 3 * x, s: 6,
+    txt: 'Kıdem arttıkça ücret düz bir çizgi boyunca artıyor: doğrusal, pozitif eğimli bir ilişki.' },
+  { id: 'cur', ad: 'Eğrisel (ters U)', xl: 'Haftalık çalışma saati', yl: 'Verimlilik puanı', xr: [30, 70], f: x => 85 - 0.09 * (x - 47) ** 2, s: 8,
+    txt: 'Verimlilik 45–50 saate kadar artıyor, sonra düşüyor. İlişki güçlü ama doğrusal değil; r bunu yakalayamaz.' },
+  { id: 'neg', ad: 'Negatif', xl: 'Yıllık eğitim saati', yl: 'Aylık hata sayısı', xr: [0, 40], f: x => 28 - 0.55 * x, s: 4,
+    txt: 'Eğitim saati arttıkça hata sayısı azalıyor: negatif eğimli ilişki.' },
+  { id: 'weak', ad: 'Zayıf', xl: 'Yaş', yl: 'Bağlılık puanı', xr: [22, 60], f: x => 60 + 0.2 * x, s: 14,
+    txt: 'Noktalar geniş bir alana dağılmış: yaş ile bağlılık arasında zayıf bir ilişki var.' },
+  { id: 'str', ad: 'Güçlü', xl: 'Aylık müşteri görüşmesi', yl: 'Satış adedi', xr: [5, 40], f: x => 2 + 0.6 * x, s: 1.5,
+    txt: 'Noktalar çizgiye çok yakın: görüşme sayısı ile satış arasında güçlü bir ilişki var.' },
+];
+const patRand = mulberry32(42);
+const PX = Array.from({ length: 40 }, () => patRand()), PZ = Array.from({ length: 40 }, () => gauss(patRand));
+let patSel = PATTERNS[0];
+const chipsEl = document.getElementById('pat-chips');
+PATTERNS.forEach(p => { const b = document.createElement('button'); b.textContent = p.ad; b.dataset.id = p.id;
+  b.addEventListener('click', () => { patSel = p; drawPattern(); }); chipsEl.appendChild(b); });
+document.getElementById('pat-noise').addEventListener('input', drawPattern);
+function drawPattern(){
+  chipsEl.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.id === patSel.id));
+  const nv = Number(document.getElementById('pat-noise').value) / 100;
+  document.getElementById('pat-nv').textContent = nv < .2 ? 'düşük' : nv < .6 ? 'orta' : 'yüksek';
+  const [a, b] = patSel.xr;
+  const pts = PX.map((u, i) => { const x = a + u * (b - a); return [x, patSel.f(x) + PZ[i] * patSel.s * nv * 2.2]; });
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const n = pts.length, mx = xs.reduce((s, v) => s + v) / n, my = ys.reduce((s, v) => s + v) / n;
+  let sxy = 0, sxx = 0, syy = 0; pts.forEach(([x, y]) => { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; });
+  const r = sxy / Math.sqrt(sxx * syy), slope = sxy / sxx, icpt = my - slope * mx;
+  const W = 640, H = 320, L = 56, R = 16, T = 14, B = 44;
+  const ylo = Math.min(...ys), yhi = Math.max(...ys), pad = (yhi - ylo) * 0.08 || 1;
+  const yt = niceTicks(ylo - pad, yhi + pad), xt = niceTicks(a, b);
+  const y0 = Math.min(yt[0], ylo - pad), y1 = Math.max(yt[yt.length - 1], yhi + pad);
+  const sx = x => L + (x - a) / (b - a) * (W - L - R), sy = y => H - B - (y - y0) / (y1 - y0) * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${patSel.xl} ile ${patSel.yl} saçılım grafiği">`;
+  yt.forEach(t => svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}"/><text class="tk" x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${fmt(t, 1)}</text>`);
+  xt.forEach(t => svg += `<text class="tk" x="${sx(t)}" y="${H - B + 16}" text-anchor="middle">${fmt(t, 1)}</text>`);
+  svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/>`;
+  svg += `<line class="fit" x1="${sx(a)}" y1="${sy(icpt + slope * a)}" x2="${sx(b)}" y2="${sy(icpt + slope * b)}" stroke-dasharray="6 4"/>`;
+  pts.forEach(([x, y]) => svg += `<circle class="pt" cx="${sx(x)}" cy="${sy(y)}" r="5"/>`);
+  svg += `<text class="lab" x="${(L + W - R) / 2}" y="${H - 6}" text-anchor="middle">${patSel.xl}</text>`;
+  svg += `<text class="lab" transform="translate(14 ${(T + H - B) / 2}) rotate(-90)" text-anchor="middle">${patSel.yl}</text></svg>`;
+  document.getElementById('pat-svg').innerHTML = svg;
+  const guc = Math.abs(r) >= .7 ? 'güçlü' : Math.abs(r) >= .4 ? 'orta' : 'zayıf';
+  document.getElementById('pat-stats').innerHTML = [['Pearson r', fmt(r, 2)], ['Doğrusal ilişki', guc], ['Eğim (doğru)', fmt(slope, 2)], ['n', n]]
+    .map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  document.getElementById('pat-txt').textContent = patSel.txt + ' Kesikli turuncu çizgi en küçük kareler doğrusudur.';
+}
+drawPattern();
+
+/* ---------- Histogram ---------- */
+const hRand = mulberry32(11);
+const AGES = [...Array.from({ length: 50 }, () => 29 + 4 * gauss(hRand)), ...Array.from({ length: 30 }, () => 48 + 5 * gauss(hRand))]
+  .map(v => Math.min(64, Math.max(20, Math.round(v))));
+function drawHist(){
+  const w = Number(document.getElementById('h-w').value); document.getElementById('h-wv').textContent = w;
+  const lo = 20, hi = 65, edges = []; for (let e = lo; e < hi; e += w) edges.push(e); edges.push(edges[edges.length - 1] + w);
+  const counts = edges.slice(0, -1).map((e, i) => AGES.filter(a => a >= e && a < edges[i + 1]).length);
+  const W = 640, H = 300, L = 44, R = 16, T = 14, B = 44, maxC = Math.max(...counts);
+  const yt = niceTicks(0, maxC, 4), ymax = Math.max(maxC, yt[yt.length - 1]);
+  const xmax = edges[edges.length - 1];
+  const sx = x => L + (x - lo) / (xmax - lo) * (W - L - R), sy = y => H - B - y / ymax * (H - T - B);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Yaş histogramı, aralık ${w} yıl">`;
+  yt.forEach(t => svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${sy(t)}" y2="${sy(t)}"/><text class="tk" x="${L - 6}" y="${sy(t) + 4}" text-anchor="end">${t}</text>`);
+  counts.forEach((c, i) => { const x0 = sx(edges[i]), x1 = sx(edges[i + 1]);
+    svg += `<rect class="bar" x="${x0}" y="${sy(c)}" width="${Math.max(0, x1 - x0 - 1)}" height="${H - B - sy(c)}"><title>${edges[i]}–${edges[i + 1] - 1} yaş: ${c} kişi</title></rect>`; });
+  const step = w < 3 ? 5 : w; for (let e = lo; e <= xmax; e += step) svg += `<text class="tk" x="${sx(e)}" y="${H - B + 16}" text-anchor="middle">${e}</text>`;
+  svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/><text class="lab" x="${(L + W - R) / 2}" y="${H - 6}" text-anchor="middle">Yaş</text>`;
+  svg += `<text class="lab" transform="translate(12 ${(T + H - B) / 2}) rotate(-90)" text-anchor="middle">Çalışan sayısı</text></svg>`;
+  document.getElementById('h-svg').innerHTML = svg;
+  const s = [...AGES].sort((a, b) => a - b), mean = AGES.reduce((a, b) => a + b) / AGES.length;
+  document.getElementById('h-stats').innerHTML = [['Çalışan', AGES.length], ['Ortalama yaş', fmt(mean, 1)], ['Ortanca', fmt(quantile(s, .5), 1)], ['Sınıf sayısı', counts.length], ['55 ve üstü', AGES.filter(a => a >= 55).length + ' kişi']]
+    .map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+}
+document.getElementById('h-w').addEventListener('input', drawHist);
+drawHist();
+
+/* ---------- Kutu grafiği ---------- */
+const BXN = ['Satış', 'Üretim', 'BT'];
+function five(v){
+  const s = [...v].sort((a, b) => a - b), q1 = quantile(s, .25), q2 = quantile(s, .5), q3 = quantile(s, .75), iqr = q3 - q1;
+  const loF = q1 - 1.5 * iqr, hiF = q3 + 1.5 * iqr;
+  const inside = s.filter(x => x >= loF && x <= hiF);
+  return { min: s[0], max: s[s.length - 1], q1, q2, q3, iqr, wl: inside[0], wh: inside[inside.length - 1], out: s.filter(x => x < loF || x > hiF), n: s.length };
+}
+function drawBox(){
+  const groups = [1, 2, 3].map(i => parseNums(document.getElementById('bx-' + i).value)).map(v => v.length ? five(v) : null);
+  const all = groups.filter(Boolean).flatMap(g => [g.min, g.max]);
+  if (!all.length){ document.getElementById('bx-svg').innerHTML = ''; return; }
+  const lo = Math.min(...all), hi = Math.max(...all), pad = (hi - lo) * 0.06 || 1;
+  const xt = niceTicks(lo - pad, hi + pad, 6), x0 = Math.min(xt[0], lo - pad), x1 = Math.max(xt[xt.length - 1], hi + pad);
+  const W = 640, rowH = 66, T = 10, B = 40, L = 70, R = 18, H = T + rowH * 3 + B;
+  const sx = x => L + (x - x0) / (x1 - x0) * (W - L - R);
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Departmanlara göre bağlılık kutu grafiği">`;
+  xt.forEach(t => svg += `<line class="grid" x1="${sx(t)}" x2="${sx(t)}" y1="${T}" y2="${H - B}"/><text class="tk" x="${sx(t)}" y="${H - B + 16}" text-anchor="middle">${fmt(t, 1)}</text>`);
+  groups.forEach((g, i) => {
+    const cy = T + rowH * i + rowH / 2;
+    svg += `<text class="lab" x="${L - 10}" y="${cy + 4}" text-anchor="end">${BXN[i]}</text>`;
+    if (!g) return;
+    svg += `<line class="wh" x1="${sx(g.wl)}" x2="${sx(g.q1)}" y1="${cy}" y2="${cy}"/><line class="wh" x1="${sx(g.q3)}" x2="${sx(g.wh)}" y1="${cy}" y2="${cy}"/>`;
+    svg += `<line class="wh" x1="${sx(g.wl)}" x2="${sx(g.wl)}" y1="${cy - 10}" y2="${cy + 10}"/><line class="wh" x1="${sx(g.wh)}" x2="${sx(g.wh)}" y1="${cy - 10}" y2="${cy + 10}"/>`;
+    svg += `<rect class="bx" x="${sx(g.q1)}" y="${cy - 18}" width="${Math.max(1, sx(g.q3) - sx(g.q1))}" height="36" rx="3"/>`;
+    svg += `<line class="md" x1="${sx(g.q2)}" x2="${sx(g.q2)}" y1="${cy - 18}" y2="${cy + 18}"/>`;
+    g.out.forEach(o => svg += `<circle class="out" cx="${sx(o)}" cy="${cy}" r="5"><title>Aykırı değer: ${o}</title></circle>`);
+  });
+  svg += `<line class="ax" x1="${L}" x2="${W - R}" y1="${H - B}" y2="${H - B}"/><text class="lab" x="${(L + W - R) / 2}" y="${H - 6}" text-anchor="middle">Bağlılık puanı</text></svg>`;
+  document.getElementById('bx-svg').innerHTML = svg;
+  const rows = groups.map((g, i) => g ? `<tr><td>${BXN[i]}</td><td class="num">${g.n}</td><td class="num">${fmt(g.min)}</td><td class="num">${fmt(g.q1)}</td><td class="num">${fmt(g.q2)}</td><td class="num">${fmt(g.q3)}</td><td class="num">${fmt(g.max)}</td><td class="num">${fmt(g.iqr)}</td><td class="num">${g.out.length ? g.out.join(', ') : '—'}</td></tr>` : '').join('');
+  document.getElementById('bx-tbl').innerHTML = `<thead><tr><th>Departman</th><th class="num">n</th><th class="num">En küçük</th><th class="num">Q1</th><th class="num">Ortanca</th><th class="num">Q3</th><th class="num">En büyük</th><th class="num">IQR</th><th class="num">Aykırı</th></tr></thead><tbody>${rows}</tbody>`;
+}
+[1, 2, 3].forEach(i => document.getElementById('bx-' + i).addEventListener('input', drawBox));
+drawBox();
+</script>
+</body>
+</html>

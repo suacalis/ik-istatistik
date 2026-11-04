@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Renkli İstatistik ve Python</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Literata:ital,opsz,wght@0,7..72,400;0,7..72,600;1,7..72,400&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Düzen: solda yapışkan içindekiler, sağda okunur sütun; her kavram = açıklama + İK örneği + çalışan Python hücresi */
+:root{
+  --bg:#fbfaf7; --surface:#ffffff; --sunk:#f1efe9; --line:#e2ddd2;
+  --fg:#1f2328; --muted:#5d6470;
+  --c1:#2f6fb5; --c2:#d9822b; --c3:#3f9a5c; --c4:#8a4fb0; --c5:#c2453d;
+  --code-bg:#f6f4ef; --code-fg:#24292f; --out-bg:#0f1720; --out-fg:#d6e2ee;
+  --f-display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Literata",Georgia,"Times New Roman",serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#14171c; --surface:#1b1f26; --sunk:#222731; --line:#323946;
+  --fg:#e7e9ed; --muted:#a3abb8;
+  --c1:#6ea8ea; --c2:#f0a253; --c3:#6cc287; --c4:#b789d8; --c5:#ec7a70;
+  --code-bg:#1f242c; --code-fg:#e3e7ee; --out-bg:#0b0f14; --out-fg:#cfe0f0; color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:17px;line-height:1.65}
+.wrap{max-width:1180px;margin:0 auto;padding-block:0 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:grid;grid-template-columns:240px minmax(0,1fr);gap:48px}
+@media (max-width:880px){.wrap{grid-template-columns:minmax(0,1fr);gap:0}}
+
+header.hero{grid-column:1/-1;padding-block:48px 28px;border-bottom:1px solid var(--line);margin-bottom:8px}
+.stripe{display:flex;gap:6px;margin-bottom:18px}
+.stripe span{width:28px;height:8px;border-radius:4px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(2rem,5vw,3.2rem);line-height:1.05;margin:0 0 12px;text-wrap:balance;letter-spacing:-.01em}
+.lede{color:var(--muted);max-width:62ch;margin:0}
+.status{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-family:var(--f-mono);font-size:.8rem;padding:6px 12px;border-radius:999px;background:var(--sunk);color:var(--muted)}
+.status i{width:9px;height:9px;border-radius:50%;background:var(--c2);display:inline-block}
+.status.ready i{background:var(--c3)} .status.err i{background:var(--c5)}
+
+nav.toc{position:sticky;top:env(safe-area-inset-top,0px);align-self:start;padding-top:28px;max-height:100vh;overflow:auto}
+nav.toc h2{font-family:var(--f-display);font-size:.78rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 10px}
+nav.toc ol{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+nav.toc a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--fg);font-family:var(--f-display);font-size:.95rem;padding:5px 8px;border-radius:6px}
+nav.toc a small{font-family:var(--f-mono);color:var(--muted);font-size:.72rem;min-width:22px}
+nav.toc a:hover,nav.toc a:focus-visible{background:var(--sunk);outline:none}
+@media (max-width:880px){nav.toc{position:static;max-height:none;padding-top:20px}
+  nav.toc ol{grid-template-columns:repeat(auto-fill,minmax(160px,1fr))}}
+
+main{min-width:0}
+section{padding-block:36px 8px;border-bottom:1px solid var(--line)}
+section:last-of-type{border-bottom:0}
+.kicker{font-family:var(--f-mono);font-size:.75rem;color:var(--muted);letter-spacing:.04em}
+h2.sec{font-family:var(--f-display);font-weight:700;font-size:1.75rem;margin:4px 0 14px;text-wrap:balance;display:flex;align-items:center;gap:12px}
+h2.sec::before{content:"";width:14px;height:14px;border-radius:50%;background:var(--dot,var(--c1));flex:none}
+h3{font-family:var(--f-display);font-weight:500;font-size:1.15rem;margin:26px 0 8px}
+p{max-width:68ch;margin:0 0 14px}
+.muted{color:var(--muted)}
+code.i{font-family:var(--f-mono);font-size:.86em;background:var(--sunk);padding:1px 5px;border-radius:4px}
+
+.formula{font-family:var(--f-mono);font-size:1rem;background:var(--sunk);border-radius:10px;padding:14px 18px;margin:14px 0;overflow-x:auto;white-space:nowrap}
+.formula b{color:var(--dot,var(--c1))}
+
+.note{border-left:4px solid var(--c2);background:var(--sunk);padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.note strong{font-family:var(--f-display)}
+.case{border-left:4px solid var(--dot,var(--c1));background:var(--surface);border:1px solid var(--line);border-left-width:4px;padding:12px 16px;border-radius:0 10px 10px 0;margin:16px 0;max-width:72ch;font-size:.95rem}
+.case .tag{font-family:var(--f-display);font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--dot,var(--c1));display:block;margin-bottom:4px}
+
+.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:16px 0}
+@media (max-width:620px){.pair{grid-template-columns:minmax(0,1fr)}}
+.hyp{border:2px solid var(--line);border-radius:14px;padding:16px;background:var(--surface)}
+.hyp .sym{font-family:var(--f-display);font-size:1.8rem;font-weight:700}
+.hyp.h0 .sym{color:var(--c4)} .hyp.ha .sym{color:var(--c1)}
+
+ol.steps{list-style:none;padding:0;margin:16px 0;display:grid;gap:10px;counter-reset:s}
+ol.steps li{counter-increment:s;display:grid;grid-template-columns:34px minmax(0,1fr);gap:12px;align-items:start;max-width:72ch}
+ol.steps li::before{content:counter(s);width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-family:var(--f-display);font-weight:700;color:#fff;background:var(--sc,var(--c1))}
+ol.steps li:nth-child(1){--sc:var(--c2)} ol.steps li:nth-child(2){--sc:var(--c1)} ol.steps li:nth-child(3){--sc:var(--c3)}
+ol.steps li:nth-child(4){--sc:var(--c2)} ol.steps li:nth-child(5){--sc:var(--c4)} ol.steps li:nth-child(6){--sc:var(--c5)}
+
+.tbl{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;font-variant-numeric:tabular-nums;font-size:.95rem;min-width:100%}
+th,td{padding:7px 12px;text-align:left;border-bottom:1px solid var(--line);white-space:nowrap}
+th{font-family:var(--f-display);font-weight:500;color:var(--muted);font-size:.85rem}
+td.num{text-align:right}
+table.err td,table.err th{white-space:normal;vertical-align:top}
+.cell-ok{background:color-mix(in srgb,var(--c3) 14%,transparent)}
+.cell-bad{background:color-mix(in srgb,var(--c5) 14%,transparent)}
+
+.tool{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin:18px 0}
+.tool .lbl{font-family:var(--f-display);font-size:.8rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+input[type=text],input[type=number]{font-family:var(--f-mono);font-size:.92rem;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--fg);min-width:0;flex:1 1 220px}
+input[type=range]{flex:1 1 180px;accent-color:var(--c1)}
+button{font-family:var(--f-display);font-weight:500;font-size:.92rem;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;background:var(--c1);color:#fff}
+button.ghost{background:var(--sunk);color:var(--fg)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:2px solid var(--c2);outline-offset:2px}
+button:disabled{opacity:.55;cursor:wait}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-top:14px}
+.stat{background:var(--sunk);border-radius:10px;padding:10px 12px}
+.stat span{display:block;font-size:.75rem;color:var(--muted);font-family:var(--f-display)}
+.stat b{font-family:var(--f-mono);font-size:1.05rem;font-variant-numeric:tabular-nums}
+.bars{display:flex;align-items:flex-end;gap:4px;height:120px;margin-top:14px;overflow-x:auto;padding-bottom:22px;position:relative}
+.bars div{flex:1 0 22px;border-radius:4px 4px 0 0;position:relative;background:var(--c1);opacity:.75}
+.bars div.mid{background:var(--c5);opacity:1} .bars div.mode{background:var(--c2);opacity:1}
+.bars div em{position:absolute;bottom:-20px;left:0;right:0;text-align:center;font-style:normal;font-family:var(--f-mono);font-size:.72rem;color:var(--muted)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:.82rem;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px;border:1px solid color-mix(in srgb,var(--fg) 25%,transparent)}
+
+.pop{display:flex;flex-wrap:wrap;gap:6px;padding:14px;border-radius:12px;background:color-mix(in srgb,var(--c3) 18%,var(--surface))}
+.pop span,.samp span{width:24px;height:24px;border-radius:50%;border:1.5px solid color-mix(in srgb,var(--fg) 35%,transparent);display:inline-block;transition:transform .2s}
+.pop span.pick{transform:scale(1.25);box-shadow:0 0 0 3px var(--c2)}
+.samp{display:flex;flex-wrap:wrap;gap:6px;min-height:36px;padding:8px 0}
+
+.py{border:1px solid var(--line);border-radius:14px;overflow:hidden;margin:18px 0;background:var(--code-bg)}
+.py .bar{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--sunk);flex-wrap:wrap}
+.py .bar span{font-family:var(--f-mono);font-size:.75rem;color:var(--muted)}
+.py .bar .btns{display:flex;gap:6px}
+.py textarea{display:block;width:100%;border:0;resize:vertical;background:var(--code-bg);color:var(--code-fg);font-family:var(--f-mono);font-size:.88rem;line-height:1.55;padding:14px 16px;tab-size:4;white-space:pre;overflow-x:auto}
+.py pre.out{margin:0;padding:12px 16px;background:var(--out-bg);color:var(--out-fg);font-family:var(--f-mono);font-size:.84rem;white-space:pre-wrap;word-break:break-word}
+.py pre.out:empty{display:none}
+.py pre.out .e{color:#ff9c8f}
+.py pre.out .w{color:#9fb3c8;font-style:italic}
+
+footer{grid-column:1/-1;border-top:1px solid var(--line);padding-top:20px;color:var(--muted);font-size:.88rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <div class="stripe" aria-hidden="true"><span style="background:var(--c1)"></span><span style="background:var(--c2)"></span><span style="background:var(--c3)"></span><span style="background:var(--c4)"></span><span style="background:var(--c5)"></span></div>
+  <h1>Renkli İstatistik ve Python</h1>
+  <p class="lede">Usman Zafar Paracha'nın <em>Colorful Statistics and Python Programming Language</em> kitabının 14–33. sayfalarının Türkçe, etkileşimli ve insan kaynakları örnekleriyle uyarlanmış sürümü. İşe alım süresinden ücret artışlarına kadar her kavramın yanında tarayıcıda çalışan, düzenlenebilir bir Python hücresi var.</p>
+  <div class="status" id="status" role="status"><i></i><span>Python (Pyodide) yükleniyor…</span></div>
+</header>
+
+<nav class="toc" aria-label="İçindekiler">
+  <h2>İçindekiler</h2>
+  <ol>
+    <li><a href="#hipotez"><small>1</small>Hipotez</a></li>
+    <li><a href="#test"><small>2</small>Hipotez testi</a></li>
+    <li><a href="#frekans"><small>3</small>Frekans</a></li>
+    <li><a href="#orneklem"><small>4</small>Örneklem ve evren</a></li>
+    <li><a href="#hata"><small>5</small>Tip I ve Tip II hata</a></li>
+    <li><a href="#merkez"><small>6</small>Merkezi eğilim ve açıklık</a></li>
+    <li><a href="#geometrik"><small>7</small>Geometrik ortalama</a></li>
+    <li><a href="#genel"><small>8</small>Genel ortalama</a></li>
+    <li><a href="#harmonik"><small>9</small>Harmonik ortalama</a></li>
+    <li><a href="#sapma"><small>10</small>Ortalama sapma</a></li>
+    <li><a href="#fark"><small>11</small>Ortalama farkı</a></li>
+    <li><a href="#rms"><small>12</small>Karesel ortalama (RMS)</a></li>
+    <li><a href="#xbar"><small>13</small>Örneklem ve evren ortalaması</a></li>
+  </ol>
+</nav>
+
+<main>
+
+<!-- 1 HİPOTEZ -->
+<section id="hipotez" style="--dot:var(--c1)">
+  <div class="kicker">s. 14–15</div>
+  <h2 class="sec">Hipotez</h2>
+  <p>İstatistik hem sanat hem bilimdir: bir sanatçının hayal gücüne ve bir bilim insanının iyi kurulmuş araştırma tasarımına birlikte ihtiyaç duyar. Bu ikisini buluşturan ilk kavram hipotezdir.</p>
+  <p>Bir İK yöneticisi, haftada iki gün uzaktan çalışma uygulamasının çalışan bağlılığını artırdığını düşünüyor ve bunu araştırmak istiyor. Bu sav onun <strong>araştırma hipotezi</strong> ya da <strong>alternatif hipotezidir</strong>. Karşı görüş “uzaktan çalışmanın bağlılık üzerinde bir etkisi yoktur” der; bu da <strong>sıfır (null) hipotezidir</strong>.</p>
+  <div class="pair">
+    <div class="hyp ha"><div class="sym">H<sub>a</sub> / H<sub>1</sub></div><p style="margin:6px 0 0"><strong>Alternatif hipotez:</strong> “Hibrit çalışan grubun bağlılık puanı, ofiste çalışan gruptan farklıdır.” Bir yerde ya da bir grupta anlamlı bir değişiklik vardır.</p></div>
+    <div class="hyp h0"><div class="sym">H<sub>0</sub></div><p style="margin:6px 0 0"><strong>Sıfır hipotezi:</strong> “İki grubun bağlılık puanı arasında fark yoktur.” Hiçbir grupta anlamlı bir değişiklik yoktur.</p></div>
+  </div>
+  <p>Yönetici uygulamanın etkili olduğunu göstermek istiyorsa, araştırmanın sonunda H<sub>0</sub>'ın reddedilmesi gerekir.</p>
+  <div class="note"><strong>Not.</strong> Kitaptaki özgün örnek, bir Çin efsanesindeki “aynaların faunası”dır (H<sub>a</sub>: fauna vardır, H<sub>0</sub>: yoktur). İstatistiksel test hiçbir zaman H<sub>a</sub>'yı “kanıtlamaz”; yalnızca verinin H<sub>0</sub> ile ne ölçüde bağdaşmadığını gösterir. H<sub>0</sub> reddedilemediğinde onu “kabul ettiğimizi” değil, <em>reddetmek için yeterli kanıt bulamadığımızı</em> söyleriz.</div>
+</section>
+
+<!-- 2 HİPOTEZ TESTİ -->
+<section id="test" style="--dot:var(--c2)">
+  <div class="kicker">s. 15</div>
+  <h2 class="sec">Hipotez testi</h2>
+  <div class="case"><span class="tag">İK vakası</span>Şirketin işe alım politikası, bir pozisyonun ortalama <strong>30 günde</strong> doldurulmasını hedefliyor (time-to-hire). İK analisti, son dönemde bu sürenin hedeften saptığından şüpheleniyor.</div>
+  <ol class="steps">
+    <li><div><strong>Hipotezleri belirle.</strong> H<sub>0</sub>: ortalama işe alım süresi μ = 30 gün. H<sub>a</sub>: μ &lt; 30, μ &gt; 30 ya da μ ≠ 30.</div></li>
+    <li><div><strong>Örneklem büyüklüğünü belirle.</strong> 30 günden bir sapmayı yakalama şansımızın iyi olması için kaç tamamlanmış işe alım dosyasına bakmalıyız?</div></li>
+    <li><div><strong>Anlamlılık düzeyini (α) seç.</strong> α = 0,05, gerçekte süre 30 gün iken “saptı” deme olasılığını %5'te tutmak demektir.</div></li>
+    <li><div><strong>Veriyi topla.</strong> Son kapanan 8 pozisyonun ilan tarihinden teklif kabulüne kadar geçen gün sayısını kaydet.</div></li>
+    <li><div><strong>Testin p-değerini α ile karşılaştır.</strong> Aşağıdaki hücre bu değeri hesaplar.</div></li>
+    <li><div><strong>Karar ver.</strong> p &lt; α ise H<sub>0</sub> reddedilir: ortalama işe alım süresi hedeften farklıdır.</div></li>
+  </ol>
+  <div class="note"><strong>Not.</strong> Kitapta α için “dairelerin %5'inin 5 cm'den farklı olmasına izin verilir” deniyor. Bu yorum yanlıştır: α, tek tek gözlemlerin oranı değil, bir <em>karar hatası</em> olasılığıdır. Bu örnekte α, “işe alım süresi aslında hedefte iken sapma var” deme riskidir.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · işe alım süresi t-testi</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="15">from scipy import stats
+
+# Son kapanan 8 pozisyonun işe alım süresi (gün)
+sure = [38, 42, 29, 35, 41, 33, 36, 40]
+hedef = 30        # H0: ortalama işe alım süresi 30 gün
+alfa = 0.05
+
+t, p = stats.ttest_1samp(sure, popmean=hedef)   # H1: mu != 30 (çift yönlü)
+print(f"Ortalama işe alım süresi = {sum(sure)/len(sure):.1f} gün")
+print(f"t = {t:.3f}, p = {p:.4f}")
+if p < alfa:
+    print("Karar: H0 reddedilir → işe alım süresi 30 günlük hedeften farklı.")
+else:
+    print("Karar: H0 reddedilemez → hedeften saptığına dair yeterli kanıt yok.")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <p class="muted" style="font-size:.92rem">Deneyin: süreleri 28–33 gün aralığına çekin ve p-değerinin nasıl büyüdüğüne bakın.</p>
+</section>
+
+<!-- 3 FREKANS -->
+<section id="frekans" style="--dot:var(--c3)">
+  <div class="kicker">s. 16–17</div>
+  <h2 class="sec">Frekans</h2>
+  <p>Frekans, bir değerin ne sıklıkla göründüğünü anlatır ve genellikle üç biçimde verilir:</p>
+  <div class="formula"><b>Mutlak frekans</b>: n<sub>i</sub> &nbsp;·&nbsp; <b>Göreli frekans</b>: f<sub>i</sub> = n<sub>i</sub> / N &nbsp;·&nbsp; <b>Birikimli frekans</b>: n<sub>1</sub> + n<sub>2</sub> + … + n<sub>i</sub></div>
+  <p><strong>Mutlak frekans</strong> bir yanıtın kaç kez verildiğidir. <strong>Göreli frekans</strong>, belirli bir yanıtın sayısının toplam yanıt sayısına (N) bölümüdür. <strong>Birikimli frekans</strong> ise o satıra kadarki bütün frekansların toplamıdır.</p>
+  <div class="case"><span class="tag">İK vakası</span>15 çalışana yıllık memnuniyet anketinde “Yöneticimden yeterli geri bildirim alıyorum” maddesi soruldu. Yanıtlar 5'li Likert ölçeğinde: 1 = Kesinlikle katılmıyorum … 5 = Kesinlikle katılıyorum.</div>
+
+  <div class="tool">
+    <div class="lbl">Anket yanıtları için frekans tablosu</div>
+    <div class="row"><label for="fq-in" class="muted" style="font-size:.9rem">Yanıtlar:</label><input id="fq-in" type="text" value="1,1,1,2,2,3,3,3,3,3,4,5,5,5,5"><button id="fq-btn">Tabloyu güncelle</button></div>
+    <div class="tbl"><table id="fq-tbl"></table></div>
+    <p class="muted" id="fq-txt" style="margin:0;font-size:.92rem"></p>
+  </div>
+
+  <p>Aynı tabloyu Python'da <code class="i">scipy.stats</code> ve <code class="i">numpy</code> ile üretelim. Kitaptaki kodda <code class="i">import numpy as np</code> satırı eksik; burada eklendi.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · anket frekansları</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="17">import numpy as np
+from scipy import stats
+
+# "Yöneticimden yeterli geri bildirim alıyorum" (1-5 Likert)
+yanit = np.array([1, 1, 1, 2, 2, 3, 3, 3, 3, 3, 4, 5, 5, 5, 5])
+
+relfreq = stats.relfreq(yanit, numbins=5)   # göreli frekans
+cumfreq = stats.cumfreq(yanit, numbins=5)   # birikimli frekans
+freq = np.bincount(yanit)                   # mutlak frekans (0'dan başlar)
+
+print(freq)
+print(relfreq.frequency)
+print(cumfreq.cumcount)
+
+# İK raporlarında sık kullanılan "olumlu yanıt oranı" (4 ve 5)
+olumlu = (yanit >= 4).mean()
+print(f"Olumlu yanıt oranı: %{olumlu*100:.1f}")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <p class="muted" style="font-size:.92rem"><code class="i">np.bincount</code> sayımı 0'dan başlattığı için ilk eleman 0'dır: ölçekte 0 yanıtı yoktur.</p>
+</section>
+
+<!-- 4 ÖRNEKLEM -->
+<section id="orneklem" style="--dot:var(--c4)">
+  <div class="kicker">s. 17–18</div>
+  <h2 class="sec">Örneklem ve evren</h2>
+  <p><strong>Örneklem</strong>, bütünü (<strong>evreni</strong>) temsil etmek için kullanılan küçük bir parçadır. Evrenin büyüklüğü N, örneklemin büyüklüğü n ile gösterilir. Örneklemler evren hakkında çıkarım yapmamızı sağlar; ama bu ancak örneklem evreni temsil ediyorsa işe yarar.</p>
+  <div class="case"><span class="tag">İK vakası</span>20 kişilik bir işletmede iş yükü algısını ölçmek için kısa bir nabız anketi yapılacak. Herkese sormak yerine birkaç çalışan seçilecek. Her renk bir departmanı gösteriyor.</div>
+  <div class="tool">
+    <div class="lbl">Çalışan evreninden örneklem çek</div>
+    <div class="pop" id="pop" aria-label="Evren: departmanlara göre renklendirilmiş çalışanlar"></div>
+    <div class="legend" id="pop-legend"></div>
+    <div class="row" style="margin-top:12px"><button id="s-rand">Rastgele 5 çalışan seç</button><button class="ghost" id="s-blue">Sadece BT'den seç</button></div>
+    <div class="samp" id="samp" aria-live="polite"></div>
+    <p class="muted" id="samp-txt" style="margin:0;font-size:.92rem">Bir yöntem seçin.</p>
+  </div>
+  <p>Rastgele seçim departman çeşitliliğini yansıtma eğilimindedir. Yalnızca BT çalışanlarına sormak ise <em>yanlı</em> bir örneklem üretir: BT'nin iş yükü algısını “tüm şirketin” algısı diye raporlamak yanlış olur. Uygulamada departman büyüklüğüne göre <strong>tabakalı örnekleme</strong> bu sorunu azaltır.</p>
+</section>
+
+<!-- 5 HATALAR -->
+<section id="hata" style="--dot:var(--c5)">
+  <div class="kicker">s. 18–20</div>
+  <h2 class="sec">Tip I ve Tip II hata</h2>
+  <div class="case"><span class="tag">İK vakası</span>Şirket satış ekibine yeni bir müzakere eğitimi verdi. H<sub>0</sub>: eğitimin performansa etkisi yoktur. H<sub>a</sub>: eğitim performansı artırır. İlk bulgular etkili olduğunu gösterirse H<sub>0</sub>'ı reddederiz; ama araştırmadaki hatalar yüzünden bu bulgu yanlış (ya da doğru) olabilir. Bu hatalar α hatası ve β hatası olarak bilinir.</div>
+  <div class="tbl"><table class="err">
+    <thead><tr><th></th><th>Gerçekte H<sub>0</sub> doğru<br>(eğitim etkisiz)</th><th>Gerçekte H<sub>a</sub> doğru<br>(eğitim etkili)</th></tr></thead>
+    <tbody>
+      <tr><th>H<sub>0</sub>'ı reddettik<br>“Eğitim işe yarıyor”</th><td class="cell-bad"><strong>Tip I hata (α)</strong><br>Yanlış pozitif: etkisiz eğitim bütçeye eklenir, bütün şirkete yayılır.</td><td class="cell-ok">Doğru karar<br>(testin gücü, 1 − β)</td></tr>
+      <tr><th>H<sub>0</sub>'ı reddedemedik<br>“Etkisi görülmedi”</th><td class="cell-ok">Doğru karar<br>(1 − α)</td><td class="cell-bad"><strong>Tip II hata (β)</strong><br>Yanlış negatif: işe yarayan eğitim iptal edilir.</td></tr>
+    </tbody>
+  </table></div>
+  <p>Kitaba göre Tip I hata ek testlerle düzeltilebilir ve anlamlılık düzeyini düşürmek bu hatayı azaltır. Tip II hatanın daha ciddi olduğu savunulur, çünkü bu hatadan sonra kimse alternatif hipotez üzerine yeni araştırma yapmaz: iptal edilen bir eğitim programı genellikle bir daha denenmez. Daha üst düzey hatalar da vardır: <strong>Tip III hata</strong>, yanlış soruya doğru cevap vermektir. Örneğin sorun yöneticilerdeyken “çalışanlar neden eğitime gelmiyor?” sorusunu kusursuzca yanıtlamak.</p>
+  <div class="note"><strong>Not.</strong> Hangi hatanın “daha ciddi” olduğu bağlama göre değişir. Bir işe alım testinde uygun adayı elemek (yanlış negatif) ile uygun olmayan adayı işe almak (yanlış pozitif) farklı maliyetler doğurur. α'yı düşürmek Tip I hatayı azaltır ama aynı örneklem büyüklüğünde β'yı artırır.</div>
+  <p>Aşağıdaki simülasyon, eğitim gerçekten etkisizken binlerce değerlendirme yapar ve yanlışlıkla “etkili” deme oranının α'ya yaklaştığını gösterir. Ardından eğitim gerçekten +4 puan kazandırırken kaçırma oranını (β) hesaplar.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · eğitim değerlendirmesinde hata oranları</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="22">import numpy as np
+from scipy import stats
+
+rng = np.random.default_rng(42)
+alfa, n, deneme = 0.05, 20, 5000   # n: eğitime katılan çalışan sayısı
+taban = 70                          # eğitim öncesi ortalama performans puanı
+ss = 10                             # puanların standart sapması
+
+# 1) H0 doğru: eğitim etkisiz, ortalama 70'te kalıyor
+red = 0
+for _ in range(deneme):
+    puan = rng.normal(taban, ss, n)
+    if stats.ttest_1samp(puan, taban, alternative="greater").pvalue < alfa:
+        red += 1
+print(f"Tip I hata oranı ≈ {red/deneme:.3f}  (α = {alfa})")
+
+# 2) Ha doğru: eğitim ortalamayı 74'e çıkarıyor
+kacan = 0
+for _ in range(deneme):
+    puan = rng.normal(taban + 4, ss, n)
+    if stats.ttest_1samp(puan, taban, alternative="greater").pvalue >= alfa:
+        kacan += 1
+print(f"Tip II hata oranı (β) ≈ {kacan/deneme:.3f}, güç ≈ {1-kacan/deneme:.3f}")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <p class="muted" style="font-size:.92rem">Deneyin: <code class="i">n</code>'yi 60 yapın, β düşer (daha büyük katılımcı grubu). <code class="i">alfa</code>'yı 0.01 yapın, Tip I azalır ama β artar.</p>
+</section>
+
+<!-- 6 MERKEZİ EĞİLİM -->
+<section id="merkez" style="--dot:var(--c1)">
+  <div class="kicker">s. 21–23</div>
+  <h2 class="sec">Merkezi eğilim ve açıklık</h2>
+  <div class="formula">Örneklem ortalaması: <b>x̄ = Σx / n</b> &nbsp;·&nbsp; Evren ortalaması: <b>μ = Σx / N</b></div>
+  <p><strong>Ortalama</strong> tüm değerlerin toplamının değer sayısına bölümüdür. <strong>Ortanca (medyan)</strong> sıralı verinin ortasındaki değerdir (çift sayıda gözlemde ortadaki iki değerin ortalaması); değerlerin %50'si altında, %50'si üstündedir. <strong>Tepe değer (mod)</strong> en sık görülen değer ya da değerlerdir. <strong>Açıklık (range)</strong> en büyük değer ile en küçük değer arasındaki farktır.</p>
+  <div class="case"><span class="tag">İK vakası</span>13 kişilik bir muhasebe biriminde çalışanların <strong>kıdem yılları</strong>: 1, 2, 2, 3, 4, 5, 6, 7, 8, 8, 9, 10, 11. İK raporunda tek bir “tipik kıdem” değeri verilecek.</div>
+  <div class="tool">
+    <div class="lbl">Kıdem verisini değiştirin</div>
+    <div class="row"><label for="ct-in" class="muted" style="font-size:.9rem">Kıdem (yıl):</label><input id="ct-in" type="text" value="1,2,2,3,4,5,6,7,8,8,9,10,11"><button id="ct-btn">Hesapla</button></div>
+    <div class="bars" id="ct-bars" aria-hidden="true"></div>
+    <div class="legend"><span><i style="background:var(--c5)"></i>ortanca</span><span><i style="background:var(--c2)"></i>tepe değer</span><span><i style="background:var(--c1);opacity:.75"></i>diğer çalışanlar</span></div>
+    <div class="stats" id="ct-stats"></div>
+  </div>
+  <p class="muted" style="font-size:.92rem">Deneyin: listeye 30 yıllık kıdemi olan bir yönetici ekleyin. Ortalama belirgin biçimde yükselir, ortanca neredeyse yerinde kalır. Ücret ve kıdem gibi çarpık İK verilerinde ortancanın sık raporlanmasının nedeni budur.</p>
+  <div class="py" data-cell><div class="bar"><span>Python · kıdem için ortalama, ortanca, tepe değer, açıklık</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="18">import statistics as st
+import numpy as np
+
+kidem = [1, 2, 2, 3, 4, 5, 6, 7, 8, 8, 9, 10, 11]   # yıl
+
+print("Ortalama kıdem:", st.mean(kidem))    # 5.846153846153846
+print("Ortanca kıdem :", st.median(kidem))  # 6
+
+# Python 3.8+ st.mode() birden çok tepe değerde hata vermez, ilk görüleni döndürür.
+# Tüm tepe değerleri görmek için multimode kullanın:
+print("Tepe değer(ler):", st.multimode(kidem))   # [2, 8]
+
+kidem2 = kidem + [8]                         # 8 yıllık bir çalışan daha katıldı
+print("Yeni tepe değer:", st.mode(kidem2))   # 8
+
+x = np.min(kidem); y = np.max(kidem)
+print("Kıdem açıklığı:", y - x, "yıl")       # 10</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <div class="note"><strong>Sürüm notu.</strong> Kitap, iki tepe değerli veride <code class="i">st.mode()</code>'un <em>“StatisticsError: no unique mode”</em> verdiğini söylüyor. Bu, Python 3.7 ve öncesinin davranışıdır. Python 3.8'den beri <code class="i">mode()</code> ilk karşılaşılan tepe değeri (burada 2) döndürür; çoklu tepe değerler için <code class="i">multimode()</code> kullanılır.</div>
+</section>
+
+<!-- 7 GEOMETRİK -->
+<section id="geometrik" style="--dot:var(--c2)">
+  <div class="kicker">s. 23–25</div>
+  <h2 class="sec">Geometrik ortalama</h2>
+  <p>Geometrik ortalama, n sayıdan oluşan bir veri kümesinin çarpımının n'inci köküdür: iki sayının çarpımının karekökü, üç sayının çarpımının küpkökü vb. Ücret artışları, çalışan sayısının yıllık büyümesi ya da enflasyon gibi <em>çarpımsal</em> değişen niceliklerin ortalamasını verir.</p>
+  <div class="formula"><b>G = (x<sub>1</sub> × x<sub>2</sub> × … × x<sub>n</sub>)<sup>1/n</sup></b></div>
+  <div class="case"><span class="tag">İK vakası</span>Bir çalışanın brüt maaşı 40.000 TL. Üç yıl boyunca sırasıyla %25, %45 ve %30 zam aldı. Ücret komitesi “yıllık ortalama zam oranını” raporlamak istiyor. Aritmetik ortalama (%33,3) yanıltıcıdır; doğru yanıt geometrik ortalamadır.</div>
+  <div class="tool">
+    <div class="lbl">Ücret artışı hesaplayıcı</div>
+    <div class="row"><label for="g-p" class="muted" style="font-size:.9rem">Başlangıç brüt maaşı (TL)</label><input id="g-p" type="number" value="40000" step="1000" style="flex:0 1 140px"></div>
+    <div class="row" style="margin-top:8px"><label for="g-1" class="muted" style="font-size:.9rem;min-width:90px">1. yıl zammı</label><input id="g-1" type="range" min="0" max="100" value="25"><b id="g-1v" style="font-family:var(--f-mono);min-width:48px">%25</b></div>
+    <div class="row"><label for="g-2" class="muted" style="font-size:.9rem;min-width:90px">2. yıl zammı</label><input id="g-2" type="range" min="0" max="100" value="45"><b id="g-2v" style="font-family:var(--f-mono);min-width:48px">%45</b></div>
+    <div class="row"><label for="g-3" class="muted" style="font-size:.9rem;min-width:90px">3. yıl zammı</label><input id="g-3" type="range" min="0" max="100" value="30"><b id="g-3v" style="font-family:var(--f-mono);min-width:48px">%30</b></div>
+    <div class="stats" id="g-stats"></div>
+    <p class="muted" id="g-txt" style="margin:10px 0 0;font-size:.92rem"></p>
+  </div>
+  <div class="py" data-cell><div class="bar"><span>Python · yıllık ortalama zam oranı</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="14">from scipy import stats
+
+carpanlar = [1.25, 1.45, 1.30]       # %25, %45, %30 zam
+g = stats.gmean(carpanlar)
+print("Geometrik ortalama çarpan:", g)
+print(f"Yıllık ortalama zam oranı: %{(g-1)*100:.2f}")
+
+maas = 40_000
+print(f"3 yıl sonra maaş (gerçek)        : {maas*1.25*1.45*1.30:,.0f} TL")
+print(f"3 yıl sonra maaş (G ile)         : {maas*g**3:,.0f} TL")
+aritmetik = sum(carpanlar) / 3
+print(f"3 yıl sonra maaş (aritmetik ort.): {maas*aritmetik**3:,.0f} TL  ← yanlış")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+</section>
+
+<!-- 8 GENEL ORTALAMA -->
+<section id="genel" style="--dot:var(--c3)">
+  <div class="kicker">s. 25–27</div>
+  <h2 class="sec">Genel ortalama</h2>
+  <p>Bir grup örneklemin <strong>genel ortalaması</strong> (grand mean), verideki tüm değerlerin toplamının toplam gözlem sayısına bölümüdür. Örneğin varyans analizinde (ANOVA) kareler toplamını hesaplamak için kullanılır. Örneklemler eşit büyüklükte olduğunda “ortalamaların ortalaması” da aynı sonucu verir.</p>
+  <div class="case"><span class="tag">İK vakası</span>Şirketin üç şubesinden rastgele seçilen beşer çalışanın geçen yıl aldığı <strong>eğitim saatleri</strong>. ISO 30414 insan sermayesi raporu için çalışan başına ortalama eğitim saati hesaplanacak.</div>
+  <div class="tbl"><table>
+    <thead><tr><th>Şube</th><th>Çalışan 1</th><th>Çalışan 2</th><th>Çalışan 3</th><th>Çalışan 4</th><th>Çalışan 5</th><th>Ortalama</th></tr></thead>
+    <tbody>
+      <tr><td>İstanbul</td><td class="num">10</td><td class="num">60</td><td class="num">70</td><td class="num">80</td><td class="num">40</td><td class="num"><b>52</b></td></tr>
+      <tr><td>Ankara</td><td class="num">50</td><td class="num">20</td><td class="num">80</td><td class="num">120</td><td class="num">60</td><td class="num"><b>66</b></td></tr>
+      <tr><td>İzmir</td><td class="num">80</td><td class="num">30</td><td class="num">90</td><td class="num">100</td><td class="num">70</td><td class="num"><b>74</b></td></tr>
+    </tbody>
+  </table></div>
+  <div class="formula">X̄<sub>G</sub> = (52 + 66 + 74) / 3 = <b>64</b> &nbsp;=&nbsp; 15 değerin toplamı / 15 = <b>64</b> saat</div>
+  <div class="py" data-cell><div class="bar"><span>Python · şubeler arası genel ortalama</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="18">import statistics as st
+
+istanbul = [10, 60, 70, 80, 40]     # yıllık eğitim saati
+ankara   = [50, 20, 80, 120, 60]
+izmir    = [80, 30, 90, 100, 70]
+
+a, b, c = st.mean(istanbul), st.mean(ankara), st.mean(izmir)
+print("Şube ortalamaları:", a, b, c)
+
+gm = st.mean([a, b, c])                          # ortalamaların ortalaması
+print("Genel ortalama (ortalamaların ort.):", gm)
+
+tum = istanbul + ankara + izmir
+print("Genel ortalama (tüm çalışanlar)    :", st.mean(tum))
+
+# Şube büyüklükleri eşit olmasaydı iki yol farklı sonuç verirdi:
+izmir_buyuk = izmir + [95, 85, 90]
+print("Eşit olmayan n, ortalamaların ort.:", st.mean([a, b, st.mean(izmir_buyuk)]))
+print("Eşit olmayan n, tüm değerler      :", st.mean(istanbul + ankara + izmir_buyuk))</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <p class="muted" style="font-size:.92rem">Şubelerin çalışan sayıları farklıysa “ortalamaların ortalaması” küçük şubeyi fazla ağırlıklandırır. Gerçek genel ortalama tüm çalışanların değerlerinden hesaplanır.</p>
+</section>
+
+<!-- 9 HARMONİK -->
+<section id="harmonik" style="--dot:var(--c4)">
+  <div class="kicker">s. 27–29</div>
+  <h2 class="sec">Harmonik ortalama</h2>
+  <p>Harmonik ortalama, gözlem sayısının gözlemlerin terslerinin toplamına bölümüdür. Hız, verimlilik ve birim maliyet gibi “bölüm” biçimindeki oranların ortalamasında kullanılır.</p>
+  <div class="formula"><b>H = n / (1/x<sub>1</sub> + 1/x<sub>2</sub> + … + 1/x<sub>n</sub>)</b> &nbsp;·&nbsp; ağırlıklı: <b>H = ΣW / Σ(W/x)</b></div>
+  <div class="case"><span class="tag">İK vakası</span>Üç işe alım uzmanı özgeçmiş ön elemesi yapıyor. Saatte sırasıyla <strong>5, 8 ve 13</strong> özgeçmiş inceliyorlar. Her biri aynı sayıda (ör. 120) özgeçmişi incelediğinde ekibin ortalama hızı nedir? Doğru yanıt aritmetik ortalama (8,67) değil, harmonik ortalamadır: H = 3 / (1/5 + 1/8 + 1/13) = <strong>7,464</strong> özgeçmiş/saat.<br><br>İlk uzmana iki kat iş verilirse (ağırlıklar 2, 1, 1): H = 4 / (2/5 + 1/8 + 1/13) = 4 / 0,6019 = <strong>6,65</strong> özgeçmiş/saat. En yavaş uzman daha çok iş aldığı için ekip yavaşlar.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · işe alım ekibinin ortalama hızı</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="22">import statistics as s
+
+hiz = [5, 8, 13]          # özgeçmiş / saat
+print("Harmonik ortalama:", s.harmonic_mean(hiz))           # 7.464114832535885
+
+# Doğrulama: her uzman 120 özgeçmiş inceliyor
+toplam_ozgecmis = 3 * 120
+toplam_saat = sum(120 / h for h in hiz)
+print("Toplam özgeçmiş / toplam saat:", toplam_ozgecmis / toplam_saat)
+
+# Ağırlıklı harmonik ortalama – kitabın yolu: 5'i iki kez yazmak
+print("Ağırlıklı (tekrar ile):", s.harmonic_mean([5, 5, 8, 13]))
+
+# Python 3.10+ ağırlıkları doğrudan alır
+print("Ağırlıklı (weights=)  :", s.harmonic_mean(hiz, weights=[2, 1, 1]))
+
+# Karşılaştırma: aritmetik ≥ geometrik ≥ harmonik (pozitif sayılarda)
+print()
+print("Aritmetik:", s.mean(hiz))
+print("Geometrik:", s.geometric_mean(hiz))
+print("Harmonik :", s.harmonic_mean(hiz))</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+</section>
+
+<!-- 10 ORTALAMA SAPMA -->
+<section id="sapma" style="--dot:var(--c5)">
+  <div class="kicker">s. 29–31</div>
+  <h2 class="sec">Ortalama sapma</h2>
+  <p>Ortalama sapma, gözlenen değerlerin ortalamadan mutlak sapmalarının ortalamasıdır. Dikey çizgiler (| |) mutlak değeri, yani eksi işaretinin göz ardı edildiğini gösterir.</p>
+  <div class="formula"><b>Ortalama sapma = Σ|x − μ| / N = Σ|D| / N</b></div>
+  <div class="case"><span class="tag">İK vakası</span>Bir vardiya ekibindeki üç çalışanın son çeyrekteki <strong>devamsızlık günleri</strong>: 3, 4 ve 6. Ortalama 4,33 gündür. Σ|x − μ| = |3 − 4,33| + |4 − 4,33| + |6 − 4,33| = 3,33 ve ortalama sapma = 3,33 / 3 = <strong>1,11 gün</strong>. Yani çalışanlar ekip ortalamasından tipik olarak yaklaşık bir gün sapıyor.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · devamsızlık için ortalama mutlak sapma</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="15">import pandas as pd
+import numpy as np
+
+devamsizlik = pd.Series([3, 4, 6], index=["Ayşe", "Mehmet", "Zeynep"])
+
+# Kitaptaki seri.mad() pandas 2.0'da kaldırıldı; eşdeğeri:
+sapmalar = (devamsizlik - devamsizlik.mean()).abs()
+print(sapmalar.round(2))
+print("Ortalama sapma (pandas):", sapmalar.mean())       # 1.111...
+
+# Aynı hesap numpy ile
+x = devamsizlik.to_numpy()
+print("Ortalama sapma (numpy) :", np.mean(np.abs(x - x.mean())))</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+</section>
+
+<!-- 11 ORTALAMA FARKI -->
+<section id="fark" style="--dot:var(--c1)">
+  <div class="kicker">s. 31</div>
+  <h2 class="sec">Ortalama farkı</h2>
+  <p>Ortalamalar arasındaki fark olarak da bilinir. İki grubun ortalama değerleri arasındaki mutlak farkı belirler ve ortalamada ne kadar değişim olduğunu anlamamıza yardım eder.</p>
+  <div class="formula"><b>Ortalama farkı = Bir grubun ortalaması − Diğer grubun ortalaması</b></div>
+  <div class="case"><span class="tag">İK vakası</span>Liderlik gelişim programına katılan üç yöneticinin 360 derece değerlendirme puanları (10 üzerinden): program sonrası <strong>6, 4, 3</strong>, program öncesi <strong>4, 3, 2</strong>. Program sonrası ortalama 4,33, öncesi 3; ortalama farkı <strong>1,33 puan</strong>.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · program öncesi ve sonrası</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="13">import numpy as np
+
+sonra  = np.array([6, 4, 3])    # program sonrası 360° puanı
+oncesi = np.array([4, 3, 2])    # program öncesi 360° puanı
+
+print("Kişi bazında gelişim:", sonra - oncesi)              # [2 1 1]
+
+# Tanıma uygun ortalama farkı:
+print("Ortalama farkı:", sonra.mean() - oncesi.mean())       # 1.333...
+
+# Aynı kişiler ölçüldüğü için (eşleştirilmiş veri) farkların ortalaması da aynıdır
+print("Farkların ortalaması:", (sonra - oncesi).mean())</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <div class="note"><strong>Not.</strong> Kitaptaki kod <code class="i">x - y</code> ile eleman bazında farkları yazdırıyor. Tanımdaki ortalama farkı tek bir sayıdır. Aynı çalışanlar iki kez ölçüldüğünde kişi bazındaki farklar anlamlıdır; iki ayrı grup (ör. iki farklı departman) karşılaştırılıyorsa yalnızca ortalamaların farkı yorumlanır.</div>
+</section>
+
+<!-- 12 RMS -->
+<section id="rms" style="--dot:var(--c2)">
+  <div class="kicker">s. 31–32</div>
+  <h2 class="sec">Karesel ortalama (RMS)</h2>
+  <p>Karesel ortalama (root mean square), gözlemlerin karelerinin toplamının değer sayısına bölümünün kareköküdür. Kitap, alternatif akımın gerilimi ve gaz moleküllerinin hızı gibi fizik örnekleri veriyor. İK analitiğinde en sık karşılaşılan biçimi, tahmin hatalarının karesel ortalaması olan <strong>RMSE</strong>'dir.</p>
+  <div class="formula"><b>RMS = √((x<sub>1</sub>² + x<sub>2</sub>² + … + x<sub>n</sub>²) / n)</b></div>
+  <div class="case"><span class="tag">İK vakası</span>İşgücü planlama modeli üç departman için gelecek çeyrekte ihtiyaç duyulacak personel sayısını tahmin etti. Gerçekleşen ile tahmin arasındaki farklar: <strong>+3, −4 ve +6 kişi</strong>. Hataların işaretleri birbirini götürmesin diye kareler alınır.</div>
+  <div class="py" data-cell><div class="bar"><span>Python · işgücü tahmininde RMSE</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="17">from math import sqrt
+import numpy as np
+
+def rms(sayilar):
+    return sqrt(sum(n * n for n in sayilar) / len(sayilar))
+
+hatalar = [3, -4, 6]          # gerçekleşen - tahmin (kişi)
+print("RMSE:", rms(hatalar))                  # 4.509249752822894
+
+# numpy ile tek satırda
+print(np.sqrt(np.mean(np.square(hatalar))))
+
+# Karşılaştırma: düz ortalama hataları birbirine götürür
+print("Ortalama hata (yanıltıcı):", np.mean(hatalar))
+print("Ortalama mutlak hata (MAE):", np.mean(np.abs(hatalar)))</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+</section>
+
+<!-- 13 X̄ ve μ -->
+<section id="xbar" style="--dot:var(--c3)">
+  <div class="kicker">s. 33</div>
+  <h2 class="sec">Örneklem ve evren ortalaması</h2>
+  <p>Örneklem ortalaması ile evren ortalaması farklı şeylerdir. Örneklem ortalaması <strong>x̄</strong>, evren ortalaması <strong>μ</strong> ile gösterilir. Evren bir veri topluluğunun tüm öğelerinden (N), örneklem ise o veriden alınan bazı gözlemlerden (n) oluşur.</p>
+  <div class="pair">
+    <div class="hyp"><div class="sym" style="color:var(--c3)">μ = Σx / N</div><p style="margin:6px 0 0">Evren ortalaması: holdingin tüm çalışanları.</p></div>
+    <div class="hyp"><div class="sym" style="color:var(--c1)">x̄ = Σx / n</div><p style="margin:6px 0 0">Örneklem ortalaması: ankete katılan n çalışan.</p></div>
+  </div>
+  <div class="case"><span class="tag">İK vakası</span>10.000 çalışanlı bir holding, çalışan bağlılığını (0–100) ölçmek istiyor. Herkese anket uygulamak pahalı. Kaç kişilik bir örneklem, tüm holdingin ortalamasına ne kadar yaklaşır?</div>
+  <div class="py" data-cell><div class="bar"><span>Python · bağlılık anketinde x̄ ile μ</span><div class="btns"><button class="ghost" data-reset>Sıfırla</button><button data-run>Çalıştır ▸</button></div></div>
+<textarea spellcheck="false" rows="15">import numpy as np
+
+rng = np.random.default_rng(7)
+# Yapay evren: 10.000 çalışanın bağlılık puanı (0-100)
+evren = np.clip(rng.normal(loc=68, scale=14, size=10_000), 0, 100)
+mu = evren.mean()
+print(f"Holding geneli bağlılık μ = {mu:.2f}  (N = {evren.size})")
+print()
+
+for n in [5, 30, 100, 1000]:
+    orneklem = rng.choice(evren, size=n, replace=False)
+    xbar = orneklem.mean()
+    print(f"n = {n:>4} çalışan  →  x̄ = {xbar:6.2f}   fark = {xbar - mu:+.2f}")</textarea>
+  <pre class="out" aria-live="polite"></pre></div>
+  <p class="muted" style="font-size:.92rem">Deneyin: döngüyü birkaç kez farklı <code class="i">default_rng</code> tohumlarıyla çalıştırın. Küçük örneklemlerde x̄ çok oynar, büyüdükçe μ'ye yerleşir.</p>
+</section>
+
+</main>
+
+<footer>
+  Kaynak: Usman Zafar Paracha, <em>Colorful Statistics and Python Programming Language</em>, s. 14–33. Kavram anlatımları kitaptan çevrilmiş; örnekler insan kaynakları bağlamına uyarlanmış ve kodlar güncel Python/pandas sürümlerine göre düzeltilmiştir. Örnek veriler eğitim amaçlı ve kurgusaldır. Python kodları tarayıcıda <a href="https://pyodide.org" style="color:var(--c1)">Pyodide</a> ile çalışır; ilk çalıştırmada numpy, scipy ve pandas paketlerinin inmesi biraz zaman alabilir. Sayfa internet bağlantısı gerektirir.
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js"></script>
+<script>
+/* ---------- Pyodide ---------- */
+const statusEl = document.getElementById('status');
+function setStatus(txt, cls){ statusEl.className = 'status' + (cls ? ' ' + cls : ''); statusEl.querySelector('span').textContent = txt; }
+let pyReady = null;
+function getPy(){
+  if (!pyReady){
+    pyReady = (async () => {
+      const py = await loadPyodide();
+      setStatus('Python hazır · paketler ilk kullanımda yüklenir', 'ready');
+      return py;
+    })().catch(e => { setStatus('Pyodide yüklenemedi: internet bağlantısını kontrol edin', 'err'); throw e; });
+  }
+  return pyReady;
+}
+getPy();
+
+const esc = s => s.replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+document.querySelectorAll('[data-cell]').forEach(cell => {
+  const ta = cell.querySelector('textarea');
+  const out = cell.querySelector('pre.out');
+  const runBtn = cell.querySelector('[data-run]');
+  const original = ta.value;
+  ta.addEventListener('keydown', e => {
+    if (e.key === 'Tab'){ e.preventDefault(); const s = ta.selectionStart, en = ta.selectionEnd;
+      ta.value = ta.value.slice(0, s) + '    ' + ta.value.slice(en); ta.selectionStart = ta.selectionEnd = s + 4; }
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); runBtn.click(); }
+  });
+  cell.querySelector('[data-reset]').addEventListener('click', () => { ta.value = original; out.innerHTML = ''; });
+  runBtn.addEventListener('click', async () => {
+    runBtn.disabled = true; runBtn.textContent = 'Çalışıyor…';
+    out.innerHTML = '<span class="w">Hazırlanıyor…</span>';
+    let buf = '';
+    try {
+      const py = await getPy();
+      await py.loadPackagesFromImports(ta.value, { messageCallback: m => { out.innerHTML = '<span class="w">' + esc(m) + '</span>'; } });
+      py.setStdout({ batched: s => { buf += s + '\n'; } });
+      py.setStderr({ batched: s => { buf += s + '\n'; } });
+      const res = await py.runPythonAsync(ta.value);
+      if (res !== undefined && res !== null && !buf) buf = String(res);
+      out.innerHTML = esc(buf.trimEnd()) || '<span class="w">(çıktı yok)</span>';
+    } catch (err) {
+      const msg = String(err.message || err).split('\n').filter(Boolean);
+      out.innerHTML = (buf ? esc(buf) : '') + '<span class="e">' + esc(msg.slice(-3).join('\n')) + '</span>';
+    } finally { runBtn.disabled = false; runBtn.textContent = 'Çalıştır ▸'; }
+  });
+});
+
+/* ---------- Yardımcılar ---------- */
+const parseNums = s => s.split(/[\s,;]+/).map(Number).filter(n => Number.isFinite(n));
+const fmt = (n, d = 4) => Number.isInteger(n) ? String(n) : n.toLocaleString('tr-TR', { maximumFractionDigits: d });
+
+/* ---------- Frekans tablosu ---------- */
+const LIKERT = {1:'Kesinlikle katılmıyorum',2:'Katılmıyorum',3:'Kararsızım',4:'Katılıyorum',5:'Kesinlikle katılıyorum'};
+function buildFreq(){
+  const x = parseNums(document.getElementById('fq-in').value);
+  const tbl = document.getElementById('fq-tbl'), txt = document.getElementById('fq-txt');
+  if (!x.length){ tbl.innerHTML = '<tr><td>Geçerli yanıt girin (virgülle ayırın).</td></tr>'; txt.textContent = ''; return; }
+  const N = x.length, counts = new Map();
+  x.forEach(v => counts.set(v, (counts.get(v) || 0) + 1));
+  const keys = [...counts.keys()].sort((a, b) => a - b);
+  let cum = 0, rows = '';
+  keys.forEach(k => { const n = counts.get(k); cum += n;
+    rows += `<tr><td class="num">${fmt(k)}</td><td>${LIKERT[k] || '—'}</td><td class="num">${n}</td><td class="num">${fmt(n / N, 3)} (=${n}/${N})</td><td class="num">${cum}</td></tr>`; });
+  tbl.innerHTML = `<thead><tr><th>Yanıt</th><th>Anlamı</th><th>Mutlak frekans</th><th>Göreli frekans</th><th>Birikimli frekans</th></tr></thead><tbody>${rows}</tbody>`;
+  const pos = x.filter(v => v >= 4).length;
+  txt.textContent = `N = ${N} çalışan · olumlu yanıt oranı (4–5): %${(pos / N * 100).toLocaleString('tr-TR', { maximumFractionDigits: 1 })}`;
+}
+document.getElementById('fq-btn').addEventListener('click', buildFreq);
+buildFreq();
+
+/* ---------- Örneklem / evren ---------- */
+const DEPTS = { 'Üretim':'#f4f4f4', 'Satış':'#c5bedb', 'BT':'#2f8fa6', 'Finans':'#f7dc8f', 'Lojistik':'#9a4a17', 'İK':'#141414' };
+const popDepts = ['Üretim','Üretim','Satış','Satış','Satış','BT','BT','Finans','Finans','Lojistik','Lojistik','İK','İK','Üretim','Üretim','BT','Satış','Finans','Üretim','Lojistik'];
+const popEl = document.getElementById('pop');
+popDepts.forEach(d => { const s = document.createElement('span'); s.style.background = DEPTS[d]; s.title = d; popEl.appendChild(s); });
+document.getElementById('pop-legend').innerHTML = Object.entries(DEPTS).map(([d, c]) => `<span><i style="background:${c}"></i>${d} (${popDepts.filter(x => x === d).length})</span>`).join('');
+function showSample(idx, kind){
+  popEl.querySelectorAll('span').forEach((s, i) => s.classList.toggle('pick', idx.includes(i)));
+  const samp = document.getElementById('samp'); samp.innerHTML = '';
+  idx.forEach(i => { const s = document.createElement('span'); s.style.background = DEPTS[popDepts[i]]; s.title = popDepts[i]; samp.appendChild(s); });
+  const got = [...new Set(idx.map(i => popDepts[i]))];
+  const all = new Set(popDepts).size;
+  document.getElementById('samp-txt').textContent = kind === 'r'
+    ? `Rastgele örneklem (n = ${idx.length}) ${all} departmanın ${got.length} tanesini içeriyor: ${got.join(', ')}. Tekrar deneyin: her çekiliş farklıdır.`
+    : `Yanlı örneklem (n = ${idx.length}): yalnızca BT çalışanları. Şirkette ${all} departman olmasına rağmen örneklem tek departmanın görüşünü yansıtıyor.`;
+}
+document.getElementById('s-rand').addEventListener('click', () => {
+  const ids = [...popDepts.keys()];
+  for (let i = ids.length - 1; i > 0; i--){ const j = Math.floor(Math.random() * (i + 1)); [ids[i], ids[j]] = [ids[j], ids[i]]; }
+  showSample(ids.slice(0, 5).sort((a, b) => a - b), 'r');
+});
+document.getElementById('s-blue').addEventListener('click', () => showSample(popDepts.map((d, i) => d === 'BT' ? i : -1).filter(i => i >= 0), 'b'));
+
+/* ---------- Merkezi eğilim ---------- */
+function central(){
+  const x = parseNums(document.getElementById('ct-in').value).sort((a, b) => a - b);
+  const st = document.getElementById('ct-stats'), bars = document.getElementById('ct-bars');
+  if (!x.length){ st.innerHTML = '<div class="stat"><span>Hata</span><b>Sayı girin</b></div>'; bars.innerHTML = ''; return; }
+  const n = x.length, mean = x.reduce((a, b) => a + b, 0) / n;
+  const median = n % 2 ? x[(n - 1) / 2] : (x[n / 2 - 1] + x[n / 2]) / 2;
+  const cnt = new Map(); x.forEach(v => cnt.set(v, (cnt.get(v) || 0) + 1));
+  const maxc = Math.max(...cnt.values());
+  const modes = maxc > 1 ? [...cnt].filter(([, c]) => c === maxc).map(([v]) => v) : [];
+  const range = x[n - 1] - x[0];
+  st.innerHTML = [['Ortalama kıdem', fmt(mean, 2) + ' yıl'], ['Ortanca kıdem', fmt(median, 2) + ' yıl'], ['Tepe değer', modes.length ? modes.map(m => fmt(m)).join(', ') : 'yok'], ['Açıklık', `${fmt(x[n-1])} − ${fmt(x[0])} = ${fmt(range)}`], ['Çalışan sayısı', n]]
+    .map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  const lo = Math.min(0, x[0]), hi = Math.max(...x.map(Math.abs)) || 1;
+  const midIdx = n % 2 ? [(n - 1) / 2] : [n / 2 - 1, n / 2];
+  bars.innerHTML = x.map((v, i) => {
+    const h = Math.max(4, (Math.abs(v - lo) / (hi - lo || 1)) * 100);
+    const cls = midIdx.includes(i) ? 'mid' : (modes.includes(v) ? 'mode' : '');
+    return `<div class="${cls}" style="height:${h}%"><em>${fmt(v, 1)}</em></div>`;
+  }).join('');
+}
+document.getElementById('ct-btn').addEventListener('click', central);
+document.getElementById('ct-in').addEventListener('keydown', e => { if (e.key === 'Enter') central(); });
+central();
+
+/* ---------- Geometrik ortalama: ücret artışı ---------- */
+function geo(){
+  const p = Number(document.getElementById('g-p').value) || 0;
+  const r = [1, 2, 3].map(i => { const v = Number(document.getElementById('g-' + i).value); document.getElementById('g-' + i + 'v').textContent = '%' + v; return 1 + v / 100; });
+  const prod = r.reduce((a, b) => a * b, 1);
+  const g = Math.cbrt(prod), a = (r[0] + r[1] + r[2]) / 3;
+  const tl = v => v.toLocaleString('tr-TR', { maximumFractionDigits: 0 }) + ' TL';
+  const pct = v => '%' + ((v - 1) * 100).toLocaleString('tr-TR', { maximumFractionDigits: 2 });
+  document.getElementById('g-stats').innerHTML = [
+    ['Yıllık ortalama zam (geometrik)', pct(g)],
+    ['Yıllık ortalama zam (aritmetik)', pct(a)],
+    ['3 yıl sonra maaş (gerçek)', tl(p * prod)],
+    ['3 yıl sonra maaş (G³ ile)', tl(p * g ** 3)]
+  ].map(([k, v]) => `<div class="stat"><span>${k}</span><b>${v}</b></div>`).join('');
+  document.getElementById('g-txt').textContent = `Aritmetik ortalama zam kullanılsaydı 3. yılın sonunda maaş ${tl(p * a ** 3)} hesaplanırdı; bu, gerçek maaştan ${tl(p * a ** 3 - p * prod)} fazladır. Ücret bütçesi planlamasında bu fark doğrudan maliyet hatasıdır.`;
+}
+['g-p', 'g-1', 'g-2', 'g-3'].forEach(id => document.getElementById(id).addEventListener('input', geo));
+geo();
+</script>
+</body>
+</html>
